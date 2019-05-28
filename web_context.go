@@ -21,7 +21,7 @@ import(
 )
 
 type WebContext struct {
-	User UserInterface
+	User *User
 	Session *scs.Session
 	Template *template.Template
 	Job *health.Job
@@ -41,13 +41,18 @@ func NewContext(db *jgoWebDb.Collection) *WebContext{
 
 // *** Getters/Setters ***
 
-func (ctx *WebContext) SetUser(user UserInterface) {
+func (ctx *WebContext) SetUser(user *User) {
 	ctx.User = user
 }
 
 //
 func (ctx *WebContext) SessionGetString(key string) (string, error) {
 	return ctx.Session.GetString(key)
+}
+
+//
+func (ctx *WebContext) SessionPutString(rw web.ResponseWriter, key string, value string) {
+	ctx.Session.PutString(rw, key, value)
 }
 
 //
