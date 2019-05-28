@@ -12,7 +12,7 @@ type Shard struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 	DeletedAt sql.NullString `json:"deleted_at"`
-	Ctx ContextInterface
+	Ctx ContextInterface `json:"-" valid:"-"`
 }
 
 // 
