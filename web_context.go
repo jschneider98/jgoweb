@@ -39,6 +39,11 @@ func NewContext(db *jgoWebDb.Collection) *WebContext{
 	return &WebContext{Db: db}
 }
 
+// *** Getters/Setters
+func (ctx *WebContext) SetUser(user UserInterface) {
+	ctx.User = user
+}
+
 // ******* Db Methods *******
 
 //
