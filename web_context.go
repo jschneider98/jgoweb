@@ -34,6 +34,15 @@ type WebContext struct {
 	WebReqHistogram *prometheus.HistogramVec
 }
 
+var (
+	webReqHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "web_request_duration_milliseconds",
+		Help: "Histogram of web requests. Labels: method, handler, code.",
+	},
+		[]string{"method", "handler", "code"},
+	)
+)
+
 //
 func NewContext(db *jgoWebDb.Collection) *WebContext{
 	return &WebContext{Db: db}
@@ -265,16 +274,6 @@ func (ctx *WebContext) InitDbCollection() {
 
 // Init Metrics
 func (ctx *WebContext) InitMetrics() {
-	
-	var (
-		webReqHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name: "web_request_duration_milliseconds",
-			Help: "Histogram of web requests. Labels: method, handler, code.",
-		},
-			[]string{"method", "handler", "code"},
-		)
-	)
-
 	ctx.WebReqHistogram = webReqHistogram
 	prometheus.Register(ctx.WebReqHistogram)
 }
