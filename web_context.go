@@ -39,9 +39,30 @@ func NewContext(db *jgoWebDb.Collection) *WebContext{
 	return &WebContext{Db: db}
 }
 
-// *** Getters/Setters
+// *** Getters/Setters ***
+
 func (ctx *WebContext) SetUser(user UserInterface) {
 	ctx.User = user
+}
+
+//
+func (ctx *WebContext) SessionGetString(key string) (string, error) {
+	return ctx.Session.GetString(key)
+}
+
+//
+func (ctx *WebContext) GetDb() *jgoWebDb.Collection {
+	return ctx.Db
+}
+
+//
+func (ctx *WebContext) GetDbSession() *dbr.Session {
+	return ctx.DbSess
+}
+
+//
+func (ctx *WebContext) SetDbSession(dbSess *dbr.Session) {
+	ctx.DbSess = dbSess
 }
 
 // ******* Db Methods *******
