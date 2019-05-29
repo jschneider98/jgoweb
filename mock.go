@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"io/ioutil"
 	"testing"
 	"github.com/jschneider98/jgoweb/db"
 )
@@ -82,6 +83,8 @@ func NewTestRequest(method, path string, body io.Reader) (*httptest.ResponseReco
 func AssertResponse(t *testing.T, rr *httptest.ResponseRecorder, code int) {
 
 	if code != rr.Code {
-		t.Errorf("assertResponse: expected code to be %d but got %d. (caller: %s)", code, rr.Code, CallerInfo())
+		body, _ := ioutil.ReadAll(rr.Body)
+
+		t.Errorf("assertResponse: expected code to be %d but got %d. (caller: %s) Body: %s", code, rr.Code, CallerInfo(), body)
 	}
 }
