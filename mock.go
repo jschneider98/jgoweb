@@ -1,6 +1,13 @@
 package jgoweb
 
 import (
+	"fmt"
+	"strings"
+	"runtime"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 	"github.com/jschneider98/jgoweb/db"
 )
 
@@ -49,5 +56,32 @@ func InitMockCtx() {
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+// Return's the caller's caller info.
+func CallerInfo() string {
+	_, file, line, ok := runtime.Caller(2)
+	if !ok {
+		return ""
+	}
+	parts := strings.Split(file, "/")
+	file = parts[len(parts)-1]
+	return fmt.Sprintf("%s:%d", file, line)
+}
+
+// Make a testing request (lifted/modified from gocraft/web)
+func NewTestRequest(method, path string, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
+	request, _ := http.NewRequest(method, path, nil)
+	recorder := httptest.NewRecorder()
+
+	return recorder, request
+}
+
+//
+func AssertResponse(t *testing.T, rr *httptest.ResponseRecorder, code int) {
+
+	if code != rr.Code {
+		t.Errorf("assertResponse: expected code to be %d but got %d. (caller: %s)", code, rr.Code, CallerInfo())
 	}
 }
