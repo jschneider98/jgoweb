@@ -8,9 +8,9 @@ import (
 
 //
 func TestNewQueryIntBuilder(t *testing.T) {
-	InitTestCtx()
+	InitMockCtx()
 	rawQuery := "test"
-	builder := NewQueryIntBuilder(testCtx, rawQuery)
+	builder := NewQueryIntBuilder(MockCtx, rawQuery)
 
 	if rawQuery != builder.RawQuery {
 		t.Errorf("Constructor fail. Expected '%s' Got: '%s'", rawQuery, builder.RawQuery)
@@ -20,7 +20,7 @@ func TestNewQueryIntBuilder(t *testing.T) {
 //
 func TestBuild(t *testing.T) {
 	rawQuery := "super (barbosa or schneider) and not news"
-	builder := NewQueryIntBuilder(testCtx, rawQuery)
+	builder := NewQueryIntBuilder(MockCtx, rawQuery)
 
 	_, err := builder.Build()
 
