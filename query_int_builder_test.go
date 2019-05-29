@@ -27,4 +27,14 @@ func TestBuild(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	rawQuery = "super ("
+
+	builder = NewQueryIntBuilder(MockCtx, rawQuery)
+
+	_, err = builder.Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 }
