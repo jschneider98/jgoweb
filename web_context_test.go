@@ -33,4 +33,7 @@ func TestTransactions(t *testing.T) {
 	if err != nil {
 		t.Errorf("\nERROR: Failed to commit transaction %v\n", err)
 	}
+
+	dbSess := MockCtx.GetDbSession()
+	dbSess.SelectBySql("SELECT 1")
 }
