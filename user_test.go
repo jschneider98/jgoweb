@@ -8,6 +8,15 @@ import (
 )
 
 //
+func TestNewUser(t *testing.T) {
+	user := &User{}
+
+	InitMockCtx()
+	user = NewUser(MockCtx)
+	user.Email = "test@sure.com"
+}
+
+//
 func TestFetchUserByEmail(t *testing.T) {
 	InitMockUser()
 
@@ -84,8 +93,23 @@ func TestFetchUserById(t *testing.T) {
 	}
 }
 
+// @TODO: will need to be updated when authenticate is implemented properly
+func TestAuthenticate(t *testing.T) {
+	result := MockUser.Authenticate("bad_password")
+
+	if result == true {
+		t.Errorf("User authentication failed. Incorrect password returned true.")
+	}
+
+	result = MockUser.Authenticate("letmein")
+
+	if result == false {
+		t.Errorf("User authentication failed. Correct password returned false.")
+	}
+}
+
 //
-func MockUserIsValid(t *testing.T) {
+func TestUserIsValid(t *testing.T) {
 	isValid, err := MockUser.isValid()
 
 	if !isValid {
@@ -94,7 +118,7 @@ func MockUserIsValid(t *testing.T) {
 }
 
 //
-func MockUserBadId(t *testing.T) {
+func TestUserBadId(t *testing.T) {
 	id := MockUser.Id
 	MockUser.Id = "bad_uuid"
 
@@ -112,7 +136,7 @@ func MockUserBadId(t *testing.T) {
 }
 
 //
-func MockUserOptionalId(t *testing.T) {
+func TestUserOptionalId(t *testing.T) {
 	id := MockUser.Id
 	MockUser.Id = ""
 
@@ -126,7 +150,7 @@ func MockUserOptionalId(t *testing.T) {
 }
 
 //
-func MockUserBadAccountId(t *testing.T) {
+func TestUserBadAccountId(t *testing.T) {
 	id := MockUser.AccountId
 	MockUser.AccountId = "bad_uuid"
 
@@ -144,7 +168,7 @@ func MockUserBadAccountId(t *testing.T) {
 }
 
 //
-func MockUserBadRoleId(t *testing.T) {
+func TestUserBadRoleId(t *testing.T) {
 	id := MockUser.RoleId
 	MockUser.RoleId = 0
 
@@ -175,7 +199,7 @@ func MockUserBadRoleId(t *testing.T) {
 }
 
 //
-func MockUserBadGivenName(t *testing.T) {
+func TestUserBadGivenName(t *testing.T) {
 	longStr := "IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3"
 	name := MockUser.GivenName
 	MockUser.GivenName = ""
@@ -208,7 +232,7 @@ func MockUserBadGivenName(t *testing.T) {
 }
 
 //
-func MockUserBadFamilyName(t *testing.T) {
+func TestUserBadFamilyName(t *testing.T) {
 	longStr := "IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3"
 	name := MockUser.FamilyName
 	MockUser.FamilyName = ""
@@ -241,7 +265,7 @@ func MockUserBadFamilyName(t *testing.T) {
 }
 
 //
-func MockUserBadEmail(t *testing.T) {
+func TestUserBadEmail(t *testing.T) {
 	longStr := "IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3@gmail.com"
 	email := MockUser.Email
 	MockUser.Email = ""
@@ -288,7 +312,7 @@ func MockUserBadEmail(t *testing.T) {
 }
 
 //
-func MockUserBadCreatedAt(t *testing.T) {
+func TestUserBadCreatedAt(t *testing.T) {
 	createdAt := MockUser.CreatedAt
 	MockUser.CreatedAt = "bad_timestamp"
 
@@ -306,7 +330,7 @@ func MockUserBadCreatedAt(t *testing.T) {
 }
 
 //
-func MockUserOptionalCreatedAt(t *testing.T) {
+func TestUserOptionalCreatedAt(t *testing.T) {
 	createdAt := MockUser.CreatedAt
 	MockUser.CreatedAt = ""
 
@@ -320,7 +344,7 @@ func MockUserOptionalCreatedAt(t *testing.T) {
 }
 
 //
-func MockUserBadUpdatedAt(t *testing.T) {
+func TestUserBadUpdatedAt(t *testing.T) {
 	updatedAt := MockUser.UpdatedAt
 	MockUser.UpdatedAt = "bad_timestamp"
 
@@ -338,7 +362,7 @@ func MockUserBadUpdatedAt(t *testing.T) {
 }
 
 //
-func MockUserOptionalUpdatedAt(t *testing.T) {
+func TestUserOptionalUpdatedAt(t *testing.T) {
 	updatedAt := MockUser.UpdatedAt
 	MockUser.UpdatedAt = ""
 
@@ -352,7 +376,7 @@ func MockUserOptionalUpdatedAt(t *testing.T) {
 }
 
 //
-func MockUserBadDeletedAt(t *testing.T) {
+func TestUserBadDeletedAt(t *testing.T) {
 	deletedAt := MockUser.DeletedAt
 	MockUser.DeletedAt = sql.NullString{"bad_timestamp", true}
 
@@ -370,7 +394,7 @@ func MockUserBadDeletedAt(t *testing.T) {
 }
 
 //
-func MockUserOptionalDeletedAt(t *testing.T) {
+func TestUserOptionalDeletedAt(t *testing.T) {
 	deletedAt := MockUser.DeletedAt
 	MockUser.DeletedAt = sql.NullString{"", true}
 
@@ -393,7 +417,7 @@ func MockUserOptionalDeletedAt(t *testing.T) {
 }
 
 //
-func MockUserUpdate(t *testing.T) {
+func TestUserUpdate(t *testing.T) {
 	var err error
 	_, err = MockUser.Ctx.Begin()
 
@@ -433,7 +457,7 @@ func MockUserUpdate(t *testing.T) {
 }
 
 //
-func MockUserInsert(t *testing.T) {
+func TestUserInsert(t *testing.T) {
 	var err error
 	_, err = MockUser.Ctx.Begin()
 
