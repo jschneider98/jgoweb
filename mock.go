@@ -73,7 +73,13 @@ func CallerInfo() string {
 
 // Make a testing request (lifted/modified from gocraft/web)
 func NewTestRequest(method, path string, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
-	request, _ := http.NewRequest(method, path, nil)
+	request, _ := http.NewRequest(method, path, body)
+
+
+	if method == "POST" && body != nil {
+		request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	}
+
 	recorder := httptest.NewRecorder()
 
 	return recorder, request
