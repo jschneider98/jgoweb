@@ -2,7 +2,7 @@ package jgoweb
 
 import(
 	"github.com/gocraft/dbr"
-	"github.com/jschneider98/jgoweb/db"
+	jgoWebDb "github.com/jschneider98/jgoweb/db"
 	"github.com/gocraft/web"
 )
 
@@ -17,7 +17,7 @@ type ContextInterface interface {
 	SetUser(user *User)
 	SessionGetString(key string) (string, error)
 	SessionPutString(rw web.ResponseWriter, key string, value string)
-	GetDb() *db.Collection
+	GetDb() *jgoWebDb.Collection
 	GetDbSession() *dbr.Session
 	SetDbSession(dbSess *dbr.Session)
 }
