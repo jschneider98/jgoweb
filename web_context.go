@@ -20,6 +20,8 @@ import(
 	jgoWebDb "github.com/jschneider98/jgoweb/db"
 )
 
+var db *jgoWebDb.Collection
+
 type WebContext struct {
 	User *User
 	Session *scs.Session
@@ -42,6 +44,21 @@ var (
 		[]string{"method", "handler", "code"},
 	)
 )
+
+// Init Db
+func InitDbCollection() {
+	var err error
+
+	if db != nil {
+		return
+	}
+
+	db, err = jgoWebDb.NewDb()
+
+	if err != nil {
+		panic(err)
+	}
+}
 
 //
 func NewContext(db *jgoWebDb.Collection) *WebContext{
@@ -255,12 +272,11 @@ func (ctx *WebContext) JsonOkResponse(rw web.ResponseWriter, code int, message s
 }
 
 // Init Db
-func (ctx *WebContext) InitDbCollection() {
+func (ctx *WebContext) InitDbSession() {
 	var err error
-	ctx.Db, err = jgoWebDb.NewDb()
 
-	if err != nil {
-		panic(err)
+	if ctx.Db == nil {
+		ctx.Db = db
 	}
 
 	dbConn, err := ctx.Db.GetRandomConn()
@@ -300,7 +316,7 @@ func (ctx *WebContext) AjaxRequireUser(rw web.ResponseWriter, req *web.Request, 
 // EndPoint middleware
 // Various context dependancy injection (DbCollection, metrics, etc)
 func (ctx *WebContext) LoadDi(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
-	ctx.InitDbCollection()
+	ctx.InitDbSession()
 	ctx.InitMetrics()
 
 	ctx.Method = strings.ToLower(req.Method)
