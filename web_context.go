@@ -34,6 +34,7 @@ type WebContext struct {
 	DbSess *dbr.Session
 	Tx *dbr.Tx
 	WebReqHistogram *prometheus.HistogramVec
+	RollbackTransaction bool
 }
 
 var (
@@ -179,6 +180,20 @@ func (ctx *WebContext) OptionalCommit(tx *dbr.Tx) error {
 	return tx.Commit()
 }
 
+// Complete the DB transaction if the web context is managing it. 
+func (ctx *WebContext) FinishTransaction() error {
+	
+	if ctx.Tx == nil {
+		return nil
+	}
+
+	if ctx.RollbackTransaction {
+		return ctx.Rollback()
+	}
+
+	return ctx.Commit()
+}
+
 // ******* Job Methods *******
 
 // health stream job error
@@ -212,6 +227,8 @@ func (ctx *WebContext) JobSuccess(codeList ...string) {
 
 	ctx.UpdateWebMetrics(code)
 	ctx.Job.Complete(health.Success)
+
+	ctx.FinishTransaction()
 }
 
 // health stream job warning
@@ -337,28 +354,10 @@ func (ctx *WebContext) BeginTransaction(rw web.ResponseWriter, req *web.Request,
 	next(rw, req)
 }
 
-// Have the context manage the DB transaction. Typically don't do this. Each model handles it's own transaction,
-// which is much faster/safer than having a single transaction for an entire web request.
-// This middleware is useful for testing routes though.
-func (ctx *WebContext) CommitTransaction(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
-	err := ctx.Commit()
-
-	if err != nil {
-		panic(err)
-	}
-
-	next(rw, req)
-}
-
-// Have the context manage the DB transaction. Typically don't do this. Each model handles it's own transaction,
-// which is much faster/safer than having a single transaction for an entire web request.
-// This middleware is useful for testing routes though.
-func (ctx *WebContext) RollbackTransaction(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
-	err := ctx.Rollback()
-
-	if err != nil {
-		panic(err)
-	}
+// Tell the web context to rollback it's transaction upon Job success
+// This middleware is useful for testing routes.
+func (ctx *WebContext) SetJobSuccessRollback(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	ctx.RollbackTransaction = true
 
 	next(rw, req)
 }
