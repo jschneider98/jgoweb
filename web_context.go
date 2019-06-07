@@ -313,7 +313,6 @@ func (ctx *WebContext) AjaxRequireUser(rw web.ResponseWriter, req *web.Request, 
 	}
 }
 
-// EndPoint middleware
 // Various context dependancy injection (DbCollection, metrics, etc)
 func (ctx *WebContext) LoadDi(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	ctx.InitDbSession()
@@ -321,6 +320,45 @@ func (ctx *WebContext) LoadDi(rw web.ResponseWriter, req *web.Request, next web.
 
 	ctx.Method = strings.ToLower(req.Method)
 	ctx.StartTime = time.Now()
+
+	next(rw, req)
+}
+
+// Have the context manage the DB transaction. Typically don't do this. Each model handles it's own transaction,
+// which is much faster/safer than having a single transaction for an entire web request.
+// This middleware is useful for testing routes though.
+func (ctx *WebContext) BeginTransaction(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	_, err := ctx.Begin()
+
+	if err != nil {
+		panic(err)
+	}
+
+	next(rw, req)
+}
+
+// Have the context manage the DB transaction. Typically don't do this. Each model handles it's own transaction,
+// which is much faster/safer than having a single transaction for an entire web request.
+// This middleware is useful for testing routes though.
+func (ctx *WebContext) CommitTransaction(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	err := ctx.Commit()
+
+	if err != nil {
+		panic(err)
+	}
+
+	next(rw, req)
+}
+
+// Have the context manage the DB transaction. Typically don't do this. Each model handles it's own transaction,
+// which is much faster/safer than having a single transaction for an entire web request.
+// This middleware is useful for testing routes though.
+func (ctx *WebContext) RollbackTransaction(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	err := ctx.Rollback()
+
+	if err != nil {
+		panic(err)
+	}
 
 	next(rw, req)
 }
