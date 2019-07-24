@@ -23,6 +23,5 @@ var NewAutocertCache = func() (autocert.Cache, error) {
 		return nil, err
 	}
 
-	// @TODO: Change interface to just accept options
-	return cache.NewCacheFactory("sql", options)
+	return cache.NewCacheFactory(options)
 }
