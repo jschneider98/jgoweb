@@ -11,7 +11,6 @@ import (
 type Config struct {
 	ServerOptions ServerOptions `json:"server"`
 	DbConnOptions []DbConnOptions `json:"dbConns"`
-	AutocertCacheOptions map[string]string `json:"autocertCache"`
 	AutocertCache *autocert.Cache `json:"-"`
 	AutocertOptions AutocertOptions `json:"autocert"`
 }
@@ -37,6 +36,7 @@ type AutocertOptions struct {
 	AllowedHost string `json:"allowedHost"`
 	Email string `json:"email"`
 	DirectoryURL string `json:"directoryURL"`
+	CacheOptions map[string]string `json:"cacheOptions"`
 }
 
 // Reads json configuration file and returns Config
@@ -93,7 +93,7 @@ func (c *Config) GetAutocertCache() (*autocert.Cache, error) {
 		return nil, nil
 	}
 
-	c.AutocertCache, err = cache.NewCacheFactory(c.AutocertCacheOptions)
+	c.AutocertCache, err = cache.NewCacheFactory(c.AutocertOptions.CacheOptions)
 
 	return c.AutocertCache, err
 }
