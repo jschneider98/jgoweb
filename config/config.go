@@ -4,15 +4,15 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"golang.org/x/crypto/acme/autocert"
-	// "github.com/jschneider98/jgocache/autocert/cache"
+	"github.com/jschneider98/jgocache/autocert/cache"
 )
 
 // Config file definition
 type Config struct {
 	ServerOptions ServerOptions `json:"server"`
 	DbConnOptions []DbConnOptions `json:"dbConns"`
-	AutocertCacheOptions AutocertCacheOptions `json:"autocertCache"`
-	AutocertCache autocert.Cache `json:"-"`
+	AutocertCacheOptions map[string]string `json:"autocertCache"`
+	AutocertCache *autocert.Cache `json:"-"`
 	AutocertOptions AutocertOptions `json:"autocert"`
 }
 
@@ -30,11 +30,6 @@ type ServerOptions struct {
 type DbConnOptions struct {
 	ShardName string `json:"shardName"`
 	Dsn string `json:"dsn"`
-}
-
-// AutocertCache configuration
-type AutocertCacheOptions struct {
-	BackendOptions map[string]string `json:"backendOptions"`
 }
 
 // Autocert configuration
@@ -60,6 +55,12 @@ func New(path string) (*Config, error) {
 
 	config.EnsureBasicOptions()
 
+	_, err = config.GetAutocertCache()
+
+	if err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
@@ -78,6 +79,23 @@ func (c *Config) EnsureBasicOptions() {
 	if c.AutocertOptions.DirectoryURL == "" {
 		c.AutocertOptions.DirectoryURL = "https://acme-v01.api.letsencrypt.org/directory"
 	}
+}
+
+//
+func (c *Config) GetAutocertCache() (*autocert.Cache, error) {
+	var err error
+
+	if c.AutocertCache != nil {
+		return c.AutocertCache, nil
+	}
+
+	if c.ServerOptions.EnableSsl == false {
+		return nil, nil
+	}
+
+	c.AutocertCache, err = cache.NewCacheFactory(c.AutocertCacheOptions)
+
+	return c.AutocertCache, err
 }
 
 func read(path string) ([]byte, error) {
