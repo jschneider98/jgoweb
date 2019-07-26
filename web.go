@@ -17,51 +17,64 @@ import (
 
 var healthStream = health.NewStream()
 var sessionManager *scs.Manager
-var AppConfig *config.Config
+var appConfig *config.Config
+var appConfigPath string = "./config/config.json"
+
+//
+func SetConfigPath(path string) {
+	appConfigPath = path
+}
+
+//
+func GetConfigPath() string {
+	return appConfigPath
+}
 
 // Init config
-func InitConfig(path string) {
+func InitConfig() {
 	var err error
 
-	AppConfig, err = config.New(path)
+	if appConfig != nil {
+		return
+	}
+
+	appConfig, err = config.New(appConfigPath)
 
 	if err != nil {
 		panic(err)
 	}
 }
 
+//
+func GetappConfig() *config.Config {
+	return appConfig
+}
+
 // Init session
 func InitSession() {
+	InitConfig()
 
-	if AppConfig == nil {
-		InitConfig("./config/config.json")
-	}
-
-	sessionManager = scs.NewCookieManager(AppConfig.Server.SessionKey)
-	scs.CookieName = AppConfig.Server.SessionName
+	sessionManager = scs.NewCookieManager(appConfig.Server.SessionKey)
+	scs.CookieName = appConfig.Server.SessionName
 }
 
 //
 func Start(router *web.Router) {
-	InitConfig("./config/config.json")
+	InitConfig()
 	StartAll(router)
 }
 
 //
 func StartAll(router *web.Router) {
-
-	if AppConfig == nil {
-		InitConfig("./config/config.json")
-	}
-
+	InitConfig()
 	InitDbCollection()
 	InitSession()
-	StartHealthSink(AppConfig.Server.HealthHost)
+	StartHealthSink(appConfig.Server.HealthHost)
 
-	if AppConfig.Server.EnableSsl {
+	if appConfig.Server.EnableSsl {
 		StartHttpsServer(router)
 	} else {
-		StartHttpServer(router, AppConfig.Server.HttpHost)
+		StartHttpServer(router, appConfig.Server.HttpHost)
 	}
 }
 
@@ -105,13 +118,10 @@ func StartHttpServer(router *web.Router, host string) {
 
 // Start a HTTPS server that auto updates SSL certs via ACME
 func StartHttpsServer(router *web.Router) {
-
-	if AppConfig == nil {
-		InitConfig("./config/config.json")
-	}
+	InitConfig()
 
 	hostPolicy := func(ctx context.Context, host string) error {
-		allowedHost := AppConfig.Autocert.AllowedHost
+		allowedHost := appConfig.Autocert.AllowedHost
 
 		if host == allowedHost {
 			return nil
@@ -120,21 +130,21 @@ func StartHttpsServer(router *web.Router) {
 		return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
 	}
 
-	cache, err := AppConfig.GetAutocertCache()
+	cache, err := appConfig.GetAutocertCache()
 
 	if err != nil {
 		panic(err)
 	}
 
 	certManager := &autocert.Manager{
-		Email:      AppConfig.Autocert.Email,
+		Email:      appConfig.Autocert.Email,
 		Cache:      cache,
-		Client:     &acme.Client{DirectoryURL: AppConfig.Autocert.DirectoryURL},
+		Client:     &acme.Client{DirectoryURL: appConfig.Autocert.DirectoryURL},
 		Prompt:     autocert.AcceptTOS,
 		HostPolicy: hostPolicy,
 	}
 
-	httpsServer := GetWebServer(router, AppConfig.Server.HttpsHost)
+	httpsServer := GetWebServer(router, appConfig.Server.HttpsHost)
 	httpsServer.TLSConfig = &tls.Config{GetCertificate: certManager.GetCertificate}
 
 	go func() {
@@ -146,7 +156,7 @@ func StartHttpsServer(router *web.Router) {
 		}
 	}()
 
-	httpServer := GetWebServer(GetDefaultWebRouter(), AppConfig.Server.HttpHost)
+	httpServer := GetWebServer(GetDefaultWebRouter(), appConfig.Server.HttpHost)
 	httpServer.Handler = certManager.HTTPHandler(httpServer.Handler)
 
 	fmt.Printf("HTTP Server Running %s\n", httpServer.Addr)
