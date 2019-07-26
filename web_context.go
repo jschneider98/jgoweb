@@ -50,11 +50,13 @@ var (
 func InitDbCollection() {
 	var err error
 
+	InitConfig()
+
 	if db != nil {
 		return
 	}
 
-	db, err = jgoWebDb.NewDb()
+	db, err = jgoWebDb.NewDb(appConfig.DbConns)
 
 	if err != nil {
 		panic(err)
