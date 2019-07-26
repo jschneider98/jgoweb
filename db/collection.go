@@ -3,12 +3,11 @@ package db
 import(
 	"time"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
-	"encoding/json"
 	"errors"
 	"github.com/gocraft/dbr"
 	_ "github.com/lib/pq"
+	"github.com/jschneider98/jgoweb/config"
 )
 
 type CollectionInterface interface {
@@ -17,36 +16,16 @@ type CollectionInterface interface {
 }
 
 type Collection struct {
-	Config []ConnInfo
+	Config []config.DbConnOptions
 	Conns map[string]*dbr.Connection
 }
 
-// Connection Strings
-type ConnInfo struct {
-	ShardName      string `json:"shard_name"`
-	DbConnString   string `json:"db_conn_string"`
-}
-
 // Retrieve db obj
-var NewDb = func() (*Collection, error) {
+var NewDb = func(dbConns []config.DbConnOptions) (*Collection, error) {
 	conns := make(map[string]*dbr.Connection)
 
-	// Load connection string info
-	file, err := ioutil.ReadFile("./conns.json")
-	
-	if err != nil {
-		return nil, err
-	}
-
-	var connConfig []ConnInfo
-	err = json.Unmarshal(file, &connConfig)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, connInfo := range connConfig {
-		conn, err := dbr.Open("postgres", connInfo.DbConnString, nil)
+	for _, connInfo := range dbConns {
+		conn, err := dbr.Open("postgres", connInfo.Dsn, nil)
 		//conn.SetMaxOpenConns(10)
 
 		if err != nil {
@@ -56,7 +35,7 @@ var NewDb = func() (*Collection, error) {
 		conns[connInfo.ShardName] = conn;
 	}
 
-	db := &Collection{Conns: conns, Config: connConfig}
+	db := &Collection{Conns: conns, Config: dbConns}
 
 	return db, nil
 }
