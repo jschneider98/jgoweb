@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"time"
 	"os"
-	// "context"
+	"context"
 	"net/http"
+	"crypto/tls"
+	"golang.org/x/crypto/acme"
+	"golang.org/x/crypto/acme/autocert"
 	"github.com/gocraft/web"
 	"github.com/gocraft/health"
 	"github.com/alexedwards/scs"
@@ -34,8 +37,8 @@ func InitSession() {
 		InitConfig("./config/config.json")
 	}
 
-	sessionManager = scs.NewCookieManager(AppConfig.ServerOptions.SessionKey)
-	scs.CookieName = AppConfig.ServerOptions.SessionName
+	sessionManager = scs.NewCookieManager(AppConfig.Server.SessionKey)
+	scs.CookieName = AppConfig.Server.SessionName
 }
 
 //
@@ -53,13 +56,12 @@ func StartAll(router *web.Router) {
 
 	InitDbCollection()
 	InitSession()
-	StartHealthSink(AppConfig.ServerOptions.HealthHost)
+	StartHealthSink(AppConfig.Server.HealthHost)
 
-	if AppConfig.ServerOptions.EnableSsl {
-		// @TEMP
-		StartHttpServer(router, AppConfig.ServerOptions.HttpHost)
+	if AppConfig.Server.EnableSsl {
+		StartHttpsServer(router)
 	} else {
-		StartHttpServer(router, AppConfig.ServerOptions.HttpHost)
+		StartHttpServer(router, AppConfig.Server.HttpHost)
 	}
 }
 
@@ -99,4 +101,48 @@ func StartHttpServer(router *web.Router, host string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Start a HTTPS server that auto updates SSL certs via ACME
+func StartHttpsServer(router *web.Router) {
+
+	if AppConfig == nil {
+		InitConfig("./config/config.json")
+	}
+
+	hostPolicy := func(ctx context.Context, host string) error {
+		allowedHost := AppConfig.Autocert.AllowedHost
+
+		if host == allowedHost {
+			return nil
+		}
+
+		return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
+	}
+
+	cache, err := AppConfig.GetAutocertCache()
+
+	if err != nil {
+		panic(err)
+	}
+
+	acm := &autocert.Manager{
+		Email:      AppConfig.Autocert.Email,
+		Cache:      cache,
+		Client:     &acme.Client{DirectoryURL: AppConfig.Autocert.DirectoryURL},
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: hostPolicy,
+	}
+
+	httpsServer := GetWebServer(router, AppConfig.Server.HttpsHost)
+	httpsServer.TLSConfig = &tls.Config{GetCertificate: acm.GetCertificate}
+
+	go func() {
+		fmt.Printf("HTTPS Server Running: %s\n", httpsServer.Addr)
+		err := httpsServer.ListenAndServeTLS("", "")
+
+		if err != nil {
+			panic(err)
+		}
+	}()
 }
