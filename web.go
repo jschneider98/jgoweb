@@ -46,7 +46,7 @@ func InitConfig() {
 }
 
 //
-func GetappConfig() *config.Config {
+func GetAppConfig() *config.Config {
 	return appConfig
 }
 
