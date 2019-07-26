@@ -57,6 +57,7 @@ func StartAll(router *web.Router) {
 
 	if AppConfig.ServerOptions.EnableSsl {
 		// @TEMP
+		StartHttpServer(router, AppConfig.ServerOptions.HttpHost)
 	} else {
 		StartHttpServer(router, AppConfig.ServerOptions.HttpHost)
 	}
