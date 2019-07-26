@@ -2,65 +2,64 @@ package jgoweb
 
 import (
 	"fmt"
-	"flag"
 	"time"
 	"os"
+	// "context"
 	"net/http"
 	"github.com/gocraft/web"
 	"github.com/gocraft/health"
 	"github.com/alexedwards/scs"
+	"github.com/jschneider98/jgoweb/config"
 )
 
-type WebParams struct {
-	SessionName string `json:sessionName`
-	EnableSsl bool `json:enableSsl`
-	HttpsHost string `json:httpsHost`
-	HttpHost string `json:httpHost`
-	HealthHost string `json:healthHost`
-}
-
-var webParams WebParams
 var healthStream = health.NewStream()
+var sessionManager *scs.Manager
+var AppConfig *config.Config
 
-// @TODO: pull in secret via file/environment
-var sessionManager = scs.NewCookieManager("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE3")
+// Init config
+func InitConfig(path string) {
+	var err error
+
+	AppConfig, err = config.New(path)
+
+	if err != nil {
+		panic(err)
+	}
+}
 
 // Init session
-func InitSession(sessionName string) {
-	scs.CookieName = sessionName
-}
+func InitSession() {
 
-//
-func ParseFlags() *WebParams {
-	flag.StringVar(&webParams.SessionName, "session", "web-session", "Session name")
-	flag.StringVar(&webParams.SessionName, "s", "web-session", "Session name")
+	if AppConfig == nil {
+		InitConfig("./config/config.json")
+	}
 
-	flag.BoolVar(&webParams.EnableSsl, "ssl", true, "Enable SSL (true/false)")
-	flag.StringVar(&webParams.HttpHost, "http", ":80", "HTTP host with optional port (i.e., localhost:80)")
-	flag.StringVar(&webParams.HttpsHost, "https", ":443", "HTTPS host with optional port (i.e., localhost:443)")
-
-	flag.StringVar(&webParams.HealthHost, "health-host", ":5020", "HTTP health sink host with optional port (i.e., localhost:5020)")
-	flag.StringVar(&webParams.HealthHost, "hh", ":5020", "HTTP health sink host with optional port (i.e., localhost:5020)")
-
-	flag.Parse()
-
-	return &webParams
+	sessionManager = scs.NewCookieManager(AppConfig.ServerOptions.SessionKey)
+	scs.CookieName = AppConfig.ServerOptions.SessionName
 }
 
 //
 func Start(router *web.Router) {
-	ParseFlags()
-	StartAll(router, &webParams)
+	InitConfig("./config/config.json")
+	StartAll(router)
 }
 
 //
-func StartAll(router *web.Router, params *WebParams) {
-	InitDbCollection()
-	InitSession(params.SessionName)
-	StartHealthSink(params.HealthHost)
+func StartAll(router *web.Router) {
 
-	server := GetWebServer(router, params.HttpHost)
-	StartHttpServer(server)
+	if AppConfig == nil {
+		InitConfig("./config/config.json")
+	}
+
+	InitDbCollection()
+	InitSession()
+	StartHealthSink(AppConfig.ServerOptions.HealthHost)
+
+	if AppConfig.ServerOptions.EnableSsl {
+		// @TEMP
+	} else {
+		StartHttpServer(router, AppConfig.ServerOptions.HttpHost)
+	}
 }
 
 //
@@ -88,8 +87,15 @@ func StartHealthSink(hostname string) {
 	sink.StartServer(hostname)
 }
 
-// 
-func StartHttpServer(server *http.Server) {
+//
+func StartHttpServer(router *web.Router, host string) {
+	server := GetWebServer(router, host)
+
 	fmt.Println("HTTP Server Running: ", server.Addr)
-	server.ListenAndServe()
+
+	err := server.ListenAndServe()
+
+	if err != nil {
+		panic(err)
+	}
 }
