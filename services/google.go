@@ -2,14 +2,15 @@ package services
 
 import (
 	"net/http"
-	"encoding/json"
-	"io/ioutil"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"io/ioutil"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"github.com/jschneider98/jgoweb/config"
 )
 
 // Google Service Account
@@ -30,29 +31,12 @@ type GoogleServiceAccount struct {
 
 var googleOauth2Config *oauth2.Config
 
-// Credentials which stores google ids.
-type Credentials struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-}
-
 // Init google sign in creds and oauth2 conf
-// @TODO: Dynamically load creds, redirect url, etc
-var GetGoogleOauth2Config = func(redirectUrl string) *oauth2.Config {
+var GetGoogleOauth2Config = func(cred config.GoogleOauth2Credentials, redirectUrl string) *oauth2.Config {
 	
 	if googleOauth2Config != nil {
 		return googleOauth2Config
 	}
-
-	var cred Credentials
-
-	file, err := ioutil.ReadFile("./creds.json")
-	
-	if err != nil {
-		panic(err)
-	}
-
-	json.Unmarshal(file, &cred)
 
 	googleOauth2Config = &oauth2.Config{
 		ClientID:     cred.ClientID,
@@ -95,7 +79,7 @@ var GetGoogleServiceAccount = func(clientName string) (*GoogleServiceAccount, er
 var GetGoogleClient = func(serviceAccount *GoogleServiceAccount) *http.Client {
 	ctx := context.Background()
 
-	config := &jwt.Config{
+	jwtConfig := &jwt.Config{
 		Email: serviceAccount.ClientEmail,
 		PrivateKey: []byte(serviceAccount.PrivateKey),
 		Scopes: []string{
@@ -106,7 +90,7 @@ var GetGoogleClient = func(serviceAccount *GoogleServiceAccount) *http.Client {
 		Subject: serviceAccount.Subject,
 	}
 
-	return config.Client(ctx)
+	return jwtConfig.Client(ctx)
 }
 
 // Random token for Google Sign in
@@ -118,8 +102,8 @@ var GoogleRandomToken = func() string {
 }
 
 // Google sign in url
-var GetGoogleLoginURL = func(redirectUrl string, state string) string {
-	config := GetGoogleOauth2Config(redirectUrl)
+var GetGoogleLoginURL = func(cred config.GoogleOauth2Credentials, redirectUrl string, state string) string {
+	oauth2Config := GetGoogleOauth2Config(cred, redirectUrl)
 
-	return config.AuthCodeURL(state)
+	return oauth2Config.AuthCodeURL(state)
 }
