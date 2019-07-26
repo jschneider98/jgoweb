@@ -126,7 +126,7 @@ func StartHttpsServer(router *web.Router) {
 		panic(err)
 	}
 
-	acm := &autocert.Manager{
+	certManager := &autocert.Manager{
 		Email:      AppConfig.Autocert.Email,
 		Cache:      cache,
 		Client:     &acme.Client{DirectoryURL: AppConfig.Autocert.DirectoryURL},
@@ -135,7 +135,7 @@ func StartHttpsServer(router *web.Router) {
 	}
 
 	httpsServer := GetWebServer(router, AppConfig.Server.HttpsHost)
-	httpsServer.TLSConfig = &tls.Config{GetCertificate: acm.GetCertificate}
+	httpsServer.TLSConfig = &tls.Config{GetCertificate: certManager.GetCertificate}
 
 	go func() {
 		fmt.Printf("HTTPS Server Running: %s\n", httpsServer.Addr)
@@ -145,4 +145,14 @@ func StartHttpsServer(router *web.Router) {
 			panic(err)
 		}
 	}()
+
+	httpServer := GetWebServer(GetDefaultWebRouter(), AppConfig.Server.HttpHost)
+	httpServer.Handler = certManager.HTTPHandler(httpServer.Handler)
+
+	fmt.Printf("HTTP Server Running %s\n", httpServer.Addr)
+	err = httpServer.ListenAndServe()
+
+	if err != nil {
+		panic(err)
+	}
 }
