@@ -11,8 +11,9 @@ import (
 type Config struct {
 	Server ServerOptions `json:"server"`
 	DbConns []DbConnOptions `json:"dbConns"`
-	AutocertCache autocert.Cache `json:"-"`
+	GoogleOauth2Creds GoogleOauth2Credentials `json:"googleOauth2Credentials"`
 	Autocert AutocertOptions `json:"autocert"`
+	AutocertCache autocert.Cache `json:"-"`
 }
 
 // Server configuratoin
@@ -29,6 +30,12 @@ type ServerOptions struct {
 type DbConnOptions struct {
 	ShardName string `json:"shardName"`
 	Dsn string `json:"dsn"`
+}
+
+// Google Oauth2 Credentials
+type GoogleOauth2Credentials struct {
+	ClientID     string `json:"clientId"`
+	ClientSecret string `json:"clientSecret"`
 }
 
 // Autocert configuration
