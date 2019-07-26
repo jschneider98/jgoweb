@@ -9,10 +9,10 @@ import (
 
 // Config file definition
 type Config struct {
-	ServerOptions ServerOptions `json:"server"`
-	DbConnOptions []DbConnOptions `json:"dbConns"`
-	AutocertCache *autocert.Cache `json:"-"`
-	AutocertOptions AutocertOptions `json:"autocert"`
+	Server ServerOptions `json:"server"`
+	DbConns []DbConnOptions `json:"dbConns"`
+	AutocertCache autocert.Cache `json:"-"`
+	Autocert AutocertOptions `json:"autocert"`
 }
 
 // Server configuratoin
@@ -67,33 +67,33 @@ func New(path string) (*Config, error) {
 // Conditionally load default values 
 func (c *Config) EnsureBasicOptions() {
 
-	if c.ServerOptions.SessionName == "" {
-		c.ServerOptions.SessionName = "web-session"
+	if c.Server.SessionName == "" {
+		c.Server.SessionName = "web-session"
 	}
 
-	if c.ServerOptions.SessionKey == "" {
-		c.ServerOptions.SessionKey = "u46IpCV9y5Vjsi5YvODJEhgOY8m9JVE4"
+	if c.Server.SessionKey == "" {
+		c.Server.SessionKey = "u46IpCV9y5Vjsi5YvODJEhgOY8m9JVE4"
 	}
 
 	// Default acme URL
-	if c.AutocertOptions.DirectoryURL == "" {
-		c.AutocertOptions.DirectoryURL = "https://acme-v01.api.letsencrypt.org/directory"
+	if c.Autocert.DirectoryURL == "" {
+		c.Autocert.DirectoryURL = "https://acme-v01.api.letsencrypt.org/directory"
 	}
 }
 
 //
-func (c *Config) GetAutocertCache() (*autocert.Cache, error) {
+func (c *Config) GetAutocertCache() (autocert.Cache, error) {
 	var err error
 
 	if c.AutocertCache != nil {
 		return c.AutocertCache, nil
 	}
 
-	if c.ServerOptions.EnableSsl == false {
+	if c.Server.EnableSsl == false {
 		return nil, nil
 	}
 
-	c.AutocertCache, err = cache.NewCacheFactory(c.AutocertOptions.CacheOptions)
+	c.AutocertCache, err = cache.NewCacheFactory(c.Autocert.CacheOptions)
 
 	return c.AutocertCache, err
 }
