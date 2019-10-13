@@ -8,12 +8,12 @@ import (
 type Field struct {
 	FieldName string `json:"field_name"`
 	DataType string `json:"data_type"`
-	Default string `json:"default"`
-	NotNull int `json:"not_null"`
+	Default dbr.NullString `json:"default"`
+	NotNull bool `json:"not_null"`
 	Attnum int `json:"attnum"`
 }
 
-func GetFields(ctx jgoweb.ContextInterface, schema string, table string) (*[]Field, error) {
+func GetFields(ctx jgoweb.ContextInterface, schema string, table string) ([]Field, error) {
 	var fields []Field
 
 	stmt := ctx.Select(`
@@ -32,7 +32,7 @@ func GetFields(ctx jgoweb.ContextInterface, schema string, table string) (*[]Fie
 	Join(dbr.I("pg_catalog.pg_attribute").As("a"), "c.oid = a.attrelid").
 	Where("n.nspname = ?", schema).
 	Where("c.relname = ?", table).
-	Where("c.attnum > ", 0).
+	Where("a.attnum > ?", 0).
 	Where("NOT a.attisdropped").
 	OrderBy("a.attnum")
 
@@ -42,5 +42,5 @@ func GetFields(ctx jgoweb.ContextInterface, schema string, table string) (*[]Fie
 		return nil, err
 	}
 
-	return &fields, nil
+	return fields, nil
 }
