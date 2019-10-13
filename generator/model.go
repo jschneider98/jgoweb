@@ -161,8 +161,11 @@ func (mg *ModelGenerator) Generate() string {
 
 	code = mg.GetImportCode()
 	code += mg.GetStructCode()
+
 	code += mg.GetHydratorStructCode()
-	code += mg.GetFactoryCode()
+	code += mg.GetHydratorIsValidCode()
+
+	code += mg.GetNewCode()
 	code += mg.GetFetchByIdCode()
 	code += mg.GetIsValidCode()
 	code += mg.GetSaveCode()
@@ -222,10 +225,25 @@ func (mg *ModelGenerator) GetHydratorStructCode() string {
 }
 
 //
-func (mg *ModelGenerator) GetFactoryCode() string {
+func (mg *ModelGenerator) GetHydratorIsValidCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName() + "h"
+
+	code += fmt.Sprintf(`
+// Validate the hydrator
+func (%s *%s) isValid() (bool, error) {
+	return govalidator.ValidateStruct(%s)
+}
+`, structInstance, mg.ModelName + "Hydrator", structInstance)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetNewCode() string {
 	var code string
 	code += fmt.Sprintf(`
-// Factory Method
+// Empty new model
 func New%s(ctx ContextInterface) *%s {
 	return &%s{Ctx: ctx}
 }
