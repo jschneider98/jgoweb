@@ -166,6 +166,7 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetHydratorIsValidCode()
 
 	code += mg.GetNewCode()
+	code += mg.GetNewWithDataCode()
 	code += mg.GetFetchByIdCode()
 	code += mg.GetIsValidCode()
 	code += mg.GetSaveCode()
@@ -248,6 +249,30 @@ func New%s(ctx ContextInterface) *%s {
 	return &%s{Ctx: ctx}
 }
 `, mg.ModelName, mg.ModelName, mg.ModelName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetNewWithDataCode() string {
+	var code string
+	instanceName := mg.GetInstanceName()
+
+	code += fmt.Sprintf(`
+// New model with data
+func New%sWithData(ctx ContextInterface, %sHydrator %sHydrator) (*%s, error) {
+	isValid, err := %sHydrator.IsValid()
+
+	if !isValid {
+		return nil, err
+	}
+
+	%s := &%s{Ctx: ctx}
+	%s.hydrate(%sHydrator)
+
+	return %s, nil
+}
+`, mg.ModelName, instanceName, mg.ModelName, mg.ModelName, instanceName, instanceName, mg.ModelName, instanceName, instanceName, instanceName)
 
 	return code
 }
