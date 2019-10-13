@@ -219,5 +219,36 @@ func (%s *%s) Save() error {
 }
 `, structInstance, mg.ModelName, structInstance, structInstance, unsetPkeyVal, structInstance, structInstance)
 
+
+	columnList := ""
+
+	for key := range mg.Fields {
+		columnList += fmt.Sprintf(",\n\t\t\t\"%s\"", mg.Fields[key].FieldName)
+	}
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Insert() error {
+	tx, err := %s.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.InsertInto("%s").
+		Columns(%s).
+		Record(%s).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = %s.Ctx.OptionalCommit(tx)
+
+	return err
+}
+`, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
+
 	return code, nil
 }
