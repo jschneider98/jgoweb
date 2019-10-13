@@ -58,6 +58,8 @@ func (mg *ModelGenerator) ConvertDataType(field psql.Field) string {
 		} else {
 			return "dbr.NullInt"
 		}
+	case "boolean":
+		return "bool"
 	default:
 		if field.NotNull == true  {
 			return "string"
@@ -168,6 +170,7 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetNewCode()
 	code += mg.GetNewWithDataCode()
 	code += mg.GetFetchByIdCode()
+	code += mg.GetHydrateCode()
 	code += mg.GetIsValidCode()
 	code += mg.GetSaveCode()
 	code += mg.GetInsertCode()
@@ -261,18 +264,16 @@ func (mg *ModelGenerator) GetNewWithDataCode() string {
 	code += fmt.Sprintf(`
 // New model with data
 func New%sWithData(ctx ContextInterface, %sHydrator %sHydrator) (*%s, error) {
-	isValid, err := %sHydrator.IsValid()
+	%s := &%s{Ctx: ctx}
+	err := %s.Hydrate(%sHydrator)
 
-	if !isValid {
+	if err != nil {
 		return nil, err
 	}
 
-	%s := &%s{Ctx: ctx}
-	%s.hydrate(%sHydrator)
-
 	return %s, nil
 }
-`, mg.ModelName, instanceName, mg.ModelName, mg.ModelName, instanceName, instanceName, mg.ModelName, instanceName, instanceName, instanceName)
+`, mg.ModelName, instanceName, mg.ModelName, mg.ModelName, instanceName, mg.ModelName, instanceName, instanceName, instanceName)
 
 	return code
 }
@@ -308,6 +309,42 @@ func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
 	return &%s[0], nil
 }
 `, mg.ModelName, mg.ModelName, instanceName, mg.ModelName, fullTableName, instanceName, instanceName, instanceName, instanceName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetHydrateCode() string {
+	var code string
+	instanceName := mg.GetInstanceName()
+	assignments := ""
+
+	for key := range mg.Fields {
+		dataType := mg.ConvertDataType(mg.Fields[key])
+		fieldName := mg.ToCamelCase(mg.Fields[key].FieldName)
+
+		if dataType == "string" || dataType == "dbr.NullString" {
+			assignments += fmt.Sprintf("\t%s.%s = %sHydrator.%s\n", instanceName, fieldName, instanceName, fieldName)
+		} else {
+			assignments += fmt.Sprintf("\t%s.%s = %s(%sHydrator.%s)\n", instanceName, fieldName, dataType, instanceName, fieldName)
+		}
+	}
+
+
+	code += fmt.Sprintf(`
+// Hydrate the model with data
+func (%s *%s) Hydrate(%sHydrator %sHydrator) error {
+	isValid, err := %sHydrator.IsValid()
+
+	if !isValid {
+		return err
+	}
+
+%s
+
+	return nil
+}
+`, instanceName, mg.ModelName, instanceName, mg.ModelName, instanceName, assignments)
 
 	return code
 }
