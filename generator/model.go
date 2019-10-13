@@ -161,6 +161,7 @@ func (mg *ModelGenerator) Generate() string {
 
 	code = mg.GetImportCode()
 	code += mg.GetStructCode()
+	code += mg.GetHydratorStructCode()
 	code += mg.GetFactoryCode()
 	code += mg.GetFetchByIdCode()
 	code += mg.GetIsValidCode()
@@ -198,6 +199,23 @@ func (mg *ModelGenerator) GetStructCode() string {
 	}
 
 	code += "\tCtx ContextInterface `json:\"-\" valid:\"-\"`\n"
+	code += "}\n"
+
+	return code
+}
+
+
+//
+func (mg *ModelGenerator) GetHydratorStructCode() string {
+	var code string
+
+	code += fmt.Sprintf("// %s\n", mg.ModelName + "Hydrator")
+	code += fmt.Sprintf("type %s struct {\n", mg.ModelName + "Hydrator")
+
+	for key := range mg.Fields {
+		code += fmt.Sprintf("\t%s %s %s\n", mg.ToCamelCase(mg.Fields[key].FieldName), "string", mg.GetAnnotation(mg.Fields[key]))
+	}
+
 	code += "}\n"
 
 	return code
