@@ -223,7 +223,9 @@ func (%s *%s) Save() error {
 	columnList := ""
 
 	for key := range mg.Fields {
-		columnList += fmt.Sprintf(",\n\t\t\t\"%s\"", mg.Fields[key].FieldName)
+		if (!mg.Fields[key].Default.Valid) {
+			columnList += fmt.Sprintf(",\n\t\t\t\"%s\"", mg.Fields[key].FieldName)
+		}
 	}
 
 	code += fmt.Sprintf(`
@@ -238,6 +240,37 @@ func (%s *%s) Insert() error {
 	_, err = tx.InsertInto("%s").
 		Columns(%s).
 		Record(%s).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = %s.Ctx.OptionalCommit(tx)
+
+	return err
+}
+`, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
+
+
+	columnList = ""
+
+	for key := range mg.Fields {
+		columnList += fmt.Sprintf("\t\tSet(\"%s\", %s.%s).\n", mg.Fields[key].FieldName, structInstance, mg.ToCamelCase(mg.Fields[key].FieldName))
+	}
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Update() error {
+	tx, err := %s.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Update("%s").
+%s
+		Where("id = ?", %s.Id).
 		Exec()
 
 	if err != nil {
