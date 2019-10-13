@@ -27,7 +27,6 @@ func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string)
 
 	mg.MakeModelName()
 
-
 	return mg
 }
 
@@ -40,7 +39,6 @@ func (mg *ModelGenerator) MakeModelName() {
 	}
 
 	mg.ModelName += mg.ToCamelCase(mg.Table)
-
 }
 
 //
@@ -63,7 +61,7 @@ func (mg *ModelGenerator) ConvertDataType(field psql.Field) string {
 }
 
 //
-func (mg *ModelGenerator) GetReflection(field psql.Field) string {
+func (mg *ModelGenerator) GetAnnotation(field psql.Field) string {
 	return fmt.Sprintf("`json:\"%s\" %s`", field.FieldName, mg.GetValidation(field))
 }
 
@@ -89,8 +87,8 @@ func (mg *ModelGenerator) GetValidation(field psql.Field) string {
 	}
 
 	if strings.HasPrefix(field.DataType, "character varying(") {
-		re:=regexp.MustCompile("[0-9]+")
-		val += ",length(1|" + re.FindString(field.DataType) + ")"
+		re := regexp.MustCompile("[0-9]+")
+		val += ",stringlength(1|" + re.FindString(field.DataType) + ")"
 	}
 
 	val += `"`
@@ -115,6 +113,20 @@ func (mg *ModelGenerator) Generate() (string, error) {
 
 	instanceName := strings.ToLower(mg.ModelName)
 	fullTableName := mg.Schema + "." + mg.Table
+	structInstance := ""
+
+	re := regexp.MustCompile("[A-Z]+")
+	letters := re.FindAllString(mg.ModelName, -1)
+
+	for key := range letters {
+		structInstance += letters[key]
+	}
+
+	if structInstance == "" {
+		structInstance = "m"
+	}
+
+	structInstance = strings.ToLower(structInstance)
 
 	mg.Fields, err = psql.GetFields(mg.Ctx, mg.Schema, mg.Table)
 
@@ -136,7 +148,7 @@ import(
 	code += fmt.Sprintf("type %s struct {\n", mg.ModelName)
 
 	for key := range mg.Fields {
-		code += fmt.Sprintf("\t%s %s %s\n", mg.ToCamelCase(mg.Fields[key].FieldName), mg.ConvertDataType(mg.Fields[key]), mg.GetReflection(mg.Fields[key]))
+		code += fmt.Sprintf("\t%s %s %s\n", mg.ToCamelCase(mg.Fields[key].FieldName), mg.ConvertDataType(mg.Fields[key]), mg.GetAnnotation(mg.Fields[key]))
 	}
 
 	code += "\tCtx ContextInterface `json:\"-\" valid:\"-\"`\n"
@@ -175,6 +187,13 @@ func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
 }
 `, mg.ModelName, mg.ModelName, instanceName, mg.ModelName, fullTableName, instanceName, instanceName, instanceName, instanceName)
 
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) isValid() (bool, error) {
+	return govalidator.ValidateStruct(%s)
+}
+`, structInstance, mg.ModelName, structInstance)
 
 	return code, nil
 }
