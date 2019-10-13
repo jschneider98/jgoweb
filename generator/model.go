@@ -109,11 +109,20 @@ func (mg *ModelGenerator) ToCamelCase(val string) string {
 //
 func (mg *ModelGenerator) Generate() (string, error) {
 	var code string
+	var unsetPkeyVal string
 	var err error
+
+	mg.Fields, err = psql.GetFields(mg.Ctx, mg.Schema, mg.Table)
 
 	instanceName := strings.ToLower(mg.ModelName)
 	fullTableName := mg.Schema + "." + mg.Table
 	structInstance := ""
+
+	if mg.Fields[0].DataType == "integer" {
+		unsetPkeyVal = "0"
+	} else {
+		unsetPkeyVal = `""`
+	}
 
 	re := regexp.MustCompile("[A-Z]+")
 	letters := re.FindAllString(mg.ModelName, -1)
@@ -127,8 +136,6 @@ func (mg *ModelGenerator) Generate() (string, error) {
 	}
 
 	structInstance = strings.ToLower(structInstance)
-
-	mg.Fields, err = psql.GetFields(mg.Ctx, mg.Schema, mg.Table)
 
 	if err != nil {
 		return "", err
@@ -194,6 +201,23 @@ func (%s *%s) isValid() (bool, error) {
 	return govalidator.ValidateStruct(%s)
 }
 `, structInstance, mg.ModelName, structInstance)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Save() error {
+	isValid, err := %s.isValid()
+
+	if !isValid {
+		return err
+	}
+
+	if %s.Id == %s {
+		return %s.Insert()
+	} else {
+		return %s.Update()
+	}
+}
+`, structInstance, mg.ModelName, structInstance, structInstance, unsetPkeyVal, structInstance, structInstance)
 
 	return code, nil
 }
