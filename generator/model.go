@@ -17,7 +17,8 @@ type ModelGenerator struct {
 }
 
 //
-func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string) *ModelGenerator {
+func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string) (*ModelGenerator, error) {
+	var err error
 	
 	mg := &ModelGenerator{
 		Schema: schema,
@@ -27,7 +28,13 @@ func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string)
 
 	mg.MakeModelName()
 
-	return mg
+	mg.Fields, err = psql.GetFields(mg.Ctx, mg.Schema, mg.Table)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return mg, nil
 }
 
 //
@@ -107,22 +114,31 @@ func (mg *ModelGenerator) ToCamelCase(val string) string {
 }
 
 //
-func (mg *ModelGenerator) Generate() (string, error) {
-	var code string
+func (mg *ModelGenerator) GetInstanceName() string {
+	return strings.ToLower(mg.ModelName)
+}
+
+//
+func (mg *ModelGenerator) GetFullTableName() string {
+	return mg.Schema + "." + mg.Table
+}
+
+//
+func (mg *ModelGenerator) GetUnsetPkeyVal() string {
 	var unsetPkeyVal string
-	var err error
-
-	mg.Fields, err = psql.GetFields(mg.Ctx, mg.Schema, mg.Table)
-
-	instanceName := strings.ToLower(mg.ModelName)
-	fullTableName := mg.Schema + "." + mg.Table
-	structInstance := ""
 
 	if mg.Fields[0].DataType == "integer" {
 		unsetPkeyVal = "0"
 	} else {
 		unsetPkeyVal = `""`
 	}
+
+	return unsetPkeyVal
+}
+
+//
+func (mg *ModelGenerator) GetStructInstanceName() string{
+	var structInstance string
 
 	re := regexp.MustCompile("[A-Z]+")
 	letters := re.FindAllString(mg.ModelName, -1)
@@ -135,13 +151,28 @@ func (mg *ModelGenerator) Generate() (string, error) {
 		structInstance = "m"
 	}
 
-	structInstance = strings.ToLower(structInstance)
+	return strings.ToLower(structInstance)
+}
 
-	if err != nil {
-		return "", err
-	}
+//
+func (mg *ModelGenerator) Generate() string {
+	var code string
 
-	code = `
+
+	code = mg.GetImportCode()
+	code += mg.GetStructCode()
+	code += mg.GetFactoryCode()
+	code += mg.GetFetchByIdCode()
+	code += mg.GetIsValidCode()
+	code += mg.GetSaveCode()
+	code += mg.GetInsertCode()
+
+	return code
+}
+
+// 
+func (mg *ModelGenerator) GetImportCode() string {
+return	`
 package models
 
 import(
@@ -151,6 +182,12 @@ import(
 )
 
 `
+}
+
+//
+func (mg *ModelGenerator) GetStructCode() string {
+	var code string
+
 	code += fmt.Sprintf("// %s\n", mg.ModelName)
 	code += fmt.Sprintf("type %s struct {\n", mg.ModelName)
 
@@ -161,12 +198,27 @@ import(
 	code += "\tCtx ContextInterface `json:\"-\" valid:\"-\"`\n"
 	code += "}\n"
 
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetFactoryCode() string {
+	var code string
 	code += fmt.Sprintf(`
 //
 func New%s(ctx ContextInterface) *%s {
 	return &%s{Ctx: ctx}
 }
 `, mg.ModelName, mg.ModelName, mg.ModelName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetFetchByIdCode() string {
+	var code string
+	fullTableName := mg.GetFullTableName()
+	instanceName := mg.GetInstanceName()
 
 	code += fmt.Sprintf(`
 // 
@@ -194,6 +246,13 @@ func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
 }
 `, mg.ModelName, mg.ModelName, instanceName, mg.ModelName, fullTableName, instanceName, instanceName, instanceName, instanceName)
 
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetIsValidCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName()
 
 	code += fmt.Sprintf(`
 //
@@ -201,6 +260,15 @@ func (%s *%s) isValid() (bool, error) {
 	return govalidator.ValidateStruct(%s)
 }
 `, structInstance, mg.ModelName, structInstance)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetSaveCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName()
+	unsetPkeyVal := mg.GetUnsetPkeyVal()
 
 	code += fmt.Sprintf(`
 //
@@ -220,6 +288,14 @@ func (%s *%s) Save() error {
 `, structInstance, mg.ModelName, structInstance, structInstance, unsetPkeyVal, structInstance, structInstance)
 
 
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetInsertCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName()
+	fullTableName := mg.GetFullTableName()
 	columnList := ""
 
 	for key := range mg.Fields {
@@ -252,8 +328,15 @@ func (%s *%s) Insert() error {
 }
 `, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
 
+	return code
+}
 
-	columnList = ""
+//
+func (mg *ModelGenerator) GetUpdateCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName()
+	fullTableName := mg.GetFullTableName()
+	columnList := ""
 
 	for key := range mg.Fields {
 		columnList += fmt.Sprintf("\t\tSet(\"%s\", %s.%s).\n", mg.Fields[key].FieldName, structInstance, mg.ToCamelCase(mg.Fields[key].FieldName))
@@ -283,5 +366,5 @@ func (%s *%s) Update() error {
 }
 `, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
 
-	return code, nil
+	return code
 }
