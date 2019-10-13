@@ -205,7 +205,7 @@ func (mg *ModelGenerator) GetStructCode() string {
 func (mg *ModelGenerator) GetFactoryCode() string {
 	var code string
 	code += fmt.Sprintf(`
-//
+// Factory Method
 func New%s(ctx ContextInterface) *%s {
 	return &%s{Ctx: ctx}
 }
@@ -221,7 +221,7 @@ func (mg *ModelGenerator) GetFetchByIdCode() string {
 	instanceName := mg.GetInstanceName()
 
 	code += fmt.Sprintf(`
-// 
+// Factory Method
 func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
 	var %s []%s
 
@@ -255,7 +255,7 @@ func (mg *ModelGenerator) GetIsValidCode() string {
 	structInstance := mg.GetStructInstanceName()
 
 	code += fmt.Sprintf(`
-//
+// Validate the model
 func (%s *%s) isValid() (bool, error) {
 	return govalidator.ValidateStruct(%s)
 }
@@ -271,7 +271,7 @@ func (mg *ModelGenerator) GetSaveCode() string {
 	unsetPkeyVal := mg.GetUnsetPkeyVal()
 
 	code += fmt.Sprintf(`
-//
+// Insert/Update based on pkey value
 func (%s *%s) Save() error {
 	isValid, err := %s.isValid()
 
@@ -305,7 +305,7 @@ func (mg *ModelGenerator) GetInsertCode() string {
 	}
 
 	code += fmt.Sprintf(`
-//
+// Insert a new record
 func (%s *%s) Insert() error {
 	tx, err := %s.Ctx.OptionalBegin()
 
@@ -343,7 +343,7 @@ func (mg *ModelGenerator) GetUpdateCode() string {
 	}
 
 	code += fmt.Sprintf(`
-//
+// Update a record
 func (%s *%s) Update() error {
 	tx, err := %s.Ctx.OptionalBegin()
 
