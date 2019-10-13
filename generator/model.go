@@ -166,6 +166,8 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetIsValidCode()
 	code += mg.GetSaveCode()
 	code += mg.GetInsertCode()
+	code += mg.GetUpdateCode()
+	code += mg.GetDeleteCode()
 
 	return code
 }
@@ -365,6 +367,78 @@ func (%s *%s) Update() error {
 	return err
 }
 `, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetDeleteCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName()
+	fullTableName := mg.GetFullTableName()
+	softDelete := false
+
+	for key := range mg.Fields {
+		if mg.Fields[key].FieldName == "deleted_at" {
+			softDelete = true
+		}
+	}
+
+	if softDelete {
+		return mg.GetSoftDeleteCode()
+	}
+
+	code += fmt.Sprintf(`
+// Hard delete a record
+func (%s *%s) Delete() error {
+	tx, err := %s.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Delete("%s").
+		Where("id = ?", %s.Id).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return p.Ctx.OptionalCommit(tx)
+`, structInstance, mg.ModelName, structInstance, fullTableName, structInstance)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetSoftDeleteCode() string {
+	var code string
+	structInstance := mg.GetStructInstanceName()
+	fullTableName := mg.GetFullTableName()
+
+
+	code += fmt.Sprintf(`
+// Soft delete a record
+func (%s *%s) Delete() error {
+	tx, err := %s.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Update("%s").
+		Set("deleted_at = ?", "timezone('utc'::text, now())"").
+		Where("id = ?", %s.Id).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return p.Ctx.OptionalCommit(tx)
+}
+`, structInstance, mg.ModelName, structInstance, fullTableName, structInstance)
 
 	return code
 }
