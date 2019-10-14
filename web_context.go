@@ -18,6 +18,8 @@ import(
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/jschneider98/jgoweb/util"
 	jgoWebDb "github.com/jschneider98/jgoweb/db"
+	"gopkg.in/go-playground/validator.v9"
+	"github.com/jschneider98/jgovalidator"
 )
 
 var db *jgoWebDb.Collection
@@ -30,6 +32,7 @@ type WebContext struct {
 	Method string
 	StartTime time.Time
 	EndPoint string
+	Validate *validator.Validate
 	Db *jgoWebDb.Collection
 	DbSess *dbr.Session
 	Tx *dbr.Tx
@@ -65,7 +68,7 @@ func InitDbCollection() {
 
 //
 func NewContext(db *jgoWebDb.Collection) *WebContext{
-	return &WebContext{Db: db}
+	return &WebContext{Db: db, Validate: jgovalidator.GetValidator()}
 }
 
 // *** Getters/Setters ***
