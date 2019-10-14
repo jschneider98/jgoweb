@@ -1,9 +1,12 @@
 package util
 
 import (
+	"regexp"
 	"fmt"
 	"runtime"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 	"github.com/gocraft/web"
 )
 
@@ -75,4 +78,58 @@ func GetBaseUrl(req *web.Request) string {
 	}
 
 	return scheme + "://" + host
+}
+
+
+// my_var_id => MyVarId || my var id = MyVarId, etc.
+func ToCamelCase(val string) string {
+
+	if val == "" {
+		return ""
+	}
+
+	val = strings.ToLower(val)
+	val = strings.ReplaceAll(val, "_", " ")
+	val = strings.Title(val)
+	val = strings.ReplaceAll(val, " ", "")
+
+	return val
+}
+
+// MyVarId => myVarId, my_var_id => myVarId, etc.
+func ToLowerCamelCase(val string) string {
+
+	if val == "" {
+		return ""
+	}
+
+	val = ToCamelCase(val)
+
+	rune, size := utf8.DecodeRuneInString(val)
+	return string(unicode.ToLower(rune)) + val[size:]
+}
+
+// MyVarId => MVI
+func ToAcronym(val string) string {
+
+	if val == "" {
+		return ""
+	}
+
+	re := regexp.MustCompile("[A-Z]+")
+	letters := re.FindAllString(val, -1)
+
+	return strings.Join(letters, "")
+}
+
+// MyVarId => mvi
+func ToLowerAcronym(val string) string {
+
+	if val == "" {
+		return ""
+	}
+
+	val = ToAcronym(val)
+
+	return strings.ToLower(val)
 }
