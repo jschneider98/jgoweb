@@ -248,9 +248,9 @@ func (mg *ModelGenerator) GetHydratorIsValidCode() string {
 	code += fmt.Sprintf(`
 // Validate the hydrator
 func (%s *%s) isValid() (bool, error) {
-	return govalidator.ValidateStruct(%s)
+	return %s.Ctx.Validate.Struct(%s)
 }
-`, structInstance, mg.ModelName + "Hydrator", structInstance)
+`, structInstance, mg.ModelName + "Hydrator", structInstance, structInstance)
 
 	return code
 }
@@ -369,9 +369,9 @@ func (mg *ModelGenerator) GetIsValidCode() string {
 	code += fmt.Sprintf(`
 // Validate the model
 func (%s *%s) isValid() (bool, error) {
-	return govalidator.ValidateStruct(%s)
+	return %s.Ctx.Validate.Struct(%s)
 }
-`, structInstance, mg.ModelName, structInstance)
+`, structInstance, mg.ModelName, structInstance, structInstance)
 
 	return code
 }
@@ -427,7 +427,7 @@ func (mg *ModelGenerator) GetInsertCode() string {
 		}
 	}
 
-	insertSql := fmt.Sprintf("\t\t`INSERT INTO\n\t\t%s (%s)\n\t\t(%s)\n\t\tRETURNING id\n`", fullTableName, strings.Join(dbCols, ","), strings.Join(placeHolders, ", "))
+	insertSql := fmt.Sprintf("\t\t`INSERT INTO\n\t\t%s (%s)\n\t\t(%s)\n\t\tRETURNING id\n`", fullTableName, strings.Join(dbCols, ", "), strings.Join(placeHolders, ", "))
 
 	code += fmt.Sprintf(`
 // Insert a new record
