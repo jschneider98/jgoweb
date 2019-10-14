@@ -75,7 +75,7 @@ func (mg *ModelGenerator) GetAnnotation(field psql.Field) string {
 
 //
 func (mg *ModelGenerator) GetValidation(field psql.Field) string {
-	val := "valid:"
+	val := "validate:"
 
 	// if not null and no default = required (Special case, bool = notnull)
 	// if not null with default = no insert/update (i.e., use default)
@@ -199,11 +199,10 @@ return	`
 package models
 
 import(
-	"github.com/gocraft/dbr"
-	"github.com/asaskevich/govalidator"
+	"database/sql"
+	"gopkg.in/go-playground/validator.v9"
 	"github.com/jschneider98/jgoweb"
 )
-
 `
 }
 
@@ -218,7 +217,7 @@ func (mg *ModelGenerator) GetStructCode() string {
 		code += fmt.Sprintf("\t%s %s %s\n", mg.ToCamelCase(mg.Fields[key].FieldName), mg.ConvertDataType(mg.Fields[key]), mg.GetAnnotation(mg.Fields[key]))
 	}
 
-	code += "\tCtx ContextInterface `json:\"-\" valid:\"-\"`\n"
+	code += "\tCtx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n"
 	code += "}\n"
 
 	return code
@@ -261,7 +260,7 @@ func (mg *ModelGenerator) GetNewCode() string {
 	var code string
 	code += fmt.Sprintf(`
 // Empty new model
-func New%s(ctx ContextInterface) *%s {
+func New%s(ctx jgoweb.ContextInterface) *%s {
 	return &%s{Ctx: ctx}
 }
 `, mg.ModelName, mg.ModelName, mg.ModelName)
@@ -276,7 +275,7 @@ func (mg *ModelGenerator) GetNewWithDataCode() string {
 
 	code += fmt.Sprintf(`
 // New model with data
-func New%sWithData(ctx ContextInterface, %sHydrator %sHydrator) (*%s, error) {
+func New%sWithData(ctx jgoweb.ContextInterface, %sHydrator %sHydrator) (*%s, error) {
 	%s := &%s{Ctx: ctx}
 	err := %s.Hydrate(%sHydrator)
 
