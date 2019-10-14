@@ -98,6 +98,11 @@ func (ctx *WebContext) GetDbSession() *dbr.Session {
 }
 
 //
+func (ctx *WebContext) GetValidator() *validator.Validate {
+	return ctx.Validate
+}
+
+//
 func (ctx *WebContext) SetDbSession(dbSess *dbr.Session) {
 	ctx.DbSess = dbSess
 }
