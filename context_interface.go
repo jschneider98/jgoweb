@@ -3,6 +3,7 @@ package jgoweb
 import(
 	"github.com/gocraft/dbr"
 	jgoWebDb "github.com/jschneider98/jgoweb/db"
+	"gopkg.in/go-playground/validator.v9"
 	"github.com/gocraft/web"
 )
 
@@ -20,4 +21,5 @@ type ContextInterface interface {
 	GetDb() *jgoWebDb.Collection
 	GetDbSession() *dbr.Session
 	SetDbSession(dbSess *dbr.Session)
+	GetValidator() *validator.Validate
 }
