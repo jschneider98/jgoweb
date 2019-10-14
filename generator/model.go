@@ -52,21 +52,20 @@ func (mg *ModelGenerator) MakeModelName() {
 func (mg *ModelGenerator) ConvertDataType(field psql.Field) string {
 
 	switch field.DataType {
+	case "smallint":
+	case "smallserial":
+	case "serial":
+	case "bigint":
+	case "bigserial":
 	case "integer":
-		if field.NotNull == true  {
-			return "int"
-		} else {
-			return "dbr.NullInt"
-		}
+		return "sql.NullInt64"
 	case "boolean":
-		return "bool"
-	default:
-		if field.NotNull == true  {
-			return "string"
-		} else {
-			return "dbr.NullString"
-		}
+		return "sql.NullBool"
+	case "double precision":
+		return "sql.NullFloat64"
 	}
+
+	return "sql.NullString"
 }
 
 //
@@ -78,26 +77,40 @@ func (mg *ModelGenerator) GetAnnotation(field psql.Field) string {
 func (mg *ModelGenerator) GetValidation(field psql.Field) string {
 	val := "valid:"
 
+	// if not null and no default = required (Special case, bool = notnull)
+	// if not null with default = no insert/update (i.e., use default)
+	// if nullable = omitempty
 	if field.NotNull == true && !field.Default.Valid {
-		val += `"required`
+
+		if field.DataType == "boolean" {
+			val += `"notNull`
+		} else {
+			val += `"required`
+		}
 	} else {
-		val += `"optional`
+		val += `"omitempty`
 	}
 
 	switch field.DataType {
-	case "integer":
+	case "smallint", "smallserial", "serial", "integer", "bigint", "bigserial":
 		val += ",int"
+	case "double precision", "real":
+		val += ",numeric"
 	case "uuid":
 		val += ",uuid"
 	case "timestamp with time zone":
 		val += ",rfc3339"
 	case "timestamp without time zone":
 		val += ",rfc3339WithoutZone"
+	case "date":
+		val += ",date"
+	case "bool":
+		val += ",bool"
 	}
 
 	if strings.HasPrefix(field.DataType, "character varying(") {
 		re := regexp.MustCompile("[0-9]+")
-		val += ",stringlength(1|" + re.FindString(field.DataType) + ")"
+		val += ",min=1,max=" + re.FindString(field.DataType)
 	}
 
 	val += `"`
@@ -394,15 +407,28 @@ func (%s *%s) Save() error {
 //
 func (mg *ModelGenerator) GetInsertCode() string {
 	var code string
+	var dbCols []string
+	var objCols []string
+	var placeHolders []string
+	var colCount int
+
 	structInstance := mg.GetStructInstanceName()
 	fullTableName := mg.GetFullTableName()
-	columnList := ""
 
+	// 
 	for key := range mg.Fields {
-		if (!mg.Fields[key].Default.Valid) {
-			columnList += fmt.Sprintf(",\n\t\t\t\"%s\"", mg.Fields[key].FieldName)
+		if (mg.Fields[key].FieldName != "id" && mg.Fields[key].FieldName != "created_at" && mg.Fields[key].FieldName != "updated_at") {
+			colCount++
+			// (account_id, units, ...)
+			dbCols = append(dbCols, mg.Fields[key].FieldName)
+			// ($1, $2, ...)
+			placeHolders = append(placeHolders, fmt.Sprintf("$%d", colCount))
+			// (p.AccountId, p.Units, ...)
+			objCols = append(objCols, fmt.Sprintf("%s.%s", structInstance, mg.ToCamelCase(mg.Fields[key].FieldName)))
 		}
 	}
+
+	insertSql := fmt.Sprintf("\t\t`INSERT INTO\n\t\t%s (%s)\n\t\t(%s)\n\t\tRETURNING id\n`", fullTableName, strings.Join(dbCols, ","), strings.Join(placeHolders, ", "))
 
 	code += fmt.Sprintf(`
 // Insert a new record
@@ -413,20 +439,26 @@ func (%s *%s) Insert() error {
 		return err
 	}
 
-	_, err = tx.InsertInto("%s").
-		Columns(%s).
-		Record(%s).
-		Exec()
+	query :=
+%s
+
+	stmt, err := tx.Prepare(query)
 
 	if err != nil {
 		return err
 	}
 
-	err = %s.Ctx.OptionalCommit(tx)
+	defer stmt.Close()
 
-	return err
+	err = stmt.QueryRow(%s).Scan(&%s.Id)
+
+	if err != nil {
+		return err
+	}
+
+	return %s.Ctx.OptionalCommit(tx)
 }
-`, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
+`, structInstance, mg.ModelName, structInstance, insertSql, strings.Join(objCols, ", "), structInstance, structInstance)
 
 	return code
 }
