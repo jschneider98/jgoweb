@@ -2,177 +2,74 @@ package generator
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"github.com/jschneider98/jgoweb"
+	"github.com/jschneider98/jgoweb/util"
 	"github.com/jschneider98/jgoweb/db/psql"
+	"github.com/jschneider98/jgomodel"
 )
 
 type ModelGenerator struct {
-	Schema string `json:"schema"`
-	Table string `json:"table"`
-	ModelName string `jsong:"model_name"`
+	ModelName string `json:"model_name"`
+	InstanceName string `json:"instance_name"`
+	StructAcronym string
+	Model *jgomodel.Model
 	Fields []psql.Field
-	Ctx jgoweb.ContextInterface `json:"-"`
 }
 
 //
 func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string) (*ModelGenerator, error) {
 	var err error
 	
-	mg := &ModelGenerator{
-		Schema: schema,
-		Table: table,
-		Ctx: ctx,
-	}
-
-	mg.MakeModelName()
-
-	mg.Fields, err = psql.GetFields(mg.Ctx, mg.Schema, mg.Table)
+	mg := &ModelGenerator{}
+	mg.Model, err = jgomodel.NewModel(ctx, schema, table)
 
 	if err != nil {
 		return nil, err
 	}
+
+	mg.MakeModelName()
+	mg.MakeInstanceName()
+	mg.MakeStructInstanceName()
+	mg.Fields = mg.Model.Fields
 
 	return mg, nil
 }
 
 //
 func (mg *ModelGenerator) MakeModelName() {
+
+	if mg.ModelName != "" {
+		return
+	}
+
 	mg.ModelName = ""
 	
-	if mg.Schema != "public" {
-		mg.ModelName = mg.ToCamelCase(mg.Schema)
+	if mg.Model.Schema != "public" {
+		mg.ModelName = util.ToCamelCase(mg.Model.Schema)
 	}
 
-	mg.ModelName += mg.ToCamelCase(mg.Table)
+	// Unpluralize table name...
+	table := strings.TrimSuffix(mg.Model.Table, "s")
+
+	mg.ModelName += util.ToCamelCase(table)
 }
 
 //
-func (mg *ModelGenerator) ConvertDataType(field psql.Field) string {
-
-	switch field.DataType {
-	case "smallint":
-	case "smallserial":
-	case "serial":
-	case "bigint":
-	case "bigserial":
-	case "integer":
-		return "sql.NullInt64"
-	case "boolean":
-		return "sql.NullBool"
-	case "double precision":
-		return "sql.NullFloat64"
-	}
-
-	return "sql.NullString"
+func (mg *ModelGenerator) MakeInstanceName() {
+	mg.MakeModelName()
+	mg.InstanceName = util.ToLowerCamelCase(mg.ModelName)
 }
 
 //
-func (mg *ModelGenerator) GetAnnotation(field psql.Field) string {
-	return fmt.Sprintf("`json:\"%s\" %s`", field.FieldName, mg.GetValidation(field))
-}
-
-//
-func (mg *ModelGenerator) GetValidation(field psql.Field) string {
-	val := "validate:"
-
-	// if not null and no default = required (Special case, bool = notnull)
-	// if not null with default = no insert/update (i.e., use default)
-	// if nullable = omitempty
-	if field.NotNull == true && !field.Default.Valid {
-
-		if field.DataType == "boolean" {
-			val += `"notNull`
-		} else {
-			val += `"required`
-		}
-	} else {
-		val += `"omitempty`
-	}
-
-	switch field.DataType {
-	case "smallint", "smallserial", "serial", "integer", "bigint", "bigserial":
-		val += ",int"
-	case "double precision", "real":
-		val += ",numeric"
-	case "uuid":
-		val += ",uuid"
-	case "timestamp with time zone":
-		val += ",rfc3339"
-	case "timestamp without time zone":
-		val += ",rfc3339WithoutZone"
-	case "date":
-		val += ",date"
-	case "bool":
-		val += ",bool"
-	}
-
-	if strings.HasPrefix(field.DataType, "character varying(") {
-		re := regexp.MustCompile("[0-9]+")
-		val += ",min=1,max=" + re.FindString(field.DataType)
-	}
-
-	val += `"`
-
-	return val
-}
-
-//
-func (mg *ModelGenerator) ToCamelCase(val string) string {
-	val = strings.ToLower(val)
-	val = strings.ReplaceAll(val, "_", " ")
-	val = strings.Title(val)
-	val = strings.ReplaceAll(val, " ", "")
-
-	return val
-}
-
-//
-func (mg *ModelGenerator) GetInstanceName() string {
-	return strings.ToLower(mg.ModelName)
-}
-
-//
-func (mg *ModelGenerator) GetFullTableName() string {
-	return mg.Schema + "." + mg.Table
-}
-
-//
-func (mg *ModelGenerator) GetUnsetPkeyVal() string {
-	var unsetPkeyVal string
-
-	if mg.Fields[0].DataType == "integer" {
-		unsetPkeyVal = "0"
-	} else {
-		unsetPkeyVal = `""`
-	}
-
-	return unsetPkeyVal
-}
-
-//
-func (mg *ModelGenerator) GetStructInstanceName() string{
-	var structInstance string
-
-	re := regexp.MustCompile("[A-Z]+")
-	letters := re.FindAllString(mg.ModelName, -1)
-
-	for key := range letters {
-		structInstance += letters[key]
-	}
-
-	if structInstance == "" {
-		structInstance = "m"
-	}
-
-	return strings.ToLower(structInstance)
+func (mg *ModelGenerator) MakeStructInstanceName() {
+	mg.MakeModelName()
+	mg.StructAcronym = util.ToLowerAcronym(mg.ModelName)
 }
 
 //
 func (mg *ModelGenerator) Generate() string {
 	var code string
-
 
 	code = mg.GetImportCode()
 	code += mg.GetStructCode()
@@ -195,13 +92,12 @@ func (mg *ModelGenerator) Generate() string {
 
 // 
 func (mg *ModelGenerator) GetImportCode() string {
-return	`
-package models
+return	`package models
 
 import(
 	"database/sql"
-	"gopkg.in/go-playground/validator.v9"
 	"github.com/jschneider98/jgoweb"
+	"github.com/jschneider98/jgomodel"
 )
 `
 }
@@ -214,11 +110,12 @@ func (mg *ModelGenerator) GetStructCode() string {
 	code += fmt.Sprintf("type %s struct {\n", mg.ModelName)
 
 	for key := range mg.Fields {
-		code += fmt.Sprintf("\t%s %s %s\n", mg.ToCamelCase(mg.Fields[key].FieldName), mg.ConvertDataType(mg.Fields[key]), mg.GetAnnotation(mg.Fields[key]))
+		code += fmt.Sprintf("\t%s %s %s\n", mg.Fields[key].FieldName, mg.Fields[key].DataType, mg.Fields[key].Annotation)
 	}
 
 	code += "\tCtx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n"
-	code += "}\n"
+	code += "\t*jgomodel.Model `json:\"-\" validate:\"-\"`\n"
+	code += "}\n\n"
 
 	return code
 }
@@ -232,8 +129,10 @@ func (mg *ModelGenerator) GetHydratorStructCode() string {
 	code += fmt.Sprintf("type %s struct {\n", mg.ModelName + "Hydrator")
 
 	for key := range mg.Fields {
-		code += fmt.Sprintf("\t%s %s %s\n", mg.ToCamelCase(mg.Fields[key].FieldName), "string", mg.GetAnnotation(mg.Fields[key]))
+		code += fmt.Sprintf("\t%s %s %s\n", mg.Fields[key].FieldName, "string", mg.Fields[key].Annotation)
 	}
+
+	code += "\tCtx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n"
 
 	code += "}\n"
 
@@ -243,14 +142,14 @@ func (mg *ModelGenerator) GetHydratorStructCode() string {
 //
 func (mg *ModelGenerator) GetHydratorIsValidCode() string {
 	var code string
-	structInstance := mg.GetStructInstanceName() + "h"
+	acronym := mg.StructAcronym + "h"
 
 	code += fmt.Sprintf(`
 // Validate the hydrator
-func (%s *%s) isValid() (bool, error) {
-	return %s.Ctx.Validate.Struct(%s)
+func (%s *%s) IsValid() error {
+	return %s.Ctx.GetValidator().Struct(%s)
 }
-`, structInstance, mg.ModelName + "Hydrator", structInstance, structInstance)
+`, acronym, mg.ModelName + "Hydrator", acronym, acronym)
 
 	return code
 }
@@ -260,10 +159,16 @@ func (mg *ModelGenerator) GetNewCode() string {
 	var code string
 	code += fmt.Sprintf(`
 // Empty new model
-func New%s(ctx jgoweb.ContextInterface) *%s {
-	return &%s{Ctx: ctx}
+func New%s(ctx jgoweb.ContextInterface) (*%s, error) {
+	%s, err := jgomodel.NewModel(ctx, "%s", "%s")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &%s{Model:%s}, nil
 }
-`, mg.ModelName, mg.ModelName, mg.ModelName)
+`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.ModelName, mg.InstanceName)
 
 	return code
 }
@@ -271,13 +176,17 @@ func New%s(ctx jgoweb.ContextInterface) *%s {
 //
 func (mg *ModelGenerator) GetNewWithDataCode() string {
 	var code string
-	instanceName := mg.GetInstanceName()
 
 	code += fmt.Sprintf(`
 // New model with data
 func New%sWithData(ctx jgoweb.ContextInterface, %sHydrator %sHydrator) (*%s, error) {
-	%s := &%s{Ctx: ctx}
-	err := %s.Hydrate(%sHydrator)
+	%s, err := New%s(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = %s.Hydrate(%sHydrator)
 
 	if err != nil {
 		return nil, err
@@ -285,7 +194,7 @@ func New%sWithData(ctx jgoweb.ContextInterface, %sHydrator %sHydrator) (*%s, err
 
 	return %s, nil
 }
-`, mg.ModelName, instanceName, mg.ModelName, mg.ModelName, instanceName, mg.ModelName, instanceName, instanceName, instanceName)
+`, mg.ModelName, mg.InstanceName, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.InstanceName, mg.InstanceName, mg.InstanceName)
 
 	return code
 }
@@ -293,12 +202,10 @@ func New%sWithData(ctx jgoweb.ContextInterface, %sHydrator %sHydrator) (*%s, err
 //
 func (mg *ModelGenerator) GetFetchByIdCode() string {
 	var code string
-	fullTableName := mg.GetFullTableName()
-	instanceName := mg.GetInstanceName()
 
 	code += fmt.Sprintf(`
 // Factory Method
-func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
+func Fetch%sById(ctx jgoweb.ContextInterface, id string) (*%s, error) {
 	var %s []%s
 
 	stmt := ctx.Select("*").
@@ -320,7 +227,7 @@ func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
 
 	return &%s[0], nil
 }
-`, mg.ModelName, mg.ModelName, instanceName, mg.ModelName, fullTableName, instanceName, instanceName, instanceName, instanceName)
+`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.Model.FullTableName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.InstanceName)
 
 	return code
 }
@@ -328,17 +235,32 @@ func Fetch%sById(ctx ContextInterface, id string) (*%s, error) {
 //
 func (mg *ModelGenerator) GetHydrateCode() string {
 	var code string
-	instanceName := mg.GetInstanceName()
 	assignments := ""
 
 	for key := range mg.Fields {
-		dataType := mg.ConvertDataType(mg.Fields[key])
-		fieldName := mg.ToCamelCase(mg.Fields[key].FieldName)
+		fieldName := mg.Fields[key].FieldName
 
-		if dataType == "string" || dataType == "dbr.NullString" {
-			assignments += fmt.Sprintf("\t%s.%s = %sHydrator.%s\n", instanceName, fieldName, instanceName, fieldName)
-		} else {
-			assignments += fmt.Sprintf("\t%s.%s = %s(%sHydrator.%s)\n", instanceName, fieldName, dataType, instanceName, fieldName)
+		switch mg.Fields[key].DataType {
+		case "sql.NullString":
+			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t\t%s.%s.String = %sHydrator.%s\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t}\n\n")
+		case "sql.NullInt64":
+			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t%s.%s.Int64 = int64(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t}\n\n")
+		case "slq.NullBool":
+			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t%s.%s.Bool = bool(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t}\n\n")
+		case "slq.NullFloat64":
+			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t%s.%s.Float64 = float64(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t%s.%s.Valid = true\n\n", mg.InstanceName, fieldName)
+			assignments += fmt.Sprintf("\t}\n\n")
 		}
 	}
 
@@ -346,17 +268,15 @@ func (mg *ModelGenerator) GetHydrateCode() string {
 	code += fmt.Sprintf(`
 // Hydrate the model with data
 func (%s *%s) Hydrate(%sHydrator %sHydrator) error {
-	isValid, err := %sHydrator.IsValid()
+	err := %sHydrator.IsValid()
 
-	if !isValid {
+	if err != nil {
 		return err
 	}
-
 %s
-
 	return nil
 }
-`, instanceName, mg.ModelName, instanceName, mg.ModelName, instanceName, assignments)
+`, mg.InstanceName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.InstanceName, assignments)
 
 	return code
 }
@@ -364,14 +284,13 @@ func (%s *%s) Hydrate(%sHydrator %sHydrator) error {
 //
 func (mg *ModelGenerator) GetIsValidCode() string {
 	var code string
-	structInstance := mg.GetStructInstanceName()
 
 	code += fmt.Sprintf(`
 // Validate the model
-func (%s *%s) isValid() (bool, error) {
-	return %s.Ctx.Validate.Struct(%s)
+func (%s *%s) IsValid() error {
+	return %s.Ctx.GetValidator().Struct(%s)
 }
-`, structInstance, mg.ModelName, structInstance, structInstance)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -379,26 +298,23 @@ func (%s *%s) isValid() (bool, error) {
 //
 func (mg *ModelGenerator) GetSaveCode() string {
 	var code string
-	structInstance := mg.GetStructInstanceName()
-	unsetPkeyVal := mg.GetUnsetPkeyVal()
 
 	code += fmt.Sprintf(`
 // Insert/Update based on pkey value
 func (%s *%s) Save() error {
-	isValid, err := %s.isValid()
+	err := %s.IsValid()
 
-	if !isValid {
+	if err != nil {
 		return err
 	}
 
-	if %s.Id == %s {
+	if %s.Id.Valid {
 		return %s.Insert()
 	} else {
 		return %s.Update()
 	}
 }
-`, structInstance, mg.ModelName, structInstance, structInstance, unsetPkeyVal, structInstance, structInstance)
-
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -406,28 +322,19 @@ func (%s *%s) Save() error {
 //
 func (mg *ModelGenerator) GetInsertCode() string {
 	var code string
-	var dbCols []string
 	var objCols []string
-	var placeHolders []string
-	var colCount int
-
-	structInstance := mg.GetStructInstanceName()
-	fullTableName := mg.GetFullTableName()
+	var colList string
 
 	// 
 	for key := range mg.Fields {
-		if (mg.Fields[key].FieldName != "id" && mg.Fields[key].FieldName != "created_at" && mg.Fields[key].FieldName != "updated_at") {
-			colCount++
-			// (account_id, units, ...)
-			dbCols = append(dbCols, mg.Fields[key].FieldName)
-			// ($1, $2, ...)
-			placeHolders = append(placeHolders, fmt.Sprintf("$%d", colCount))
+		if (mg.Fields[key].DbFieldName != "id" && mg.Fields[key].DbFieldName != "created_at" && mg.Fields[key].DbFieldName != "updated_at") {
 			// (p.AccountId, p.Units, ...)
-			objCols = append(objCols, fmt.Sprintf("%s.%s", structInstance, mg.ToCamelCase(mg.Fields[key].FieldName)))
+			objCols = append(objCols, fmt.Sprintf("%s.%s", mg.StructAcronym, mg.Fields[key].FieldName))
 		}
 	}
 
-	insertSql := fmt.Sprintf("\t\t`INSERT INTO\n\t\t%s (%s)\n\t\t(%s)\n\t\tRETURNING id\n`", fullTableName, strings.Join(dbCols, ", "), strings.Join(placeHolders, ", "))
+	colList = strings.Join(objCols, ",\t\t\t")
+	colList = strings.ReplaceAll(colList, ",", ",\n")
 
 	code += fmt.Sprintf(`
 // Insert a new record
@@ -438,8 +345,7 @@ func (%s *%s) Insert() error {
 		return err
 	}
 
-	query :=
-%s
+	query := %s.GetInsertQuery()
 
 	stmt, err := tx.Prepare(query)
 
@@ -457,7 +363,7 @@ func (%s *%s) Insert() error {
 
 	return %s.Ctx.OptionalCommit(tx)
 }
-`, structInstance, mg.ModelName, structInstance, insertSql, strings.Join(objCols, ", "), structInstance, structInstance)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, colList, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -465,17 +371,19 @@ func (%s *%s) Insert() error {
 //
 func (mg *ModelGenerator) GetUpdateCode() string {
 	var code string
-	structInstance := mg.GetStructInstanceName()
-	fullTableName := mg.GetFullTableName()
 	columnList := ""
 
 	for key := range mg.Fields {
-		columnList += fmt.Sprintf("\t\tSet(\"%s\", %s.%s).\n", mg.Fields[key].FieldName, structInstance, mg.ToCamelCase(mg.Fields[key].FieldName))
+		columnList += fmt.Sprintf("\t\tSet(\"%s\", %s.%s).\n", mg.Fields[key].DbFieldName, mg.StructAcronym, mg.Fields[key].FieldName)
 	}
 
 	code += fmt.Sprintf(`
 // Update a record
 func (%s *%s) Update() error {
+	if !%s.Id.Valid {
+		return nil
+	}
+
 	tx, err := %s.Ctx.OptionalBegin()
 
 	if err != nil {
@@ -495,7 +403,7 @@ func (%s *%s) Update() error {
 
 	return err
 }
-`, structInstance, mg.ModelName, structInstance, fullTableName, columnList, structInstance, structInstance)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, columnList, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -503,8 +411,6 @@ func (%s *%s) Update() error {
 //
 func (mg *ModelGenerator) GetDeleteCode() string {
 	var code string
-	structInstance := mg.GetStructInstanceName()
-	fullTableName := mg.GetFullTableName()
 	softDelete := false
 
 	for key := range mg.Fields {
@@ -520,13 +426,18 @@ func (mg *ModelGenerator) GetDeleteCode() string {
 	code += fmt.Sprintf(`
 // Hard delete a record
 func (%s *%s) Delete() error {
+
+	if !%s.Id.Valid {
+		return nil
+	}
+
 	tx, err := %s.Ctx.OptionalBegin()
 
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Delete("%s").
+	_, err = tx.DeleteFrom("%s").
 		Where("id = ?", %s.Id).
 		Exec()
 
@@ -534,8 +445,9 @@ func (%s *%s) Delete() error {
 		return err
 	}
 
-	return p.Ctx.OptionalCommit(tx)
-`, structInstance, mg.ModelName, structInstance, fullTableName, structInstance)
+	return %s.Ctx.OptionalCommit(tx)
+}
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -543,9 +455,6 @@ func (%s *%s) Delete() error {
 //
 func (mg *ModelGenerator) GetSoftDeleteCode() string {
 	var code string
-	structInstance := mg.GetStructInstanceName()
-	fullTableName := mg.GetFullTableName()
-
 
 	code += fmt.Sprintf(`
 // Soft delete a record
@@ -557,7 +466,7 @@ func (%s *%s) Delete() error {
 	}
 
 	_, err = tx.Update("%s").
-		Set("deleted_at = ?", "timezone('utc'::text, now())"").
+		Set("deleted_at = ?", "timezone('utc'::text, now())").
 		Where("id = ?", %s.Id).
 		Exec()
 
@@ -567,7 +476,7 @@ func (%s *%s) Delete() error {
 
 	return p.Ctx.OptionalCommit(tx)
 }
-`, structInstance, mg.ModelName, structInstance, fullTableName, structInstance)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym)
 
 	return code
 }
