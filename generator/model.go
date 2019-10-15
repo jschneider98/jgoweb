@@ -78,9 +78,7 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetHydratorIsValidCode()
 
 	code += mg.GetNewCode()
-
 	code += mg.GetSetDefaultCode()
-
 	code += mg.GetNewWithDataCode()
 	code += mg.GetFetchByIdCode()
 	code += mg.GetHydrateCode()
@@ -89,6 +87,7 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetInsertCode()
 	code += mg.GetUpdateCode()
 	code += mg.GetDeleteCode()
+	code += mg.GetSetterGetterCode()
 
 	return code
 }
@@ -507,6 +506,202 @@ func (%s *%s) Delete() error {
 	return p.Ctx.OptionalCommit(tx)
 }
 `, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetSetterGetterCode() string {
+	var code string
+
+	for key := range mg.Fields {
+
+		switch mg.Fields[key].DataType {
+		case "sql.NullString":
+			code += mg.GetStringGetterCode(mg.Fields[key])
+			code += mg.GetStringSetterCode(mg.Fields[key])
+		case "sql.NullInt64":
+			code += mg.GetIntGetterCode(mg.Fields[key])
+			code += mg.GetIntSetterCode(mg.Fields[key])
+		case "sql.NullFloat64":
+			code += mg.GetFloatGetterCode(mg.Fields[key])
+			code += mg.GetFloatSetterCode(mg.Fields[key])
+		case "sql.NullBool":
+			code += mg.GetBoolGetterCode(mg.Fields[key])
+			code += mg.GetBoolSetterCode(mg.Fields[key])
+		}
+	}
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetStringGetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Get%s() string {
+
+	if %s.Valid {
+		return %s.String
+	}
+
+	return ""
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetStringSetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Set%s(val string) {
+
+	if val == "" {
+		%s.Valid = false
+		%s.String = ""
+
+		return
+	}
+
+	%s.Valid = true
+	%s.String = val
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetIntGetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Get%s() int64 {
+
+	if %s.Valid {
+		return %s.Int64
+	}
+
+	return 0
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetIntSetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Set%s(val int64) {
+
+	if val == 0 {
+		%s.Valid = false
+		%s.Int64 = 0
+
+		return
+	}
+
+	%s.Valid = true
+	%s.Int64 = val
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetFloatGetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Get%s() float64 {
+
+	if %s.Valid {
+		return %s.Float64
+	}
+
+	return 0
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetFloatSetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Set%s(val float64) {
+
+	if val == 0 {
+		%s.Valid = false
+		%s.Float64 = 0
+
+		return
+	}
+
+	%s.Valid = true
+	%s.Float64 = val
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetBoolGetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Get%s() bool {
+
+	if %s.Valid {
+		return %s.Bool
+	}
+
+	%s.Valid = true
+	%s.Bool = false
+
+	return false
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, fullFieldName, fullFieldName)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetBoolSetterCode(field psql.Field) string {
+	var code string
+	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	code += fmt.Sprintf(`
+//
+func (%s *%s) Set%s(val bool) {
+	%s.Valid = true
+	%s.Bool = val
+}
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName)
 
 	return code
 }
