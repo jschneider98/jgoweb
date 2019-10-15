@@ -99,6 +99,11 @@ func (ctx *WebContext) GetDbSession() *dbr.Session {
 
 //
 func (ctx *WebContext) GetValidator() *validator.Validate {
+
+	if ctx.Validate == nil {
+		ctx.Validate = jgovalidator.GetValidator()
+	}
+
 	return ctx.Validate
 }
 
