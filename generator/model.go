@@ -78,6 +78,9 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetHydratorIsValidCode()
 
 	code += mg.GetNewCode()
+
+	code += mg.GetSetDefaultCode()
+
 	code += mg.GetNewWithDataCode()
 	code += mg.GetFetchByIdCode()
 	code += mg.GetHydrateCode()
@@ -157,6 +160,7 @@ func (%s *%s) IsValid() error {
 //
 func (mg *ModelGenerator) GetNewCode() string {
 	var code string
+
 	code += fmt.Sprintf(`
 // Empty new model
 func New%s(ctx jgoweb.ContextInterface) (*%s, error) {
@@ -166,9 +170,34 @@ func New%s(ctx jgoweb.ContextInterface) (*%s, error) {
 		return nil, err
 	}
 
-	return &%s{Model:%s}, nil
+	%s := return &%s{Model:%s}, nil
+	%s.SetDefaults()
+
+	return %s
 }
-`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.ModelName, mg.InstanceName)
+`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.StructAcronym, mg.ModelName, mg.InstanceName, mg.StructAcronym)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetSetDefaultCode() string {
+	var code string
+	var defaults string
+
+	for key := range mg.Fields {
+
+		if mg.Fields[key].DbDefault.Valid && !mg.Fields[key].DbDefaultIsFunc {
+			defaults += fmt.Sprintf("\t%s.Set%s(%s)\n", mg.StructAcronym, mg.Fields[key].FieldName, mg.Fields[key].Default)
+		}
+	}
+
+	code += fmt.Sprintf(`
+// Set defaults
+func (%s *%s) SetDefaults() {
+%s
+}
+`, mg.StructAcronym, mg.ModelName, defaults)
 
 	return code
 }
@@ -273,6 +302,7 @@ func (%s *%s) Hydrate(%sHydrator %sHydrator) error {
 	if err != nil {
 		return err
 	}
+
 %s
 	return nil
 }
