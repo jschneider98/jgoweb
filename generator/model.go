@@ -172,11 +172,12 @@ func New%s(ctx jgoweb.ContextInterface) (*%s, error) {
 	}
 
 	%s := &%s{Model:%s}
+	%s.Ctx = ctx
 	%s.SetDefaults()
 
 	return %s, nil
 }
-`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.StructAcronym, mg.ModelName, mg.InstanceName, mg.StructAcronym, mg.StructAcronym)
+`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.StructAcronym, mg.ModelName, mg.InstanceName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
