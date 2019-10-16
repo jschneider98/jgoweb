@@ -74,8 +74,8 @@ func (mg *ModelGenerator) Generate() string {
 	code = mg.GetImportCode()
 	code += mg.GetStructCode()
 
-	code += mg.GetHydratorStructCode()
-	code += mg.GetHydratorIsValidCode()
+	// code += mg.GetHydratorStructCode()
+	// code += mg.GetHydratorIsValidCode()
 
 	code += mg.GetNewCode()
 	code += mg.GetSetDefaultCode()
@@ -98,6 +98,7 @@ return	`package models
 
 import(
 	"database/sql"
+	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb"
 	"github.com/jschneider98/jgomodel"
 )
@@ -112,7 +113,8 @@ func (mg *ModelGenerator) GetStructCode() string {
 	code += fmt.Sprintf("type %s struct {\n", mg.ModelName)
 
 	for key := range mg.Fields {
-		code += fmt.Sprintf("\t%s %s %s\n", mg.Fields[key].FieldName, mg.Fields[key].DataType, mg.Fields[key].Annotation)
+		// code += fmt.Sprintf("\t%s %s %s\n", mg.Fields[key].FieldName, mg.Fields[key].DataType, mg.Fields[key].Annotation)
+		code += fmt.Sprintf("\t%s %s %s\n", mg.Fields[key].FieldName, "sql.NullString", mg.Fields[key].Annotation)
 	}
 
 	code += "\tCtx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n"
@@ -207,14 +209,14 @@ func (mg *ModelGenerator) GetNewWithDataCode() string {
 
 	code += fmt.Sprintf(`
 // New model with data
-func New%sWithData(ctx jgoweb.ContextInterface, %sHydrator %sHydrator) (*%s, error) {
+func New%sWithData(ctx jgoweb.ContextInterface, req *web.Request) (*%s, error) {
 	%s, err := New%s(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = %s.Hydrate(%sHydrator)
+	err = %s.Hydrate(req)
 
 	if err != nil {
 		return nil, err
@@ -222,7 +224,7 @@ func New%sWithData(ctx jgoweb.ContextInterface, %sHydrator %sHydrator) (*%s, err
 
 	return %s, nil
 }
-`, mg.ModelName, mg.InstanceName, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.InstanceName, mg.InstanceName, mg.InstanceName)
+`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.InstanceName, mg.InstanceName)
 
 	return code
 }
@@ -252,10 +254,15 @@ func Fetch%sById(ctx jgoweb.ContextInterface, id string) (*%s, error) {
 	}
 
 	%s[0].Ctx = ctx
+	%s[0].Model, err = jgomodel.NewModel(ctx, "%s", "%s")
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &%s[0], nil
 }
-`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.Model.FullTableName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.InstanceName)
+`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.Model.FullTableName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.InstanceName)
 
 	return code
 }
@@ -266,37 +273,40 @@ func (mg *ModelGenerator) GetHydrateCode() string {
 	assignments := ""
 
 	for key := range mg.Fields {
-		fieldName := mg.Fields[key].FieldName
+		
+		assignments += fmt.Sprintf("\t%s.Set%s(req.PostFormValue(\"%s\"))\n", mg.StructAcronym, mg.Fields[key].FieldName, mg.Fields[key].FieldName)
 
-		switch mg.Fields[key].DataType {
-		case "sql.NullString":
-			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t\t%s.%s.String = %sHydrator.%s\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t}\n\n")
-		case "sql.NullInt64":
-			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t%s.%s.Int64 = int64(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t}\n\n")
-		case "slq.NullBool":
-			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t%s.%s.Bool = bool(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t}\n\n")
-		case "slq.NullFloat64":
-			assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t%s.%s.Float64 = float64(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t%s.%s.Valid = true\n\n", mg.InstanceName, fieldName)
-			assignments += fmt.Sprintf("\t}\n\n")
-		}
+		// fieldName := mg.Fields[key].FieldName
+
+		// switch mg.Fields[key].DataType {
+		// case "sql.NullString":
+		// 	assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t\t%s.%s.String = %sHydrator.%s\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t}\n\n")
+		// case "sql.NullInt64":
+		// 	assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t%s.%s.Int64 = int64(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t}\n\n")
+		// case "slq.NullBool":
+		// 	assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t%s.%s.Bool = bool(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t%s.%s.Valid = true\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t}\n\n")
+		// case "slq.NullFloat64":
+		// 	assignments += fmt.Sprintf("\tif %sHydrator.%s != \"\" {\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t%s.%s.Float64 = float64(%sHydrator.%s)\n", mg.InstanceName, fieldName, mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t%s.%s.Valid = true\n\n", mg.InstanceName, fieldName)
+		// 	assignments += fmt.Sprintf("\t}\n\n")
+		// }
 	}
 
 
 	code += fmt.Sprintf(`
 // Hydrate the model with data
-func (%s *%s) Hydrate(%sHydrator %sHydrator) error {
-	err := %sHydrator.IsValid()
+func (%s *%s) Hydrate(req *web.Request) error {
+	err := req.ParseForm()
 
 	if err != nil {
 		return err
@@ -305,7 +315,7 @@ func (%s *%s) Hydrate(%sHydrator %sHydrator) error {
 %s
 	return nil
 }
-`, mg.InstanceName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.InstanceName, assignments)
+`, mg.StructAcronym, mg.ModelName, assignments)
 
 	return code
 }
@@ -337,7 +347,7 @@ func (%s *%s) Save() error {
 		return err
 	}
 
-	if %s.Id.Valid {
+	if !%s.Id.Valid {
 		return %s.Insert()
 	} else {
 		return %s.Update()
@@ -516,20 +526,23 @@ func (mg *ModelGenerator) GetSetterGetterCode() string {
 
 	for key := range mg.Fields {
 
-		switch mg.Fields[key].DataType {
-		case "sql.NullString":
-			code += mg.GetStringGetterCode(mg.Fields[key])
-			code += mg.GetStringSetterCode(mg.Fields[key])
-		case "sql.NullInt64":
-			code += mg.GetIntGetterCode(mg.Fields[key])
-			code += mg.GetIntSetterCode(mg.Fields[key])
-		case "sql.NullFloat64":
-			code += mg.GetFloatGetterCode(mg.Fields[key])
-			code += mg.GetFloatSetterCode(mg.Fields[key])
-		case "sql.NullBool":
-			code += mg.GetBoolGetterCode(mg.Fields[key])
-			code += mg.GetBoolSetterCode(mg.Fields[key])
-		}
+		code += mg.GetStringGetterCode(mg.Fields[key])
+		code += mg.GetStringSetterCode(mg.Fields[key])
+
+		// switch mg.Fields[key].DataType {
+		// case "sql.NullString":
+		// 	code += mg.GetStringGetterCode(mg.Fields[key])
+		// 	code += mg.GetStringSetterCode(mg.Fields[key])
+		// case "sql.NullInt64":
+		// 	code += mg.GetIntGetterCode(mg.Fields[key])
+		// 	code += mg.GetIntSetterCode(mg.Fields[key])
+		// case "sql.NullFloat64":
+		// 	code += mg.GetFloatGetterCode(mg.Fields[key])
+		// 	code += mg.GetFloatSetterCode(mg.Fields[key])
+		// case "sql.NullBool":
+		// 	code += mg.GetBoolGetterCode(mg.Fields[key])
+		// 	code += mg.GetBoolSetterCode(mg.Fields[key])
+		// }
 	}
 
 	return code
