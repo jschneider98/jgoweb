@@ -79,6 +79,8 @@ func FetchUserByEmail(ctx ContextInterface, email string) (*User, error) {
 // set user from session
 func (u *User) SetFromSession() error {
 	var err error
+	var shard *Shard
+	var user *User
 	userEmail, err := u.Ctx.SessionGetString("user_email")
 
 	if err != nil {
@@ -86,10 +88,21 @@ func (u *User) SetFromSession() error {
 	}
 
 	if userEmail == "" {
-		return nil
+		err = errors.New("User not in session.")
+		return err
 	}
 
-	user, err := FetchUserByShardEmail(u.Ctx, userEmail)
+	accountId, _ := u.Ctx.SessionGetString("account_id")
+
+	if accountId != "" {
+		shard, _ = FetchShardByAccountId(u.Ctx, accountId)
+	}
+
+	if shard == nil {
+		user, err = FetchUserByShardEmail(u.Ctx, userEmail)
+	} else {
+		user, err = FetchUserByEmail(u.Ctx, userEmail)
+	}
 
 	if err != nil {
 		return  err
