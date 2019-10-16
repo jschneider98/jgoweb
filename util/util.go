@@ -7,7 +7,9 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+	"html/template"
 	"github.com/gocraft/web"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // UniqueIntArray
@@ -132,4 +134,87 @@ func ToLowerAcronym(val string) string {
 	val = ToAcronym(val)
 
 	return strings.ToLower(val)
+}
+
+// MyVarId => my_far_id, etc
+func ToSnakeCase(val string) string {
+	var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+
+	val = matchFirstCap.ReplaceAllString(val, "${1}_${2}")
+
+	return strings.ToLower(val)
+}
+
+// MyVarId => My Var Id
+func ToWords(val string) string {
+	var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+
+	return matchFirstCap.ReplaceAllString(val, "${1} ${2}")
+}
+
+//
+func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
+	var msgs string
+
+	if messages == nil {
+		return template.HTML("")
+	}
+
+	msgs =  fmt.Sprintf("<div class=\"alert alert-%s\" role=\"alert\">\n", msgType)
+
+	for key := range messages {
+		msgs += fmt.Sprintf("\t%s</br>\n", messages[key])
+	}
+
+	msgs += "</div>"
+
+	return template.HTML(msgs)
+}
+
+//
+func GetNiceErrorMessage(errs error, seperator string) string {
+	var msg []string
+	var field string
+
+	for _, err := range errs.(validator.ValidationErrors) {
+		field = ToWords(err.Field())
+
+		switch err.Tag() {
+		case "required":
+			msg = append(msg, fmt.Sprintf("%s is required.", field))
+		case "email":
+			msg = append(msg, fmt.Sprintf("%s must be a valid email address", field))
+		case "max":
+			msg = append(msg, fmt.Sprintf("%s is too long.", field))
+		case "min":
+			msg = append(msg, fmt.Sprintf("%s is too short.", field))
+		case "rfc3339", "rfc3339WithoutZone":
+			msg = append(msg, fmt.Sprintf("%s must be a valid date/time", field))
+		case "date":
+			msg = append(msg, fmt.Sprintf("%s must be a valid date", err.Field()))
+		case "int":
+			msg = append(msg, fmt.Sprintf("%s must be a valid whole number", field))
+		case "float":
+			msg = append(msg, fmt.Sprintf("%s must be a valid decimal number", field))
+		case "notNull":
+			msg = append(msg, fmt.Sprintf("%s must not be blank.", field))
+		default:
+			msg = append(msg, fmt.Sprintf("%s is invalid.", field))
+		}
+
+		
+			// fmt.Println(err.Namespace())
+			// fmt.Println(err.Field())
+			// fmt.Println(err.StructNamespace()) // can differ when a custom TagNameFunc is registered or
+			// fmt.Println(err.StructField())     // by passing alt name to ReportError like below
+			// fmt.Println(err.Tag())
+			// fmt.Println(err.ActualTag())
+			// fmt.Println(err.Kind())
+			// fmt.Println(err.Type())
+			// fmt.Println(err.Value())
+			// fmt.Println(err.Param())
+			// fmt.Println()
+	}
+
+	return strings.Join(msg, seperator)
 }
