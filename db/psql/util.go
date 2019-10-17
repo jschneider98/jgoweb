@@ -88,22 +88,22 @@ func (f *Field) SetDefault() {
 //
 func (f *Field) SetDataType() {
 
-	switch f.DbDataType {
-	case "smallint":
-	case "smallserial":
-	case "serial":
-	case "bigint":
-	case "bigserial":
-	case "integer":
-		f.DataType = "sql.NullInt64"
-		return
-	case "boolean":
-		f.DataType = "sql.NullBool"
-		return
-	case "double precision":
-		f.DataType = "sql.NullFloat64"
-		return
-	}
+	// switch f.DbDataType {
+	// case "smallint":
+	// case "smallserial":
+	// case "serial":
+	// case "bigint":
+	// case "bigserial":
+	// case "integer":
+	// 	f.DataType = "sql.NullInt64"
+	// 	return
+	// case "boolean":
+	// 	f.DataType = "sql.NullBool"
+	// 	return
+	// case "double precision":
+	// 	f.DataType = "sql.NullFloat64"
+	// 	return
+	// }
 
 	f.DataType = "sql.NullString"
 }
@@ -155,6 +155,11 @@ func (f *Field) GetValidation() string {
 	}
 
 	if strings.HasPrefix(f.DbDataType, "character varying(") {
+		re := regexp.MustCompile("[0-9]+")
+		val += ",min=1,max=" + re.FindString(f.DbDataType)
+	}
+
+	if strings.HasPrefix(f.DbDataType, "character(") {
 		re := regexp.MustCompile("[0-9]+")
 		val += ",min=1,max=" + re.FindString(f.DbDataType)
 	}
