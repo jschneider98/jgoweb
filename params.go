@@ -9,15 +9,26 @@ import (
 type SearchParams struct {
 	Query string
 	Limit uint64
+	TableAlias string
+	FirstName string
+	LastName string
+	IdField string
 }
 
 //
 func NewSearchParams() *SearchParams {
-	return &SearchParams{}
+	sp := &SearchParams{}
+
+	sp.TableAlias = "main"
+	sp.FirstName = "first_name"
+	sp.LastName = "last_name"
+	sp.IdField = "school_state_id"
+
+	return sp
 }
 
 //
-func (sp *SearchParams) BuildNameCondition(alias string, firstName string, lastName string) (dbr.Builder, error) {
+func (sp *SearchParams) BuildDefaultCondition() (dbr.Builder, error) {
 	var builder dbr.Builder
 
 	if sp.Query == "" {
@@ -29,22 +40,26 @@ func (sp *SearchParams) BuildNameCondition(alias string, firstName string, lastN
 	if len(queryParts) == 1 {
 		builder = dbr.And(
 			dbr.Or(
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", alias, firstName), sp.Query + "%" ),
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", alias, lastName), sp.Query + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), sp.Query + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), sp.Query + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.IdField), sp.Query + "%" ),
 			),
 		)
 
 		return builder, nil
 	}
 
-	builder = dbr.Or(
-		dbr.And(
-			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", alias, firstName), queryParts[0] + "%" ),
-			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", alias, lastName), queryParts[1] + "%" ),
-		),
-		dbr.And(
-			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", alias, firstName), queryParts[1] + "%" ),
-			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", alias, lastName), queryParts[0] + "%" ),
+	builder = dbr.And(
+		dbr.Or(
+			dbr.And(
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), queryParts[0] + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), queryParts[1] + "%" ),
+			),
+			dbr.And(
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), queryParts[1] + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), queryParts[0] + "%" ),
+			),
+			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.IdField), sp.Query + "%" ),
 		),
 	)
 
