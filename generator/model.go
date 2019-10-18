@@ -190,7 +190,7 @@ func (mg *ModelGenerator) GetSetDefaultCode() string {
 	for key := range mg.Fields {
 
 		if mg.Fields[key].DbDefault.Valid && !mg.Fields[key].DbDefaultIsFunc {
-			defaults += fmt.Sprintf("\t%s.Set%s(%s)\n", mg.StructAcronym, mg.Fields[key].FieldName, mg.Fields[key].Default)
+			defaults += fmt.Sprintf("\t%s.Set%s(\"%s\")\n", mg.StructAcronym, mg.Fields[key].FieldName, mg.Fields[key].Default)
 		}
 	}
 
