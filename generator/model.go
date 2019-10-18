@@ -719,3 +719,9 @@ func (%s *%s) Set%s(val bool) {
 
 	return code
 }
+
+
+//
+func  (mg *ModelGenerator) IsHiddenField(fieldName string) bool {
+	return fieldName == "Id" || fieldName == "AccountId" || fieldName == "CreatedAt" || fieldName == "UpdatedAt" || fieldName == "DeletedAt"
+}
