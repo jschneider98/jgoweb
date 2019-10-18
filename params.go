@@ -9,6 +9,7 @@ import (
 type SearchParams struct {
 	Query string
 	Limit uint64
+	Offset uint64
 	TableAlias string
 	FirstName string
 	LastName string
