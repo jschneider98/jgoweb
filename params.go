@@ -3,6 +3,7 @@ package jgoweb
 import (
 	"fmt"
 	"strings"
+	"net/url"
 	"github.com/gocraft/dbr"
 )
 
@@ -14,6 +15,7 @@ type SearchParams struct {
 	FirstName string
 	LastName string
 	IdField string
+	UrlParams url.Values
 }
 
 //
