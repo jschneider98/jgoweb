@@ -225,11 +225,12 @@ func GetNiceErrorMessage(errs error, seperator string) string {
 // params["@test"] = "one"
 // params["@test2"] = "two"
 // params["@test3"] = "three"
-// str, newParams, err := util.PrepareString("This is a @test @test2 @test3", params, "?")
-func PrepareString(str string, holders map[string]string, replace string) (string, []interface{}, error) {
+// str, newParams, err := util.PrepareString("This is a @test @test2 @test3", params, "@", ?")
+func PrepareString(str string, holders map[string]string, match string, replace string) (string, []interface{}, error) {
 	var params []interface{}
+	pattern := match + "[0-9A-Za-z_]+"
 
-	re := regexp.MustCompile("@[0-9A-Za-z_]+")
+	re := regexp.MustCompile(pattern)
 	matches := re.FindAllString(str, -1)
 
 	str = re.ReplaceAllLiteralString(str, replace)
@@ -252,10 +253,15 @@ func PrepareString(str string, holders map[string]string, replace string) (strin
 }
 
 //
+func PrepareQuery(str string, holders map[string]string) (string, []interface{}, error) {
+	return PrepareString(str, holders, "@", "?")
+}
+
+//
 func NamedSprintf(str string, holders map[string]string) string {
 	var params []interface{}
 
-	str, params, _ = PrepareString(str, holders, "%s")
+	str, params, _ = PrepareString(str, holders, "~", "%s")
 
 	return fmt.Sprintf(str, params...)
 }
