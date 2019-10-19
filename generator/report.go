@@ -36,6 +36,9 @@ func (rg *ReportGenerator) Generate() string {
 	code += rg.GetStructCode()
 	code += rg.GetNewCode()
 	code += rg.GetRunCode()
+	code += rg.GetCountCode()
+	code += rg.GetQueryCode()
+	code += rg.GetParamsCode()
 
 	return code
 }
@@ -110,59 +113,22 @@ func New~Name~(ctx jgoweb.ContextInterface, user *models.User) (*~Name~) {
 func (rg *ReportGenerator) GetRunCode() string {
 	var code string
 
-	params := make(map[string]string)
-	params["~Name~"] = rg.BaseStructName
-
-	code += util.NamedSprintf(`
+	code += `
 //
-func (r *~Name~Report) Run(params url.Values) ([]~Name~Result, error) {
-	var results []~Name~Result
+func (r *ClaimSummaryReport) Run(params url.Values) ([]ClaimSummaryResult, error) {
+	var results []ClaimSummaryResult
 	var query string
+	var sqlParams []interface{}
 	var err error
 
-	strParams := make(map[string]string)
-	qParams := make(map[string]string)
+	// make sure we generate the correct query for this method
+	params.Set("count", "")
 
-	qParams["@AccountId@"] = r.User.AccountId.String
+	query, sqlParams, err = r.GetQuery(params)
 
-`, params)
-
-	code += `	strParams["~limit~"] = ""
-	strParams["~offset~"] = ""
-
-	if params.Get("limit") != "" {
-		strParams["~limit~"] = fmt.Sprintf("LIMIT %s", params.Get("limit"))
+	if err != nil {
+		return nil, err
 	}
-
-	if params.Get("offset") != "" {
-		strParams["~offset~"] = fmt.Sprintf("OFFSET %s", params.Get("offset"))
-	}
-`
-
-	for key := range rg.Fields {
-		field := rg.Fields[key]
-		parts := strings.Split(field, ".")
-
-		if len(parts) > 1 {
-			field = parts[1]
-		}
-
-		code += fmt.Sprintf(`
-	strParams["~%s~"] = ""
-
-	if params.Get("%s") != "" {
-		strParams["~%s~"] = "AND %s ilike @%s@"
-		qParams["@%s@"] = params.Get("%s") + "%s"
-	}
-
-`, field, field, field, field, field, field, field, "%")
-	
-	}
-
-	code += "\tquery = util.NamedSprintf(`<query here>`, strParams)"
-	code += `
-
-	query, sqlParams, err := util.PrepareQuery(query, qParams)
 
 	stmt := r.Ctx.SelectBySql(query, sqlParams...)
 
@@ -174,7 +140,163 @@ func (r *~Name~Report) Run(params url.Values) ([]~Name~Result, error) {
 
 	return results, nil
 }
+
 `
+		return code
+	}
+
+
+
+//
+func (rg *ReportGenerator) GetCountCode() string {
+	var code string
+
+	code += `
+//
+func (r *ClaimSummaryReport) GetCount(params url.Values) (int, error) {
+	var count int
+	var query string
+	var sqlParams []interface{}
+	var err error
+
+	// make sure we generate the correct query for this method
+	params.Set("count", "true")
+
+	query, sqlParams, err = r.GetQuery(params)
+
+	if err != nil {
+		return 0, err
+	}
+
+	stmt := r.Ctx.SelectBySql(query, sqlParams...)
+
+	_, err = stmt.Load(&count)
+
+	if err !=nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+`
+		return code
+}
+
+
+//
+func (rg *ReportGenerator) GetQueryCode() string {
+	var code string
+	var placeholderStr string
+
+	for key := range rg.Fields {
+		field := rg.Fields[key]
+		parts := strings.Split(field, ".")
+
+		if len(parts) > 1 {
+			field = parts[1]
+		}
+
+		placeholderStr += fmt.Sprintf("\t~%s~\n", field)
+	}
+
+	code += fmt.Sprintf("\n" +
+"//\n" +
+"func (r *ClaimSummaryReport) GetQuery(params url.Values) (string, []interface{}, error) {\n" +
+"	var query string\n\n" +
+"	strParams, qParams := r.GetQueryParams(params)\n\n" +
+"	query = util.NamedSprintf(`\n" +
+`SELECT
+~fields~
+< Query Body Here>
+WHERE account_id = @AccountId@
+%s
+~order_by~
+~limit~
+~offset~
+`+ "`, strParams)" +
+`
+	return util.PrepareQuery(query, qParams)
+}
+
+`, placeholderStr)
+
+		return code
+}
+
+
+//
+func (rg *ReportGenerator) GetParamsCode() string {
+	var code string
+	var fieldStr string
+	var strParamsStr string
+
+	for key := range rg.Fields {
+		field := rg.Fields[key]
+		parts := strings.Split(field, ".")
+
+		if len(parts) > 1 {
+			field = parts[1]
+		}
+
+		fieldStr += fmt.Sprintf("\t%s,\n", rg.Fields[key])
+
+		strParamsStr += fmt.Sprintf(`
+	strParams["~%s~"] = ""
+
+	if params.Get("%s") != "" {
+		strParams["~%s~"] = "AND %s ilike @%s@"
+		qParams["@%s@"] = params.Get("%s") + "%s"
+	}
+
+`, field, field, field, rg.Fields[key], field, field, field, "%")
+	}
+
+	params := make(map[string]string)
+	params["~Name~"] = rg.BaseStructName
+
+	code += util.NamedSprintf(`
+//
+func (r *ClaimSummaryReport) GetQueryParams(params url.Values) (map[string]string, map[string]string) {
+	strParams := make(map[string]string)
+	qParams := make(map[string]string)
+
+	qParams["@AccountId@"] = r.User.AccountId.String
+
+`, params)
+
+	code += `	strParams["~limit~"] = ""
+	strParams["~offset~"] = ""
+	strParams["~order_by~"] = ""
+	strParams["~fields~"] = "\tcount(*) as count\n"
+
+	if params.Get("count") == "" {
+
+		if params.Get("limit") != "" {
+			strParams["~limit~"] = fmt.Sprintf("LIMIT %s", params.Get("limit"))
+		}
+
+		if params.Get("offset") != "" {
+			strParams["~offset~"] = fmt.Sprintf("OFFSET %s", params.Get("offset"))
+		}
+`
+
+	code += fmt.Sprintf(`
+		strParams["~fields~"] = ` + "`" + `
+%s
+` + "`", fieldStr)
+
+	code += `
+		strParams["~order_by~"] = "<ORDER BY>"
+
+	} else {
+		strParams["~limit~"] = "LIMIT 1"
+	}
+
+`
+
+	code += strParamsStr
+	code += fmt.Sprintf("\treturn strParams, qParams")
 
 	return code
 }
