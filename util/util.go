@@ -228,7 +228,7 @@ func GetNiceErrorMessage(errs error, seperator string) string {
 // str, newParams, err := util.PrepareString("This is a @test @test2 @test3", params, "@", ?")
 func PrepareString(str string, holders map[string]string, match string, replace string) (string, []interface{}, error) {
 	var params []interface{}
-	pattern := match + "[0-9A-Za-z_]+"
+	pattern := match + "[0-9A-Za-z_]+" + match
 
 	re := regexp.MustCompile(pattern)
 	matches := re.FindAllString(str, -1)
