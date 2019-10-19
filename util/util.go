@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"regexp"
 	"fmt"
 	"runtime"
@@ -217,4 +218,44 @@ func GetNiceErrorMessage(errs error, seperator string) string {
 	}
 
 	return strings.Join(msg, seperator)
+}
+
+// var params map[string]string
+// params = make(map[string]string)
+// params["@test"] = "one"
+// params["@test2"] = "two"
+// params["@test3"] = "three"
+// str, newParams, err := util.PrepareString("This is a @test @test2 @test3", params, "?")
+func PrepareString(str string, holders map[string]string, replace string) (string, []interface{}, error) {
+	var params []interface{}
+
+	re := regexp.MustCompile("@[0-9A-Za-z_]+")
+	matches := re.FindAllString(str, -1)
+
+	str = re.ReplaceAllLiteralString(str, replace)
+
+	for key := range matches {
+		val, ok := holders[matches[key]]
+
+		if ok {
+			params = append(params, val)
+		}
+	}
+
+	if len(matches) != len(params) {
+		err := errors.New("Parameter to placeholder mismatch in util.PrepareString")
+
+		return str, params, err
+	}
+
+	return str, params, nil
+}
+
+//
+func NamedSprintf(str string, holders map[string]string) string {
+	var params []interface{}
+
+	str, params, _ = PrepareString(str, holders, "%s")
+
+	return fmt.Sprintf(str, params...)
 }
