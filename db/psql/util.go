@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"github.com/gocraft/dbr"
+	"github.com/gocraft/dbr/dialect"
 	"github.com/jschneider98/jgoweb"
 	"github.com/jschneider98/jgoweb/util"
 )
@@ -167,4 +168,25 @@ func (f *Field) GetValidation() string {
 	val += `"`
 
 	return val
+}
+
+
+//
+func DebugSqlStatement(stmt *dbr.SelectStmt) error {
+	var err error
+
+	buf := dbr.NewBuffer()
+	err = stmt.Build(dialect.PostgreSQL, buf)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\n%s\n", buf.String())
+
+	for key := range buf.Value() {
+		fmt.Printf("%v == %v\n", key, buf.Value()[key])
+	}
+
+	return nil
 }
