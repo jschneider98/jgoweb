@@ -43,9 +43,9 @@ func (sp *SearchParams) BuildDefaultCondition() (dbr.Builder, error) {
 	if len(queryParts) == 1 {
 		builder = dbr.And(
 			dbr.Or(
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), sp.Query + "%" ),
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), sp.Query + "%" ),
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.IdField), sp.Query + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), "%" + sp.Query + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), "%" + sp.Query + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.IdField), "%" + sp.Query + "%" ),
 			),
 		)
 
@@ -55,14 +55,14 @@ func (sp *SearchParams) BuildDefaultCondition() (dbr.Builder, error) {
 	builder = dbr.And(
 		dbr.Or(
 			dbr.And(
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), queryParts[0] + "%" ),
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), queryParts[1] + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), "%" + queryParts[0] + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), "%" + queryParts[1] + "%" ),
 			),
 			dbr.And(
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), queryParts[1] + "%" ),
-				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), queryParts[0] + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.FirstName), "%" + queryParts[1] + "%" ),
+				dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.LastName), "%" + queryParts[0] + "%" ),
 			),
-			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.IdField), sp.Query + "%" ),
+			dbr.Expr( fmt.Sprintf("%s.%s ilike ?", sp.TableAlias, sp.IdField), "%" + sp.Query + "%" ),
 		),
 	)
 
