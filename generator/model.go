@@ -592,19 +592,24 @@ func (mg *ModelGenerator) GetSetterGetterCode() string {
 //
 func (mg *ModelGenerator) GetStringGetterCode(field psql.Field) string {
 	var code string
+	var slice string
 	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	if field.DbDataType == "date" {
+		slice = "[0:10]"
+	}
 
 	code += fmt.Sprintf(`
 //
 func (%s *%s) Get%s() string {
 
 	if %s.Valid {
-		return %s.String
+		return %s.String%s
 	}
 
 	return ""
 }
-`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName)
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, slice)
 
 	return code
 }
@@ -612,7 +617,12 @@ func (%s *%s) Get%s() string {
 //
 func (mg *ModelGenerator) GetStringSetterCode(field psql.Field) string {
 	var code string
+	var slice string
 	fullFieldName := fmt.Sprintf("%s.%s", mg.StructAcronym, field.FieldName)
+
+	if field.DbDataType == "date" {
+		slice = "[0:10]"
+	}
 
 	code += fmt.Sprintf(`
 //
@@ -626,9 +636,9 @@ func (%s *%s) Set%s(val string) {
 	}
 
 	%s.Valid = true
-	%s.String = val
+	%s.String = val%s
 }
-`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, fullFieldName, fullFieldName)
+`, mg.StructAcronym, mg.ModelName, field.FieldName, fullFieldName, fullFieldName, fullFieldName, fullFieldName, slice)
 
 	return code
 }
