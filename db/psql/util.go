@@ -121,22 +121,22 @@ func (f *Field) GetValidation() string {
 	// if not null and no default = required (Special case, bool = notnull)
 	// if not null with default = no insert/update (i.e., use default)
 	// if nullable = omitempty
-	// if f.NotNull == true && !f.DbDefault.Valid {
-
-	// 	if f.DbDataType == "boolean" {
-	// 		val += `"notNull`
-	// 	} else {
-	// 		val += `"required`
-	// 	}
-	// } else {
-	// 	val += `"omitempty`
-	// }
-
 	if f.NotNull == true && !f.DbDefault.Valid {
-		val += `"required`
+
+		if f.DbDataType == "boolean" {
+			val += `"notNull`
+		} else {
+			val += `"required`
+		}
 	} else {
 		val += `"omitempty`
-	}	
+	}
+
+	// if f.NotNull == true && !f.DbDefault.Valid {
+	// 	val += `"required`
+	// } else {
+	// 	val += `"omitempty`
+	// }	
 
 	switch f.DbDataType {
 	case "smallint", "smallserial", "serial", "integer", "bigint", "bigserial":
@@ -151,8 +151,6 @@ func (f *Field) GetValidation() string {
 		val += ",rfc3339WithoutZone"
 	case "date":
 		val += ",date"
-	case "bool":
-		val += ",bool"
 	}
 
 	if strings.HasPrefix(f.DbDataType, "character varying(") {
