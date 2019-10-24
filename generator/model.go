@@ -81,6 +81,7 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetSetDefaultCode()
 	code += mg.GetNewWithDataCode()
 	code += mg.GetFetchByIdCode()
+	code += mg.GetProcessSubmit()
 	code += mg.GetHydrateCode()
 	code += mg.GetIsValidCode()
 	code += mg.GetSaveCode()
@@ -100,6 +101,7 @@ import(
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb"
+	"github.com/jschneider98/jgoweb/util"
 	"github.com/jschneider98/jgomodel"
 )
 `
@@ -264,6 +266,44 @@ func Fetch%sById(ctx jgoweb.ContextInterface, id string) (*%s, error) {
 	return &%s[0], nil
 }
 `, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.Model.FullTableName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.InstanceName)
+
+	return code
+}
+
+
+//
+func (mg *ModelGenerator) GetProcessSubmit() string {
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~Words~"] = util.ToWords(mg.ModelName)
+
+	code += util.NamedSprintf(`
+//
+func (~StructAcronym~ *~ModelName~) ProcessSubmit(req *web.Request) (string, bool, error) {
+	err := ~StructAcronym~.Hydrate(req)
+
+	if err != nil {
+		return "", false, err
+	}
+
+	err = ~StructAcronym~.Ctx.GetValidator().Struct(~StructAcronym~)
+
+	if err != nil {
+		return util.GetNiceErrorMessage(err, "</br>"), false, nil
+	}
+	
+	err = ~StructAcronym~.Save()
+
+	if err != nil {
+		return "", false, err
+	}
+
+	return "~Words~ saved.", true, nil
+}
+`, ph)
 
 	return code
 }
