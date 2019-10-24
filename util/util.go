@@ -225,10 +225,10 @@ func GetNiceErrorMessage(errs error, seperator string) string {
 
 // var params map[string]string
 // params = make(map[string]string)
-// params["@test"] = "one"
-// params["@test2"] = "two"
-// params["@test3"] = "three"
-// str, newParams, err := util.PrepareString("This is a @test @test2 @test3", params, "@", ?")
+// params["@test"@] = "one"
+// params["@test2@"] = "two"
+// params["@test3@"] = "three"
+// str, newParams, err := util.PrepareString("This is a @test@ @test2@ @test3@", params, "@", ?")
 func PrepareString(str string, holders map[string]string, match string, replace string) (string, []interface{}, error) {
 	var params []interface{}
 	pattern := match + "[0-9A-Za-z_]+" + match
