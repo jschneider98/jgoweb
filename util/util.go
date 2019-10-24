@@ -140,18 +140,20 @@ func ToLowerAcronym(val string) string {
 
 // MyVarId => my_far_id, etc
 func ToSnakeCase(val string) string {
-	var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	// var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	// val = matchFirstCap.ReplaceAllString(val, "${1}_${2}")
 
-	val = matchFirstCap.ReplaceAllString(val, "${1}_${2}")
+	var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+	val = matchAllCap.ReplaceAllString(val, "${1}_${2}")
 
 	return strings.ToLower(val)
 }
 
 // MyVarId => My Var Id
 func ToWords(val string) string {
-	var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
 
-	return matchFirstCap.ReplaceAllString(val, "${1} ${2}")
+	return matchAllCap.ReplaceAllString(val, "${1} ${2}")
 }
 
 //
