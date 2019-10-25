@@ -64,6 +64,29 @@ import(
 }
 
 //
+func (rg *ReportGenerator) GetField(str string) string {
+	parts := strings.Split(str, " as ")
+
+	// alias
+	if len(parts) > 1 {
+		return parts[1]
+	}
+
+	parts = strings.Split(str, ".")
+
+	if len(parts) > 1 {
+		return parts[1]
+	}
+
+	return str
+}
+
+func (rg *ReportGenerator) GetRooteField(str string) string {
+	parts := strings.Split(str, " as ")
+	return parts[0]
+}
+
+//
 func (rg *ReportGenerator) GetStructCode() string {
 	var code string
 
@@ -77,12 +100,7 @@ func (rg *ReportGenerator) GetStructCode() string {
 	code += fmt.Sprintf("type %sResult struct {\n", rg.BaseStructName)
 
 	for key := range rg.Fields {
-		field := rg.Fields[key]
-		parts := strings.Split(field, ".")
-
-		if len(parts) > 1 {
-			field = parts[1]
-		}
+		field := rg.GetField(rg.Fields[key])
 
 		code += fmt.Sprintf("\t%s sql.NullString `json:\"%s\"`\n", util.ToCamelCase(field), field)
 	}
@@ -113,10 +131,10 @@ func New~Name~(ctx jgoweb.ContextInterface, user *models.User) (*~Name~) {
 func (rg *ReportGenerator) GetRunCode() string {
 	var code string
 
-	code += `
+	code += fmt.Sprintf(`
 //
-func (r *ClaimSummaryReport) Run(params url.Values) ([]ClaimSummaryResult, error) {
-	var results []ClaimSummaryResult
+func (r *%sReport) Run(params url.Values) ([]%sResult, error) {
+	var results []%sResult
 	var query string
 	var sqlParams []interface{}
 	var err error
@@ -141,7 +159,8 @@ func (r *ClaimSummaryReport) Run(params url.Values) ([]ClaimSummaryResult, error
 	return results, nil
 }
 
-`
+`, rg.BaseStructName, rg.BaseStructName, rg.BaseStructName)
+
 		return code
 	}
 
@@ -151,9 +170,9 @@ func (r *ClaimSummaryReport) Run(params url.Values) ([]ClaimSummaryResult, error
 func (rg *ReportGenerator) GetCountCode() string {
 	var code string
 
-	code += `
+	code += fmt.Sprintf(`
 //
-func (r *ClaimSummaryReport) GetCount(params url.Values) (int, error) {
+func (r *%sReport) GetCount(params url.Values) (int, error) {
 	var count int
 	var query string
 	var sqlParams []interface{}
@@ -179,7 +198,8 @@ func (r *ClaimSummaryReport) GetCount(params url.Values) (int, error) {
 	return count, nil
 }
 
-`
+`, rg.BaseStructName)
+
 		return code
 }
 
@@ -190,19 +210,14 @@ func (rg *ReportGenerator) GetQueryCode() string {
 	var placeholderStr string
 
 	for key := range rg.Fields {
-		field := rg.Fields[key]
-		parts := strings.Split(field, ".")
-
-		if len(parts) > 1 {
-			field = parts[1]
-		}
+		field := rg.GetField(rg.Fields[key])
 
 		placeholderStr += fmt.Sprintf("\t~%s~\n", field)
 	}
 
 	code += fmt.Sprintf("\n" +
 "//\n" +
-"func (r *ClaimSummaryReport) GetQuery(params url.Values) (string, []interface{}, error) {\n" +
+"func (r *%sReport) GetQuery(params url.Values) (string, []interface{}, error) {\n" +
 "	var query string\n\n" +
 "	strParams, qParams := r.GetQueryParams(params)\n\n" +
 "	query = util.NamedSprintf(`\n" +
@@ -219,7 +234,7 @@ WHERE account_id = @AccountId@
 	return util.PrepareQuery(query, qParams)
 }
 
-`, placeholderStr)
+`, rg.BaseStructName, placeholderStr)
 
 		return code
 }
@@ -232,12 +247,8 @@ func (rg *ReportGenerator) GetParamsCode() string {
 	var strParamsStr string
 
 	for key := range rg.Fields {
-		field := rg.Fields[key]
-		parts := strings.Split(field, ".")
-
-		if len(parts) > 1 {
-			field = parts[1]
-		}
+		field := rg.GetField(rg.Fields[key])
+		rootField := rg.GetRooteField(rg.Fields[key])
 
 		fieldStr += fmt.Sprintf("\t%s,\n", rg.Fields[key])
 
@@ -249,21 +260,18 @@ func (rg *ReportGenerator) GetParamsCode() string {
 		qParams["@%s@"] = params.Get("%s") + "%s"
 	}
 
-`, field, field, field, rg.Fields[key], field, field, field, "%")
+`, field, field, field, rootField, field, field, field, "%")
 	}
 
-	params := make(map[string]string)
-	params["~Name~"] = rg.BaseStructName
-
-	code += util.NamedSprintf(`
+	code += fmt.Sprintf(`
 //
-func (r *ClaimSummaryReport) GetQueryParams(params url.Values) (map[string]string, map[string]string) {
+func (r *%sReport) GetQueryParams(params url.Values) (map[string]string, map[string]string) {
 	strParams := make(map[string]string)
 	qParams := make(map[string]string)
 
 	qParams["@AccountId@"] = r.User.AccountId.String
 
-`, params)
+`, rg.BaseStructName)
 
 	code += `	strParams["~limit~"] = ""
 	strParams["~offset~"] = ""
@@ -292,11 +300,11 @@ func (r *ClaimSummaryReport) GetQueryParams(params url.Values) (map[string]strin
 	} else {
 		strParams["~limit~"] = "LIMIT 1"
 	}
-
 `
 
 	code += strParamsStr
-	code += fmt.Sprintf("\treturn strParams, qParams")
+	code += fmt.Sprintf("\treturn strParams, qParams\n")
+	code += "}\n"
 
 	return code
 }
