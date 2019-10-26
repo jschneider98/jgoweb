@@ -37,13 +37,15 @@ func (mg *ModelGenerator) GetViewBodyCode() string {
 
 		if mg.IsHiddenField(fieldName) {
 			inputs += fmt.Sprintf(`
-		<input type="hidden" name="%s" v-model="%s"/>`, fieldName, fieldName)
+			<input type="hidden" name="%s" v-model="%s"/>`, fieldName, fieldName)
 		} else {
 			inputs += fmt.Sprintf(`
-		<div class="form-group">
-			<label for="%s">%s</label>
-			<input type="text" class="form-control" id="%s" name="%s" aria-describedby="%sHelp" placeholder="Enter %s" v-model="%s">
-		</div>
+			<div class="col-sm-3 my-1">
+				<div class="form-group">
+					<label for="%s">%s</label>
+					<input type="text" class="form-control" id="%s" name="%s" aria-describedby="%sHelp" placeholder="Enter %s" v-model="%s">
+				</div>
+			</div>
 `, fieldName, util.ToWords(fieldName), fieldName, fieldName, fieldName, util.ToWords(fieldName), fieldName)
 		}
 	}
@@ -52,8 +54,9 @@ func (mg *ModelGenerator) GetViewBodyCode() string {
 [[define "body"]]
 <div>
 	<form id="%sForm" action="/%v" method="POST">
+		<div class="form-row">
 %s
-
+		</div>
 		<button type="submit" class="btn btn-primary">Submit</button>
 	</form>
 </div>
