@@ -494,7 +494,7 @@ func (mg *ModelGenerator) GetDeleteCode() string {
 	softDelete := false
 
 	for key := range mg.Fields {
-		if mg.Fields[key].FieldName == "deleted_at" {
+		if mg.Fields[key].DbFieldName == "deleted_at" {
 			softDelete = true
 		}
 	}
@@ -539,14 +539,21 @@ func (mg *ModelGenerator) GetSoftDeleteCode() string {
 	code += fmt.Sprintf(`
 // Soft delete a record
 func (%s *%s) Delete() error {
+
+	if !%s.Id.Valid {
+		return nil
+	}
+
 	tx, err := %s.Ctx.OptionalBegin()
 
 	if err != nil {
 		return err
 	}
 
+	%s.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+
 	_, err = tx.Update("%s").
-		Set("deleted_at = ?", "timezone('utc'::text, now())").
+		Set("deleted_at", %s.DeletedAt).
 		Where("id = ?", %s.Id).
 		Exec()
 
@@ -554,9 +561,9 @@ func (%s *%s) Delete() error {
 		return err
 	}
 
-	return p.Ctx.OptionalCommit(tx)
+	return %s.Ctx.OptionalCommit(tx)
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
