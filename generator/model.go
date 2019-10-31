@@ -179,7 +179,7 @@ func New%s(ctx jgoweb.ContextInterface) (*%s, error) {
 
 	return %s, nil
 }
-`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.StructAcronym, mg.ModelName, mg.InstanceName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+`, mg.ModelName, mg.ModelName, mg.StructAcronym + "Model", mg.Model.Schema, mg.Model.Table, mg.StructAcronym, mg.ModelName, mg.StructAcronym + "Model", mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -227,7 +227,7 @@ func New%sWithData(ctx jgoweb.ContextInterface, req *web.Request) (*%s, error) {
 
 	return %s, nil
 }
-`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.InstanceName, mg.InstanceName)
+`, mg.ModelName, mg.ModelName, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -265,7 +265,7 @@ func Fetch%sById(ctx jgoweb.ContextInterface, id string) (*%s, error) {
 
 	return &%s[0], nil
 }
-`, mg.ModelName, mg.ModelName, mg.InstanceName, mg.ModelName, mg.Model.FullTableName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.InstanceName, mg.Model.Schema, mg.Model.Table, mg.InstanceName)
+`, mg.ModelName, mg.ModelName, mg.StructAcronym, mg.ModelName, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.Schema, mg.Model.Table, mg.StructAcronym)
 
 	return code
 }
@@ -563,7 +563,7 @@ func (%s *%s) Delete() error {
 
 	return %s.Ctx.OptionalCommit(tx)
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
