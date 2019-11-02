@@ -12,13 +12,14 @@ import (
 type ModelGenerator struct {
 	ModelName string `json:"model_name"`
 	InstanceName string `json:"instance_name"`
+	TrimSuffix string 
 	StructAcronym string
 	Model *jgomodel.Model
 	Fields []psql.Field
 }
 
 //
-func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string) (*ModelGenerator, error) {
+func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string, trimSuffix string) (*ModelGenerator, error) {
 	var err error
 	
 	mg := &ModelGenerator{}
@@ -27,6 +28,8 @@ func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string)
 	if err != nil {
 		return nil, err
 	}
+
+	mg.TrimSuffix = trimSuffix
 
 	mg.MakeModelName()
 	mg.MakeInstanceName()
@@ -49,8 +52,8 @@ func (mg *ModelGenerator) MakeModelName() {
 		mg.ModelName = util.ToCamelCase(mg.Model.Schema)
 	}
 
-	// Unpluralize table name...
-	table := strings.TrimSuffix(mg.Model.Table, "s")
+	// Conditionally remove a suffix
+	table := strings.TrimSuffix(mg.Model.Table, mg.TrimSuffix)
 
 	mg.ModelName += util.ToCamelCase(table)
 }
