@@ -41,11 +41,18 @@ func DebugTimeTrack(start time.Time, name string) {
 }
 
 //
-func Debugging() bool {
-	//@TEMP
-	return Debug
+func SetDebug(debug bool) {
+	Debug = debug
+}
 
-	logLevelStr := os.Getenv("PLOGLEVEL")
+//
+func Debugging() bool {
+
+	if Debug {
+		return true
+	}
+
+	logLevelStr := os.Getenv("JGOLOGLEVEL")
 
 	if logLevelStr == "" {
 		return false
