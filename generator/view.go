@@ -61,7 +61,7 @@ func (mg *ModelGenerator) GetViewBodyCode() string {
 	</form>
 </div>
 [[end]]
-`, mg.InstanceName, mg.InstanceName, inputs)
+`, mg.InstanceName, util.ToSnakeCase(mg.ModelName), inputs)
 
 	return code
 }
