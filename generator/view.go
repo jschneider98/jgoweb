@@ -21,7 +21,7 @@ func (mg *ModelGenerator) GenerateView() string {
 func (mg *ModelGenerator) GetViewTitleCode() string {
 	var code string
 
-	code += fmt.Sprintf("[[define \"title\"]]%s[[end]]\n", mg.ModelName)
+	code += fmt.Sprintf("[[define \"title\"]]%s[[end]]\n", util.ToWords(mg.ModelName))
 
 	return code
 }
