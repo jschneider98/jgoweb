@@ -257,10 +257,10 @@ func (rg *ReportGenerator) GetParamsCode() string {
 
 	if params.Get("%s") != "" {
 		strParams["~%s~"] = "AND %s ilike @%s@"
-		qParams["@%s@"] = params.Get("%s") + "%s"
+		qParams["@%s@"] = "%s" + params.Get("%s") + "%s"
 	}
 
-`, field, field, field, rootField, field, field, field, "%")
+`, field, field, field, rootField, field, field, "%", field, "%")
 	}
 
 	code += fmt.Sprintf(`
