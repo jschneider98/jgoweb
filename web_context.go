@@ -188,6 +188,19 @@ func (ctx *WebContext) InsertBySql(query string, value ...interface{}) *dbr.Inse
 	return stmt
 }
 
+//
+func (ctx *WebContext) UpdateBySql(query string, value ...interface{}) *dbr.UpdateStmt {
+	var stmt *dbr.UpdateStmt
+
+	if ctx.Tx != nil {
+		stmt = ctx.Tx.UpdateBySql(query, value...)
+	} else {
+		stmt = ctx.DbSess.UpdateBySql(query, value...)
+	}
+
+	return stmt
+}
+
 // Only start a transaction if one hasn't been started yet
 func (ctx *WebContext) OptionalBegin() (*dbr.Tx, error) {
 
