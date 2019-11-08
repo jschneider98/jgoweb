@@ -166,6 +166,12 @@ func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
 
 	msgs =  fmt.Sprintf("<div class=\"alert alert-%s\" role=\"alert\">\n", msgType)
 
+	msgs += `
+	<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+		<span aria-hidden="true">&times;</span>
+	</button>
+	`
+
 	for key := range messages {
 		msgs += fmt.Sprintf("\t%s</br>\n", messages[key])
 	}
