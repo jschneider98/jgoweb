@@ -14,6 +14,7 @@ type ContextInterface interface {
 	Select(column ...string) *dbr.SelectBuilder
 	SelectBySql(query string, value ...interface{}) *dbr.SelectBuilder
 	InsertBySql(query string, value ...interface{}) *dbr.InsertStmt
+	UpdateBySql(query string, value ...interface{}) *dbr.UpdateStmt
 	OptionalBegin() (*dbr.Tx, error)
 	OptionalCommit(tx *dbr.Tx) error
 	SetUser(user *User)
