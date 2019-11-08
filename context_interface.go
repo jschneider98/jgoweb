@@ -13,6 +13,7 @@ type ContextInterface interface {
 	Rollback() (error)
 	Select(column ...string) *dbr.SelectBuilder
 	SelectBySql(query string, value ...interface{}) *dbr.SelectBuilder
+	InsertBySql(query string, value ...interface{}) *dbr.InsertStmt
 	OptionalBegin() (*dbr.Tx, error)
 	OptionalCommit(tx *dbr.Tx) error
 	SetUser(user *User)
