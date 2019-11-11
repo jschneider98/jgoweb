@@ -101,6 +101,7 @@ func (mg *ModelGenerator) GetImportCode() string {
 return	`package models
 
 import(
+	"time"
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb"
@@ -123,7 +124,6 @@ func (mg *ModelGenerator) GetStructCode() string {
 	}
 
 	code += "\tCtx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n"
-	code += "\t*jgomodel.Model `json:\"-\" validate:\"-\"`\n"
 	code += "}\n\n"
 
 	return code
@@ -170,19 +170,12 @@ func (mg *ModelGenerator) GetNewCode() string {
 	code += fmt.Sprintf(`
 // Empty new model
 func New%s(ctx jgoweb.ContextInterface) (*%s, error) {
-	%s, err := jgomodel.NewModel(ctx, "%s", "%s")
-
-	if err != nil {
-		return nil, err
-	}
-
-	%s := &%s{Model:%s}
-	%s.Ctx = ctx
+	%s := &%s{Ctx: ctx}
 	%s.SetDefaults()
 
 	return %s, nil
 }
-`, mg.ModelName, mg.ModelName, mg.StructAcronym + "Model", mg.Model.Schema, mg.Model.Table, mg.StructAcronym, mg.ModelName, mg.StructAcronym + "Model", mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+`, mg.ModelName, mg.ModelName, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -196,6 +189,8 @@ func (mg *ModelGenerator) GetSetDefaultCode() string {
 
 		if mg.Fields[key].DbDefault.Valid && !mg.Fields[key].DbDefaultIsFunc {
 			defaults += fmt.Sprintf("\t%s.Set%s(\"%s\")\n", mg.StructAcronym, mg.Fields[key].FieldName, mg.Fields[key].Default)
+		} else if mg.Fields[key].FieldName == "CreatedAt" || mg.Fields[key].FieldName == "UpdatedAt" {
+			defaults += fmt.Sprintf("\t%s.Set%s(%s)\n", mg.StructAcronym, mg.Fields[key].FieldName, " time.Now().Format(time.RFC3339) ")
 		}
 	}
 
@@ -260,15 +255,10 @@ func Fetch%sById(ctx jgoweb.ContextInterface, id string) (*%s, error) {
 	}
 
 	%s[0].Ctx = ctx
-	%s[0].Model, err = jgomodel.NewModel(ctx, "%s", "%s")
-
-	if err != nil {
-		return nil, err
-	}
 
 	return &%s[0], nil
 }
-`, mg.ModelName, mg.ModelName, mg.StructAcronym, mg.ModelName, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.Schema, mg.Model.Table, mg.StructAcronym)
+`, mg.ModelName, mg.ModelName, mg.StructAcronym, mg.ModelName, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -416,6 +406,8 @@ func (mg *ModelGenerator) GetInsertCode() string {
 		}
 	}
 
+	query := mg.Model.GetInsertQuery()
+
 	colList = strings.Join(objCols, ",\t\t\t")
 	colList = strings.ReplaceAll(colList, ",", ",\n")
 
@@ -428,7 +420,7 @@ func (%s *%s) Insert() error {
 		return err
 	}
 
-	query := %s.GetInsertQuery()
+	query := ` + "`\n" + query + "\n`" + `
 
 	stmt, err := tx.Prepare(query)
 
@@ -446,7 +438,7 @@ func (%s *%s) Insert() error {
 
 	return %s.Ctx.OptionalCommit(tx)
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, colList, mg.StructAcronym, mg.StructAcronym)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, colList, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
@@ -455,9 +447,17 @@ func (%s *%s) Insert() error {
 func (mg *ModelGenerator) GetUpdateCode() string {
 	var code string
 	columnList := ""
+	updatedAt := ""
 
 	for key := range mg.Fields {
-		columnList += fmt.Sprintf("\t\tSet(\"%s\", %s.%s).\n", mg.Fields[key].DbFieldName, mg.StructAcronym, mg.Fields[key].FieldName)
+
+		if mg.Fields[key].FieldName != "CreatedAt" {
+			columnList += fmt.Sprintf("\t\tSet(\"%s\", %s.%s).\n", mg.Fields[key].DbFieldName, mg.StructAcronym, mg.Fields[key].FieldName)
+		}
+
+		if mg.Fields[key].FieldName == "UpdatedAt" {
+			updatedAt = fmt.Sprintf("%s.SetUpdatedAt( time.Now().Format(time.RFC3339) )", mg.StructAcronym)
+		}
 	}
 
 	code += fmt.Sprintf(`
@@ -473,6 +473,8 @@ func (%s *%s) Update() error {
 		return err
 	}
 
+	%s
+
 	_, err = tx.Update("%s").
 %s
 		Where("id = ?", %s.Id).
@@ -486,7 +488,7 @@ func (%s *%s) Update() error {
 
 	return err
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, columnList, mg.StructAcronym, mg.StructAcronym)
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, updatedAt, mg.Model.FullTableName, columnList, mg.StructAcronym, mg.StructAcronym)
 
 	return code
 }
