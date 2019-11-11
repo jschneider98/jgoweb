@@ -106,7 +106,6 @@ import(
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb"
 	"github.com/jschneider98/jgoweb/util"
-	"github.com/jschneider98/jgomodel"
 )
 `
 }
