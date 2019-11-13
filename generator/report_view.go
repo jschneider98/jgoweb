@@ -113,6 +113,7 @@ func (rvg *ReportViewGenerator) GetViewBodyCode() string {
 		<button type="submit" class="btn btn-primary">Submit</button>
 	</form>
 </div>
+<br>
 
 <div v-cloak v-show="loading">
 	<div class="fa-3x text-muted">
@@ -126,9 +127,9 @@ func (rvg *ReportViewGenerator) GetViewBodyCode() string {
 	</div>
 </div>
 
-<div v-cloak v-show="complete">
-	<div class="alert alert-success" role="alert">
-		Congratulations! No missing reviews based on search criteria.
+<div v-cloak v-show="empty">
+	<div class="alert alert-primary" role="alert">
+		No results based on search criteria.
 	</div>
 </div>
 
@@ -173,7 +174,7 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 		data: {
 			loading: false,
 			ajaxError: false,
-			complete: false,
+			empty: false,
 			offset: 0,
 			offsetCount: 1,
 			count: 0,
@@ -209,6 +210,10 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 				axios({ method: "GET", "url": url }).then(result => {
 					this.loading = false;
 					this.results = (result.data != null) ? result.data : [];
+
+					if (this.results.length == 0) {
+						this.empty = true;
+					}
 				}, error => {
 					this.loading = false;
 					this.ajaxError = true;
