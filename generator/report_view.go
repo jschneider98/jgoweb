@@ -40,13 +40,13 @@ func (rvg *ReportViewGenerator) GetField(str string) string {
 
 	// alias
 	if len(parts) > 1 {
-		return strings.ReplaceAll(parts[1], `"`, "")
+		return util.ToCamelCase( strings.ReplaceAll(parts[1], `"`, "") )
 	}
 
 	parts = strings.Split(str, ".")
 
 	if len(parts) > 1 {
-		return strings.ReplaceAll(parts[1], `"`, "")
+		return util.ToCamelCase( strings.ReplaceAll(parts[1], `"`, "") )
 	}
 
 	return str
@@ -93,10 +93,10 @@ func (rvg *ReportViewGenerator) GetViewBodyCode() string {
 					<input type="text" class="form-control" id="%s" name="%s" aria-describedby="%sHelp" placeholder="Enter %s" v-model="filter.%s">
 				</div>
 			</div>
-`, fieldName, util.ToWords(util.ToCamelCase(fieldName) ), fieldName, fieldName, fieldName, util.ToWords(util.ToCamelCase(fieldName) ), fieldName)
+`, fieldName, util.ToWords(fieldName), fieldName, fieldName, fieldName, util.ToWords(fieldName), fieldName)
 
 			header += fmt.Sprintf(`
-				<th scope="col">%s</th>`, util.ToWords( util.ToCamelCase(fieldName)) )
+				<th scope="col">%s</th>`, util.ToWords(fieldName))
 
 			cells += fmt.Sprintf(`
 				<td>{{ item.%s.String }}</td>`, fieldName)
