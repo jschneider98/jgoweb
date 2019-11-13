@@ -106,12 +106,30 @@ func (rvg *ReportViewGenerator) GetViewBodyCode() string {
 	code += fmt.Sprintf(`
 [[define "body"]]
 <div>
-	<form id="%sForm" action="/%v" method="POST">
+	<form id="%sForm" v-on:submit.prevent="submitForm">
 		<div class="form-row">
 %s
 		</div>
 		<button type="submit" class="btn btn-primary">Submit</button>
 	</form>
+</div>
+
+<div v-cloak v-show="loading">
+	<div class="fa-3x text-muted">
+		<i class="fa fa-spinner fa-pulse"></i>
+	</div>
+</div>
+
+<div v-cloak v-show="ajaxError">
+	<div class="alert alert-danger" role="alert">
+		We've encountered and error. We're sorry for the inconvience.
+	</div>
+</div>
+
+<div v-cloak v-show="complete">
+	<div class="alert alert-success" role="alert">
+		Congratulations! No missing reviews based on search criteria.
+	</div>
 </div>
 
 <div v-cloak v-show="results.length > 0">
@@ -130,7 +148,7 @@ func (rvg *ReportViewGenerator) GetViewBodyCode() string {
 </div>
 
 [[end]]
-`, rvg.InstanceName, util.ToSnakeCase(rvg.BaseStructName), inputs, header, cells)
+`, rvg.InstanceName, inputs, header, cells)
 
 	return code
 }
@@ -153,6 +171,9 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 	var app = new Vue({
 		el: '#app',
 		data: {
+			loading: false,
+			ajaxError: false,
+			complete: false,
 			offset: 0,
 			offsetCount: 1,
 			count: 0,
@@ -164,6 +185,11 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 		},
 		methods: {
 			submitForm: function() {
+				this.results = [];
+				this.loading = true;
+				this.complete = false;
+				this.ajaxError = false;
+
 				this.updateQuery();
 				this.getCount();
 				this.getData();
@@ -181,9 +207,11 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 				var url = "/ajax_%s" + this.query + encodeURI(` + "`&offset=${this.offset}`" + `);
 
 				axios({ method: "GET", "url": url }).then(result => {
+					this.loading = false;
 					this.results = (result.data != null) ? result.data : [];
 				}, error => {
-					console.error(error);
+					this.loading = false;
+					this.ajaxError = true;
 				});
 			},
 			getCount: function() {
@@ -192,7 +220,8 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 				axios({ method: "GET", "url": url }).then(result => {
 					this.count = (result.data != null) ? result.data : 0;
 				}, error => {
-					console.error(error);
+					this.loading = false;
+					this.ajaxError = true;
 				});
 			}
 		}
