@@ -69,13 +69,13 @@ func (rg *ReportGenerator) GetField(str string) string {
 
 	// alias
 	if len(parts) > 1 {
-		return parts[1]
+		return util.ToCamelCase(parts[1])
 	}
 
 	parts = strings.Split(str, ".")
 
 	if len(parts) > 1 {
-		return parts[1]
+		return util.ToCamelCase(parts[1])
 	}
 
 	return str
@@ -102,7 +102,7 @@ func (rg *ReportGenerator) GetStructCode() string {
 	for key := range rg.Fields {
 		field := rg.GetField(rg.Fields[key])
 
-		code += fmt.Sprintf("\t%s sql.NullString `json:\"%s\"`\n", util.ToCamelCase(field), field)
+		code += fmt.Sprintf("\t%s sql.NullString `json:\"%s\"`\n", field, field)
 	}
 
 	code += "}\n\n"
