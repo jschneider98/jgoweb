@@ -40,13 +40,13 @@ func (rvg *ReportViewGenerator) GetField(str string) string {
 
 	// alias
 	if len(parts) > 1 {
-		return parts[1]
+		return strings.ReplaceAll(parts[1], `"`, "")
 	}
 
 	parts = strings.Split(str, ".")
 
 	if len(parts) > 1 {
-		return parts[1]
+		return strings.ReplaceAll(parts[1], `"`, "")
 	}
 
 	return str
