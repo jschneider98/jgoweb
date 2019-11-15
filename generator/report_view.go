@@ -188,7 +188,7 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 			submitForm: function() {
 				this.results = [];
 				this.loading = true;
-				this.complete = false;
+				this.empty = false;
 				this.ajaxError = false;
 
 				this.updateQuery();
