@@ -74,7 +74,13 @@ func StartAll(router *web.Router) {
 	if appConfig.Server.EnableSsl {
 		StartHttpsServer(router)
 	} else {
-		StartHttpServer(router, appConfig.Server.HttpHost)
+		port := ":" + os.Getenv("PORT")
+
+		if port == ":" {
+			port = appConfig.Server.HttpHost
+		}
+
+		StartHttpServer(router, port)
 	}
 }
 
