@@ -1,6 +1,9 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"errors"
 	"io/ioutil"
 	"encoding/json"
 	"golang.org/x/crypto/acme/autocert"
@@ -48,6 +51,18 @@ type AutocertOptions struct {
 
 // Reads json configuration file and returns Config
 func New(path string) (*Config, error) {
+	config, _ := NewFromEnv()
+
+	if config != nil {
+		return config, nil
+	}
+
+	return NewFromFile(path)
+}
+
+
+//
+func NewFromFile(path string) (*Config, error) {
 	file, err := read(path)
 
 	if err != nil {
@@ -55,6 +70,35 @@ func New(path string) (*Config, error) {
 	}
 
 	config, err := parse(file)
+
+	if err != nil {
+		return nil, err
+	}
+
+	config.EnsureBasicOptions()
+
+	_, err = config.GetAutocertCache()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+//
+func NewFromEnv() (*Config, error) {
+	var err error
+fmt.Println("*** here ***")
+	conf := os.Getenv("JGO_CONFIG")
+
+	if conf == "" {
+		err = errors.New("Missing JGOCONFIG environment varriable.")
+
+		return nil, err
+	}
+fmt.Println(conf)
+	config, err := parse([]byte(conf))
 
 	if err != nil {
 		return nil, err
