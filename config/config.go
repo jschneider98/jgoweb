@@ -92,7 +92,7 @@ func NewFromEnv() (*Config, error) {
 	conf := os.Getenv("JGO_CONFIG")
 
 	if conf == "" {
-		err = errors.New("Missing JGOCONFIG environment varriable.")
+		err = errors.New("Missing JGO_CONFIG environment varriable.")
 
 		return nil, err
 	}
