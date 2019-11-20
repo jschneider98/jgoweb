@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"errors"
 	"io/ioutil"
@@ -89,7 +88,7 @@ func NewFromFile(path string) (*Config, error) {
 //
 func NewFromEnv() (*Config, error) {
 	var err error
-fmt.Println("*** here ***")
+
 	conf := os.Getenv("JGO_CONFIG")
 
 	if conf == "" {
@@ -97,7 +96,7 @@ fmt.Println("*** here ***")
 
 		return nil, err
 	}
-fmt.Println(conf)
+
 	config, err := parse([]byte(conf))
 
 	if err != nil {
