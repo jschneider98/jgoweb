@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"errors"
 	"io/ioutil"
@@ -93,6 +94,7 @@ func NewFromEnv() (*Config, error) {
 
 	if conf == "" {
 		err = errors.New("Missing JGO_CONFIG environment varriable.")
+		fmt.Println("Missing JGO_CONFIG environment varriable.")
 
 		return nil, err
 	}
@@ -110,7 +112,7 @@ func NewFromEnv() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
+fmt.Println("Loaded config from env")
 	return config, nil
 }
 
