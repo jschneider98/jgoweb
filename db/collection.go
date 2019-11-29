@@ -11,8 +11,8 @@ import(
 )
 
 type CollectionInterface interface {
-	GetCons() error
-	GetConn(name string) (*dbr.Connection, error)
+	GetConns() map[string]*dbr.Connection
+	GetConnByName(name string) (*dbr.Connection, error)
 }
 
 type Collection struct {
@@ -63,6 +63,11 @@ func (db *Collection) GetRandomConn() (*dbr.Connection, error) {
 	connInfo := db.Config[rand.Intn(len(db.Config))]
 
 	return db.GetConnByName(connInfo.ShardName)
+}
+
+//
+func (db *Collection) GetConns() map[string]*dbr.Connection {
+	return db.Conns
 }
 
 // get Db session by name
