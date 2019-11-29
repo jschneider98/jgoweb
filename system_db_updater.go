@@ -8,13 +8,6 @@ import(
 )
 
 // 
-type SystemDbUpdateInterface interface {
-	NeedsToRun(*dbr.Tx) bool
-	Run(*dbr.Tx) error
-	GetUpdateName() string
-}
-
-// 
 type SystemDbUpdater struct {
 	DbUpdates []SystemDbUpdateInterface
 	DbConns map[string]*dbr.Connection
@@ -33,7 +26,6 @@ func (sdu *SystemDbUpdater) RunAll() error {
 	util.Debugln("Starting DB updater...")
 
 	var errcList []<-chan error
-	// errc := make(chan error, 1)
 
 	for _, dbConn := range sdu.DbConns {
 		dbSess := dbConn.NewSession(nil)
@@ -48,33 +40,33 @@ func (sdu *SystemDbUpdater) RunAll() error {
 //
 func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error) {
 	var err error
-	var tx *dbr.Tx
+	// var tx *dbr.Tx
 	errc := make(chan error, 1)
 
 	go func() {
 		defer close(errc)
 
 		for _, update := range sdu.DbUpdates {
-			tx, err = dbSess.Begin()
+			// tx, err = dbSess.Begin()
+
+			// if err != nil {
+			// 	errc <- err
+			// 	return
+			// }
+
+			err = sdu.Run(update)
 
 			if err != nil {
 				errc <- err
 				return
 			}
 
-			err = sdu.Run(update, tx)
+			// err = tx.Commit()
 
-			if err != nil {
-				errc <- err
-				return
-			}
-
-			err = tx.Commit()
-
-			if err != nil {
-				errc <- err
-				return
-			}
+			// if err != nil {
+			// 	errc <- err
+			// 	return
+			// }
 		}
 	}()
 
@@ -82,15 +74,10 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error
 }
 
 //
-func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface, tx *dbr.Tx) error {
-	needsToRun, err := update.NeedsToRun(tx)
+func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface) error {
 
-	if err != nil {
-		return err
-	}
-
-	if needsToRun {
-		return update.Run(tx)
+	if update.NeedsToRun() {
+		return update.Run()
 	}
 
 	return nil
