@@ -12,6 +12,7 @@ type SystemDbUpdateInterface interface {
 	NeedsToRun() bool
 	Run() error
 	SetContext(ctx ContextInterface)
+	SetComplete() error
 	GetUpdateName() string
 }
 
