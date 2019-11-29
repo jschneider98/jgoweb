@@ -3,20 +3,21 @@ package jgoweb
 import(
 	"sync"
 	"errors"
+	jgowebDb "github.com/jschneider98/jgoweb/db"
 	"github.com/jschneider98/jgoweb/util"
 	"github.com/gocraft/dbr"
 )
 
 // 
 type SystemDbUpdater struct {
+	Db *jgowebDb.Collection
 	DbUpdates []SystemDbUpdateInterface
-	DbConns map[string]*dbr.Connection
 	DryRun bool
 }
 
 // 
-func NewSystemDbUpdater(updates []SystemDbUpdateInterface, dbConns map[string]*dbr.Connection) *SystemDbUpdater {
-	sdu := &SystemDbUpdater{updates, dbConns, false}
+func NewSystemDbUpdater(db *jgowebDb.Collection, updates []SystemDbUpdateInterface, dryRun bool) *SystemDbUpdater {
+	sdu := &SystemDbUpdater{db, updates, dryRun}
 
 	return sdu
 }
@@ -27,10 +28,8 @@ func (sdu *SystemDbUpdater) RunAll() error {
 
 	var errcList []<-chan error
 
-	for _, dbConn := range sdu.DbConns {
-		dbSess := dbConn.NewSession(nil)
-
-		errc := sdu.RunAllByDbSession(dbSess)
+	for _, dbConn := range sdu.Db.GetConns() {
+		errc := sdu.RunAllByDbSession(dbConn.NewSession(nil))
 		errcList = append(errcList, errc)
 	}
 
@@ -42,6 +41,8 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error
 	var err error
 	// var tx *dbr.Tx
 	errc := make(chan error, 1)
+	ctx := NewContext(sdu.Db)
+	ctx.SetDbSession(dbSess)
 
 	go func() {
 		defer close(errc)
@@ -53,6 +54,8 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error
 			// 	errc <- err
 			// 	return
 			// }
+
+			update.SetContext(ctx)
 
 			err = sdu.Run(update)
 
@@ -77,7 +80,17 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error
 func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface) error {
 
 	if update.NeedsToRun() {
-		return update.Run()
+		err := update.Run()
+
+		if err != nil {
+			return err
+		}
+
+		err = update.SetComplete()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
