@@ -7,6 +7,14 @@ import(
 	"github.com/jschneider98/jgoweb/util"
 )
 
+// 
+type SystemDbUpdateInterface interface {
+	NeedsToRun() bool
+	Run() error
+	SetContext(ctx ContextInterface)
+	GetUpdateName() string
+}
+
 // SystemDbUpdate
 type SystemDbUpdate struct {
 	Id sql.NullString `json:"Id" validate:"omitempty,int"`
@@ -363,18 +371,4 @@ func (sdu *SystemDbUpdate) SetCreatedAt(val string) {
 
 	sdu.CreatedAt.Valid = true
 	sdu.CreatedAt.String = val
-}
-
-
-// ** Interface Methods
-
-// 
-func (sdu *SystemDbUpdate) NeedsToRun(*dbr.Tx) bool {
-	return sdu.Id == 0
-}
-
-
-// 
-func (sdu *SystemDbUpdate) Run(*dbr.Tx) error {
-
 }
