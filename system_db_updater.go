@@ -67,12 +67,12 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 			up := update.Clone()
 			up.SetContext(ctx)
 
-			util.Debugln("Applying: " + update.GetUpdateName())
+			util.Debugf("Applying %s: '%s'\n", dbName, update.GetUpdateName())
 
-			err = sdu.Run(up)
+			err = sdu.Run(up, dbName)
 
 			if err != nil {
-				err = errors.New(dbName + ": " + update.GetUpdateName() + ": " + err.Error())
+				err = errors.New("ERROR: " + dbName + ": '" + update.GetUpdateName() + "': " + err.Error())
 
 				errc <- err
 				return
@@ -91,7 +91,7 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 }
 
 //
-func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface) error {
+func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface, dbName string) error {
 	needsToRun, err := update.NeedsToRun()
 
 	if err != nil {
@@ -110,6 +110,10 @@ func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface) error {
 		if err != nil {
 			return err
 		}
+
+		util.Debugf("%s: '%s' done.\n", dbName, update.GetUpdateName())
+	} else {
+		util.Debugf("%s: '%s' already applied. Skipping.\n", dbName, update.GetUpdateName())
 	}
 
 	return nil
