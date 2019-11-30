@@ -2,6 +2,7 @@ package jgoweb
 
 import(
 	"time"
+	"errors"
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
@@ -19,6 +20,7 @@ type SystemDbUpdateInterface interface {
 
 // SystemDbUpdate
 type SystemDbUpdate struct {
+	ApplyUpdate func(ctx ContextInterface) error `json:"-" validate:"-"`
 	Id sql.NullString `json:"Id" validate:"omitempty,int"`
 	UpdateName sql.NullString `json:"UpdateName" validate:"required,min=1,max=255"`
 	Description sql.NullString `json:"Description" validate:"required,min=1,max=255"`
@@ -373,4 +375,56 @@ func (sdu *SystemDbUpdate) SetCreatedAt(val string) {
 
 	sdu.CreatedAt.Valid = true
 	sdu.CreatedAt.String = val
+}
+
+
+// ****** Interface Methods ******
+
+// Empty new update
+func CreateSystemDbUpdateNoContext(updateName sql.NullString, desc sql.NullString) *SystemDbUpdate {
+	return &SystemDbUpdate{UpdateName: updateName, Description: desc}
+}
+
+//
+func (sdu *SystemDbUpdate) SetContext(ctx ContextInterface) {
+	sdu.Ctx = ctx
+}
+
+// 
+func (sdu *SystemDbUpdate) NeedsToRun() (bool, error) {
+	var err error
+	updateName := sdu.UpdateName.String
+	description := sdu.Description
+
+	if sdu.Ctx == nil {
+		err := errors.New("Context not set in SystemDbUpdate.NeedsToRun()")
+		return false, err
+	}
+
+	sdu, err = CreateSystemDbUpdateByUpdateName(sdu.Ctx, updateName)
+	sdu.Description = description
+
+	if err != nil {
+		return false, err
+	}
+
+	return !sdu.Id.Valid, nil
+}
+
+//
+func (sdu *SystemDbUpdate) Run() error {
+	return sdu.ApplyUpdate(sdu.Ctx)
+}
+
+//
+func (sdu *SystemDbUpdate) SetComplete() error {
+	return sdu.Save()
+}
+
+//
+func (sdu *SystemDbUpdate) Clone() SystemDbUpdateInterface {
+	clone := *sdu
+	clone.Ctx = nil
+
+	return &clone
 }
