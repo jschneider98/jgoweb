@@ -52,17 +52,21 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 	ctx := NewContext(sdu.Db)
 	ctx.SetDbSession(dbSess)
 
+	if sdu.DryRun {
+		_, err = ctx.Begin()
+
+		if err != nil {
+			errc <- err
+			defer close(errc)
+			
+			return errc
+		}
+	}
+
 	go func() {
 		defer close(errc)
 
 		for _, update := range sdu.DbUpdates {
-			// tx, err = dbSess.Begin()
-
-			// if err != nil {
-			// 	errc <- err
-			// 	return
-			// }
-
 			// Must clone/copy original update for goroutine to work
 			up := update.Clone()
 			up.SetContext(ctx)
@@ -77,13 +81,17 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 				errc <- err
 				return
 			}
+		}
 
-			// err = tx.Commit()
+		if sdu.DryRun {
+			util.Debugln(dbName + ": Dry Run. Rolling back changes.")
 
-			// if err != nil {
-			// 	errc <- err
-			// 	return
-			// }
+			err = ctx.Rollback()
+
+			if err != nil {
+				errc <- err
+				return
+			}
 		}
 	}()
 
