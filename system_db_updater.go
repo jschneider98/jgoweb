@@ -23,13 +23,20 @@ func NewSystemDbUpdater(db *jgowebDb.Collection, updates []SystemDbUpdateInterfa
 }
 
 //
+func (sdu *SystemDbUpdater) SetDebug(debug bool) {
+	util.Debug = debug
+}
+
+//
 func (sdu *SystemDbUpdater) RunAll() error {
 	util.Debugln("Starting DB updater...")
 
 	var errcList []<-chan error
 
-	for _, dbConn := range sdu.Db.GetConns() {
-		errc := sdu.RunAllByDbSession(dbConn.NewSession(nil))
+	for dbName, dbConn := range sdu.Db.GetConns() {
+		util.Debugln("Applying updates for " + dbName)
+
+		errc := sdu.RunAllByDbSession(dbConn.NewSession(nil), dbName)
 		errcList = append(errcList, errc)
 	}
 
@@ -37,10 +44,11 @@ func (sdu *SystemDbUpdater) RunAll() error {
 }
 
 //
-func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error) {
+func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string) (<-chan error) {
 	var err error
 	// var tx *dbr.Tx
 	errc := make(chan error, 1)
+
 	ctx := NewContext(sdu.Db)
 	ctx.SetDbSession(dbSess)
 
@@ -55,11 +63,17 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error
 			// 	return
 			// }
 
-			update.SetContext(ctx)
+			// Must clone/copy original update for goroutine to work
+			up := update.Clone()
+			up.SetContext(ctx)
 
-			err = sdu.Run(update)
+			util.Debugln("Applying: " + update.GetUpdateName())
+
+			err = sdu.Run(up)
 
 			if err != nil {
+				err = errors.New(dbName + ": " + update.GetUpdateName() + ": " + err.Error())
+
 				errc <- err
 				return
 			}
@@ -78,8 +92,13 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session) (<-chan error
 
 //
 func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface) error {
+	needsToRun, err := update.NeedsToRun()
 
-	if update.NeedsToRun() {
+	if err != nil {
+		return err
+	}
+
+	if needsToRun {
 		err := update.Run()
 
 		if err != nil {
