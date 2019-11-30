@@ -5,6 +5,7 @@ import(
 	"errors"
 	"database/sql"
 	"github.com/gocraft/web"
+	"github.com/gocraft/dbr"
 	"github.com/jschneider98/jgoweb/util"
 )
 
@@ -20,7 +21,7 @@ type SystemDbUpdateInterface interface {
 
 // SystemDbUpdate
 type SystemDbUpdate struct {
-	ApplyUpdate func(ctx ContextInterface) error `json:"-" validate:"-"`
+	ApplyUpdate func(tx *dbr.Tx) error `json:"-" validate:"-"`
 	Id sql.NullString `json:"Id" validate:"omitempty,int"`
 	UpdateName sql.NullString `json:"UpdateName" validate:"required,min=1,max=255"`
 	Description sql.NullString `json:"Description" validate:"required,min=1,max=255"`
@@ -413,7 +414,19 @@ func (sdu *SystemDbUpdate) NeedsToRun() (bool, error) {
 
 //
 func (sdu *SystemDbUpdate) Run() error {
-	return sdu.ApplyUpdate(sdu.Ctx)
+	tx, err := sdu.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	err = sdu.ApplyUpdate(tx)
+
+	if err != nil {
+		return err
+	}
+
+	return sdu.Ctx.OptionalCommit(tx)
 }
 
 //
