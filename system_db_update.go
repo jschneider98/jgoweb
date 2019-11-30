@@ -9,11 +9,12 @@ import(
 
 // 
 type SystemDbUpdateInterface interface {
-	NeedsToRun() bool
+	NeedsToRun() (bool, error)
 	Run() error
 	SetContext(ctx ContextInterface)
 	SetComplete() error
 	GetUpdateName() string
+	Clone() SystemDbUpdateInterface
 }
 
 // SystemDbUpdate
