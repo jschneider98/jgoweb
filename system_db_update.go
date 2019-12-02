@@ -16,6 +16,7 @@ type SystemDbUpdateInterface interface {
 	SetContext(ctx ContextInterface)
 	SetComplete() error
 	GetUpdateName() string
+	GetDescription() string
 	Clone() SystemDbUpdateInterface
 }
 
@@ -127,8 +128,7 @@ func CreateSystemDbUpdateByUpdateName(ctx ContextInterface, updateName string) (
 		return nil, err
 	}
 
-	sdu.UpdateName.String = updateName
-	sdu.UpdateName.Valid = true
+	sdu.SetUpdateName(updateName)
 
 	return sdu, nil
 }
