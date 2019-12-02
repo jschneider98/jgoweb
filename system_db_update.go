@@ -382,8 +382,13 @@ func (sdu *SystemDbUpdate) SetCreatedAt(val string) {
 // ****** Interface Methods ******
 
 // Empty new update
-func CreateSystemDbUpdateNoContext(updateName sql.NullString, desc sql.NullString) *SystemDbUpdate {
-	return &SystemDbUpdate{UpdateName: updateName, Description: desc}
+func CreateSystemDbUpdateNoContext(updateName string, desc string) *SystemDbUpdate {
+	sdu := &SystemDbUpdate{}
+
+	sdu.SetUpdateName(updateName)
+	sdu.SetDescription(desc)
+
+	return sdu
 }
 
 //
