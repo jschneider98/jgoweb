@@ -27,6 +27,34 @@ func (sdu *SystemDbUpdater) SetDebug(debug bool) {
 	util.Debug = debug
 }
 
+// Get update info for all DBs
+func (sdu *SystemDbUpdater) GetDbUpdateInfo() (map[string][]SystemDbUpdateInterface, error) {
+	info := make(map[string][]SystemDbUpdateInterface)
+
+	for dbName, dbConn := range sdu.Db.GetConns() {
+		ctx := NewContext(sdu.Db)
+		ctx.SetDbSession(dbConn.NewSession(nil))
+		
+		info[dbName] = make([]SystemDbUpdateInterface, 0)
+
+		for _, update := range sdu.DbUpdates {
+			up, err := CreateSystemDbUpdateByUpdateName(ctx, update.GetUpdateName())
+
+			if err != nil {
+				return nil, err
+			}
+
+			if !up.Description.Valid {
+				up.SetDescription(update.GetDescription())
+			}
+
+			info[dbName] = append(info[dbName], up)
+		}
+	}
+
+	return info, nil
+}
+
 //
 func (sdu *SystemDbUpdater) RunAll() error {
 	util.Debugln("Starting DB updater...")
