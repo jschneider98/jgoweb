@@ -1,6 +1,7 @@
 package jgoweb
 
 import(
+	"time"
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
@@ -10,6 +11,9 @@ type Shard struct {
 	Id sql.NullString `json:"Id" validate:"omitempty,int"`
 	Name sql.NullString `json:"Name" validate:"required"`
 	AccountCount sql.NullString `json:"AccountCount" validate:"required,int"`
+	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt sql.NullString `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt sql.NullString `json:"DeletedAt" validate:"omitempty,rfc3339"`
 	Ctx ContextInterface `json:"-" validate:"-"`
 }
 
@@ -24,7 +28,8 @@ func NewShard(ctx ContextInterface) (*Shard, error) {
 
 // Set defaults
 func (s *Shard) SetDefaults() {
-
+	s.SetCreatedAt( time.Now().Format(time.RFC3339) )
+	s.SetUpdatedAt( time.Now().Format(time.RFC3339) )
 }
 
 // New model with data
@@ -102,6 +107,9 @@ func (s *Shard) Hydrate(req *web.Request) error {
 	s.SetId(req.PostFormValue("Id"))
 	s.SetName(req.PostFormValue("Name"))
 	s.SetAccountCount(req.PostFormValue("AccountCount"))
+	s.SetCreatedAt(req.PostFormValue("CreatedAt"))
+	s.SetUpdatedAt(req.PostFormValue("UpdatedAt"))
+	s.SetDeletedAt(req.PostFormValue("DeletedAt"))
 
 	return nil
 }
@@ -137,8 +145,9 @@ func (s *Shard) Insert() error {
 	query := `
 INSERT INTO
 public.shards (name,
-	account_count)
-VALUES ($1,$2)
+	account_count,
+	deleted_at)
+VALUES ($1,$2,$3)
 RETURNING id
 
 `
@@ -152,7 +161,8 @@ RETURNING id
 	defer stmt.Close()
 
 	err = stmt.QueryRow(s.Name,
-			s.AccountCount).Scan(&s.Id)
+			s.AccountCount,
+			s.DeletedAt).Scan(&s.Id)
 
 	if err != nil {
 		return err
@@ -173,12 +183,14 @@ func (s *Shard) Update() error {
 		return err
 	}
 
-	
+	s.SetUpdatedAt( time.Now().Format(time.RFC3339) )
 
 	_, err = tx.Update("public.shards").
 		Set("id", s.Id).
 		Set("name", s.Name).
 		Set("account_count", s.AccountCount).
+		Set("updated_at", s.UpdatedAt).
+		Set("deleted_at", s.DeletedAt).
 
 		Where("id = ?", s.Id).
 		Exec()
@@ -192,7 +204,7 @@ func (s *Shard) Update() error {
 	return err
 }
 
-// Hard delete a record
+// Soft delete a record
 func (s *Shard) Delete() error {
 
 	if !s.Id.Valid {
@@ -205,7 +217,10 @@ func (s *Shard) Delete() error {
 		return err
 	}
 
-	_, err = tx.DeleteFrom("public.shards").
+	s.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+
+	_, err = tx.Update("public.shards").
+		Set("deleted_at", s.DeletedAt).
 		Where("id = ?", s.Id).
 		Exec()
 
@@ -421,4 +436,76 @@ func GetAllShards(ctx ContextInterface) ([]Shard, error) {
 	}
 
 	return s, nil
+}
+
+//
+func (s *Shard) GetCreatedAt() string {
+
+	if s.CreatedAt.Valid {
+		return s.CreatedAt.String
+	}
+
+	return ""
+}
+
+//
+func (s *Shard) SetCreatedAt(val string) {
+
+	if val == "" {
+		s.CreatedAt.Valid = false
+		s.CreatedAt.String = ""
+
+		return
+	}
+
+	s.CreatedAt.Valid = true
+	s.CreatedAt.String = val
+}
+
+//
+func (s *Shard) GetUpdatedAt() string {
+
+	if s.UpdatedAt.Valid {
+		return s.UpdatedAt.String
+	}
+
+	return ""
+}
+
+//
+func (s *Shard) SetUpdatedAt(val string) {
+
+	if val == "" {
+		s.UpdatedAt.Valid = false
+		s.UpdatedAt.String = ""
+
+		return
+	}
+
+	s.UpdatedAt.Valid = true
+	s.UpdatedAt.String = val
+}
+
+//
+func (s *Shard) GetDeletedAt() string {
+
+	if s.DeletedAt.Valid {
+		return s.DeletedAt.String
+	}
+
+	return ""
+}
+
+//
+func (s *Shard) SetDeletedAt(val string) {
+
+	if val == "" {
+		s.DeletedAt.Valid = false
+		s.DeletedAt.String = ""
+
+		return
+	}
+
+	s.DeletedAt.Valid = true
+	s.DeletedAt.String = val
 }
