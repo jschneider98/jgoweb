@@ -1,16 +1,20 @@
 package jgoweb
 
 import(
+	"time"
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
 )
-
 // ShardMap
 type ShardMap struct {
+	Id sql.NullString `json:"Id" validate:"omitempty,int"`
 	ShardId sql.NullString `json:"ShardId" validate:"required,int"`
 	Domain sql.NullString `json:"Domain" validate:"required"`
 	AccountId sql.NullString `json:"AccountId" validate:"required,uuid"`
+	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt sql.NullString `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt sql.NullString `json:"DeletedAt" validate:"omitempty,rfc3339"`
 	Ctx ContextInterface `json:"-" validate:"-"`
 }
 
@@ -25,6 +29,8 @@ func NewShardMap(ctx ContextInterface) (*ShardMap, error) {
 
 // Set defaults
 func (sm *ShardMap) SetDefaults() {
+	sm.SetCreatedAt( time.Now().Format(time.RFC3339) )
+	sm.SetUpdatedAt( time.Now().Format(time.RFC3339) )
 
 }
 
@@ -46,12 +52,12 @@ func NewShardMapWithData(ctx ContextInterface, req *web.Request) (*ShardMap, err
 }
 
 // Factory Method
-func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap, error) {
+func FetchShardMapById(ctx ContextInterface, id string) (*ShardMap, error) {
 	var sm []ShardMap
 
 	stmt := ctx.Select("*").
 	From("public.shard_map").
-	Where("account_id = ?", accountId).
+	Where("id = ?", id).
 	Limit(1)
 
 	_, err := stmt.Load(&sm)
@@ -67,27 +73,6 @@ func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap
 	sm[0].Ctx = ctx
 
 	return &sm[0], nil
-}
-
-// 
-func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
-	var sm []ShardMap
-
-	stmt := ctx.Select("*").
-	From("public.shard_map").
-	OrderBy("domain")
-
-	_, err := stmt.Load(&sm)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if sm == nil {
-		sm = make([]ShardMap, 0)
-	}
-
-	return sm, nil
 }
 
 //
@@ -121,9 +106,13 @@ func (sm *ShardMap) Hydrate(req *web.Request) error {
 		return err
 	}
 
+	sm.SetId(req.PostFormValue("Id"))
 	sm.SetShardId(req.PostFormValue("ShardId"))
 	sm.SetDomain(req.PostFormValue("Domain"))
 	sm.SetAccountId(req.PostFormValue("AccountId"))
+	sm.SetCreatedAt(req.PostFormValue("CreatedAt"))
+	sm.SetUpdatedAt(req.PostFormValue("UpdatedAt"))
+	sm.SetDeletedAt(req.PostFormValue("DeletedAt"))
 
 	return nil
 }
@@ -141,7 +130,7 @@ func (sm *ShardMap) Save() error {
 		return err
 	}
 
-	if !sm.AccountId.Valid {
+	if !sm.Id.Valid {
 		return sm.Insert()
 	} else {
 		return sm.Update()
@@ -160,9 +149,10 @@ func (sm *ShardMap) Insert() error {
 INSERT INTO
 public.shard_map (shard_id,
 	domain,
-	account_id)
-VALUES ($1,$2,$3)
-RETURNING account_id
+	account_id,
+	deleted_at)
+VALUES ($1,$2,$3,$4)
+RETURNING id
 
 `
 
@@ -176,7 +166,8 @@ RETURNING account_id
 
 	err = stmt.QueryRow(sm.ShardId,
 			sm.Domain,
-			sm.AccountId).Scan(&sm.AccountId)
+			sm.AccountId,
+			sm.DeletedAt).Scan(&sm.Id)
 
 	if err != nil {
 		return err
@@ -187,7 +178,7 @@ RETURNING account_id
 
 // Update a record
 func (sm *ShardMap) Update() error {
-	if !sm.AccountId.Valid {
+	if !sm.Id.Valid {
 		return nil
 	}
 
@@ -197,14 +188,17 @@ func (sm *ShardMap) Update() error {
 		return err
 	}
 
-	
+	sm.SetUpdatedAt( time.Now().Format(time.RFC3339) )
 
 	_, err = tx.Update("public.shard_map").
+		Set("id", sm.Id).
 		Set("shard_id", sm.ShardId).
 		Set("domain", sm.Domain).
 		Set("account_id", sm.AccountId).
+		Set("updated_at", sm.UpdatedAt).
+		Set("deleted_at", sm.DeletedAt).
 
-		Where("account_id = ?", sm.AccountId).
+		Where("id = ?", sm.Id).
 		Exec()
 
 	if err != nil {
@@ -216,10 +210,10 @@ func (sm *ShardMap) Update() error {
 	return err
 }
 
-// Hard delete a record
+// Soft delete a record
 func (sm *ShardMap) Delete() error {
 
-	if !sm.AccountId.Valid {
+	if !sm.Id.Valid {
 		return nil
 	}
 
@@ -229,8 +223,11 @@ func (sm *ShardMap) Delete() error {
 		return err
 	}
 
-	_, err = tx.DeleteFrom("public.shard_map").
-		Where("account_id = ?", sm.AccountId).
+	sm.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+
+	_, err = tx.Update("public.shard_map").
+		Set("deleted_at", sm.DeletedAt).
+		Where("id = ?", sm.Id).
 		Exec()
 
 	if err != nil {
@@ -238,6 +235,30 @@ func (sm *ShardMap) Delete() error {
 	}
 
 	return sm.Ctx.OptionalCommit(tx)
+}
+
+//
+func (sm *ShardMap) GetId() string {
+
+	if sm.Id.Valid {
+		return sm.Id.String
+	}
+
+	return ""
+}
+
+//
+func (sm *ShardMap) SetId(val string) {
+
+	if val == "" {
+		sm.Id.Valid = false
+		sm.Id.String = ""
+
+		return
+	}
+
+	sm.Id.Valid = true
+	sm.Id.String = val
 }
 
 //
@@ -310,4 +331,123 @@ func (sm *ShardMap) SetAccountId(val string) {
 
 	sm.AccountId.Valid = true
 	sm.AccountId.String = val
+}
+
+//
+func (sm *ShardMap) GetCreatedAt() string {
+
+	if sm.CreatedAt.Valid {
+		return sm.CreatedAt.String
+	}
+
+	return ""
+}
+
+//
+func (sm *ShardMap) SetCreatedAt(val string) {
+
+	if val == "" {
+		sm.CreatedAt.Valid = false
+		sm.CreatedAt.String = ""
+
+		return
+	}
+
+	sm.CreatedAt.Valid = true
+	sm.CreatedAt.String = val
+}
+
+//
+func (sm *ShardMap) GetUpdatedAt() string {
+
+	if sm.UpdatedAt.Valid {
+		return sm.UpdatedAt.String
+	}
+
+	return ""
+}
+
+//
+func (sm *ShardMap) SetUpdatedAt(val string) {
+
+	if val == "" {
+		sm.UpdatedAt.Valid = false
+		sm.UpdatedAt.String = ""
+
+		return
+	}
+
+	sm.UpdatedAt.Valid = true
+	sm.UpdatedAt.String = val
+}
+
+//
+func (sm *ShardMap) GetDeletedAt() string {
+
+	if sm.DeletedAt.Valid {
+		return sm.DeletedAt.String
+	}
+
+	return ""
+}
+
+//
+func (sm *ShardMap) SetDeletedAt(val string) {
+
+	if val == "" {
+		sm.DeletedAt.Valid = false
+		sm.DeletedAt.String = ""
+
+		return
+	}
+
+	sm.DeletedAt.Valid = true
+	sm.DeletedAt.String = val
+}
+
+// ******
+
+// Factory Method
+func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap, error) {
+	var sm []ShardMap
+
+	stmt := ctx.Select("*").
+	From("public.shard_map").
+	Where("account_id = ?", accountId).
+	Limit(1)
+
+	_, err := stmt.Load(&sm)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if (len(sm) == 0) {
+		return nil, nil
+	}
+
+	sm[0].Ctx = ctx
+
+	return &sm[0], nil
+}
+
+// 
+func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
+	var sm []ShardMap
+
+	stmt := ctx.Select("*").
+	From("public.shard_map").
+	OrderBy("domain")
+
+	_, err := stmt.Load(&sm)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if sm == nil {
+		sm = make([]ShardMap, 0)
+	}
+
+	return sm, nil
 }
