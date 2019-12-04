@@ -437,6 +437,7 @@ func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
 
 	stmt := ctx.Select("*").
 	From("public.shard_map").
+	Where("deleted_at IS NULL").
 	OrderBy("domain")
 
 	_, err := stmt.Load(&sm)
