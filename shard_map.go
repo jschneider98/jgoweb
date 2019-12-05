@@ -4,6 +4,7 @@ import(
 	"time"
 	"database/sql"
 	"github.com/gocraft/web"
+	"github.com/gocraft/dbr"
 	"github.com/jschneider98/jgoweb/util"
 )
 // ShardMap
@@ -237,6 +238,33 @@ func (sm *ShardMap) Delete() error {
 	return sm.Ctx.OptionalCommit(tx)
 }
 
+// Soft undelete a record
+func (sm *ShardMap) Undelete() error {
+
+	if !sm.Id.Valid {
+		return nil
+	}
+
+	tx, err := sm.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	sm.SetDeletedAt("")
+
+	_, err = tx.Update("public.shard_map").
+		Set("deleted_at", sm.DeletedAt).
+		Where("id = ?", sm.Id).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return sm.Ctx.OptionalCommit(tx)
+}
+
 //
 func (sm *ShardMap) GetId() string {
 
@@ -431,14 +459,16 @@ func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap
 	return &sm[0], nil
 }
 
-// 
+// Ignore "deleted" shards
 func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
 	var sm []ShardMap
 
-	stmt := ctx.Select("*").
-	From("public.shard_map").
-	Where("deleted_at IS NULL").
-	OrderBy("domain")
+	stmt := ctx.Select("sm.*").
+	From(dbr.I("public.shard_map").As("sm")).
+	Join(dbr.I("public.shards").As("s"), "s.id = sm.shard_id").
+	Where("sm.deleted_at IS NULL").
+	Where("s.deleted_at IS NULL").
+	OrderBy("sm.domain")
 
 	_, err := stmt.Load(&sm)
 
