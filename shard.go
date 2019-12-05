@@ -232,6 +232,33 @@ func (s *Shard) Delete() error {
 	return s.Ctx.OptionalCommit(tx)
 }
 
+// Soft undelete a record
+func (s *Shard) Undelete() error {
+
+	if !s.Id.Valid {
+		return nil
+	}
+
+	tx, err := s.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	s.SetDeletedAt("")
+
+	_, err = tx.Update("public.shards").
+		Set("deleted_at", s.DeletedAt).
+		Where("id = ?", s.Id).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return s.Ctx.OptionalCommit(tx)
+}
+
 //
 func (s *Shard) GetId() string {
 
@@ -630,6 +657,38 @@ func ClusterDeleteShard(ctx ContextInterface, shardName string) error {
 			msg += dbName + ": " + err.Error() + "\n"
 		} else if shard != nil {
 			err = shard.Delete()
+
+			if err != nil {
+				msg += dbName + ": " + err.Error() + "\n"
+			}
+		}
+	}
+
+	if msg != "" {
+		err = errors.New(msg)
+
+		return err
+	}
+
+	return nil
+}
+
+// 
+func ClusterUndeleteShard(ctx ContextInterface, shardName string) error {
+	var err error
+	var shard *Shard
+	var msg string
+
+	for dbName, dbConn := range ctx.GetDb().GetConns() {
+		curCtx := NewContext(ctx.GetDb())
+		curCtx.SetDbSession(dbConn.NewSession(nil))
+		
+		shard, err = FetchShardByName(curCtx, shardName)
+
+		if err != nil {
+			msg += dbName + ": " + err.Error() + "\n"
+		} else if shard != nil {
+			err = shard.Undelete()
 
 			if err != nil {
 				msg += dbName + ": " + err.Error() + "\n"
