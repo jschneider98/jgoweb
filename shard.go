@@ -303,6 +303,78 @@ func (s *Shard) SetAccountCount(val string) {
 	s.AccountCount.String = val
 }
 
+//
+func (s *Shard) GetCreatedAt() string {
+
+	if s.CreatedAt.Valid {
+		return s.CreatedAt.String
+	}
+
+	return ""
+}
+
+//
+func (s *Shard) SetCreatedAt(val string) {
+
+	if val == "" {
+		s.CreatedAt.Valid = false
+		s.CreatedAt.String = ""
+
+		return
+	}
+
+	s.CreatedAt.Valid = true
+	s.CreatedAt.String = val
+}
+
+//
+func (s *Shard) GetUpdatedAt() string {
+
+	if s.UpdatedAt.Valid {
+		return s.UpdatedAt.String
+	}
+
+	return ""
+}
+
+//
+func (s *Shard) SetUpdatedAt(val string) {
+
+	if val == "" {
+		s.UpdatedAt.Valid = false
+		s.UpdatedAt.String = ""
+
+		return
+	}
+
+	s.UpdatedAt.Valid = true
+	s.UpdatedAt.String = val
+}
+
+//
+func (s *Shard) GetDeletedAt() string {
+
+	if s.DeletedAt.Valid {
+		return s.DeletedAt.String
+	}
+
+	return ""
+}
+
+//
+func (s *Shard) SetDeletedAt(val string) {
+
+	if val == "" {
+		s.DeletedAt.Valid = false
+		s.DeletedAt.String = ""
+
+		return
+	}
+
+	s.DeletedAt.Valid = true
+	s.DeletedAt.String = val
+}
+
 // ******
 
 // 
@@ -438,74 +510,21 @@ func GetAllShards(ctx ContextInterface) ([]Shard, error) {
 	return s, nil
 }
 
-//
-func (s *Shard) GetCreatedAt() string {
+// Get shard data for all DBs
+func GetAllDbShards(ctx ContextInterface) (map[string][]Shard, error) {
+	var err error
+	shards := make(map[string][]Shard)
 
-	if s.CreatedAt.Valid {
-		return s.CreatedAt.String
+	for dbName, dbConn := range ctx.GetDb().GetConns() {
+		curCtx := NewContext(ctx.GetDb())
+		curCtx.SetDbSession(dbConn.NewSession(nil))
+		
+		shards[dbName], err = GetAllShards(curCtx)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return ""
-}
-
-//
-func (s *Shard) SetCreatedAt(val string) {
-
-	if val == "" {
-		s.CreatedAt.Valid = false
-		s.CreatedAt.String = ""
-
-		return
-	}
-
-	s.CreatedAt.Valid = true
-	s.CreatedAt.String = val
-}
-
-//
-func (s *Shard) GetUpdatedAt() string {
-
-	if s.UpdatedAt.Valid {
-		return s.UpdatedAt.String
-	}
-
-	return ""
-}
-
-//
-func (s *Shard) SetUpdatedAt(val string) {
-
-	if val == "" {
-		s.UpdatedAt.Valid = false
-		s.UpdatedAt.String = ""
-
-		return
-	}
-
-	s.UpdatedAt.Valid = true
-	s.UpdatedAt.String = val
-}
-
-//
-func (s *Shard) GetDeletedAt() string {
-
-	if s.DeletedAt.Valid {
-		return s.DeletedAt.String
-	}
-
-	return ""
-}
-
-//
-func (s *Shard) SetDeletedAt(val string) {
-
-	if val == "" {
-		s.DeletedAt.Valid = false
-		s.DeletedAt.String = ""
-
-		return
-	}
-
-	s.DeletedAt.Valid = true
-	s.DeletedAt.String = val
+	return shards, nil
 }
