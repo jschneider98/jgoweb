@@ -2,6 +2,7 @@ package jgoweb
 
 import(
 	"time"
+	"errors"
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
@@ -422,6 +423,58 @@ func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, erro
 	return &shards[0], nil
 }
 
+// Does not set db session. Mainly used for logical replication of shards.
+func FetchShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
+	var shards []Shard
+	var err error
+
+	stmt := ctx.SelectBySql(`
+	SELECT
+		s.*
+	FROM public.shards s
+	WHERE s.name = ?
+	LIMIT 1`,
+	shardName)
+
+	_, err = stmt.Load(&shards)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if (len(shards) == 0) {
+		return nil, nil
+	}
+
+	shards[0].Ctx = ctx
+
+	return &shards[0], nil
+}
+
+//
+func CreateShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
+	shard, err := FetchShardByName(ctx, shardName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if shard != nil {
+		return shard, nil
+	}
+
+	shard, err = NewShard(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	shard.SetName(shardName)
+	shard.SetAccountCount("0")
+
+	return shard, nil
+}
+
 // 
 func FetchShardByEmail(ctx ContextInterface, email string) (*Shard, error) {
 	var shards []Shard
@@ -511,7 +564,7 @@ func GetAllShards(ctx ContextInterface) ([]Shard, error) {
 }
 
 // Get shard data for all DBs
-func GetAllDbShards(ctx ContextInterface) (map[string][]Shard, error) {
+func ClusterGetShards(ctx ContextInterface) (map[string][]Shard, error) {
 	var err error
 	shards := make(map[string][]Shard)
 
@@ -527,4 +580,36 @@ func GetAllDbShards(ctx ContextInterface) (map[string][]Shard, error) {
 	}
 
 	return shards, nil
+}
+
+// 
+func ClusterAddShard(ctx ContextInterface, shardName string) error {
+	var err error
+	var shard *Shard
+	var msg string
+
+	for dbName, dbConn := range ctx.GetDb().GetConns() {
+		curCtx := NewContext(ctx.GetDb())
+		curCtx.SetDbSession(dbConn.NewSession(nil))
+		
+		shard, err = CreateShardByName(curCtx, shardName)
+
+		if err != nil {
+			msg += dbName + ": " + err.Error() + "\n"
+		} else {
+			err = shard.Save()
+
+			if err != nil {
+				msg += dbName + ": " + err.Error() + "\n"
+			}
+		}
+	}
+
+	if msg != "" {
+		err = errors.New(msg)
+
+		return err
+	}
+
+	return nil
 }
