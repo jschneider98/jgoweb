@@ -372,3 +372,46 @@ func (a *Account) SetDeletedAt(val string) {
 	a.DeletedAt.Valid = true
 	a.DeletedAt.String = val
 }
+
+
+// ******
+
+// 
+func GetAllAccounts(ctx ContextInterface) ([]Account, error) {
+	var a []Account
+
+	stmt := ctx.Select("*").
+	From("public.accounts").
+	OrderBy("domain")
+
+	_, err := stmt.Load(&a)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if a == nil {
+		a = make([]Account, 0)
+	}
+
+	return a, nil
+}
+
+// Get account data for all DBs
+func ClusterGetAccounts(ctx ContextInterface) (map[string][]Account, error) {
+	var err error
+	accounts := make(map[string][]Account)
+
+	for dbName, dbConn := range ctx.GetDb().GetConns() {
+		curCtx := NewContext(ctx.GetDb())
+		curCtx.SetDbSession(dbConn.NewSession(nil))
+		
+		accounts[dbName], err = GetAllAccounts(curCtx)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return accounts, nil
+}
