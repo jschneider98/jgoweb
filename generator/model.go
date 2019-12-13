@@ -91,6 +91,7 @@ func (mg *ModelGenerator) Generate() string {
 	code += mg.GetInsertCode()
 	code += mg.GetUpdateCode()
 	code += mg.GetDeleteCode()
+	code += mg.GetUndeleteCode()
 	code += mg.GetSetterGetterCode()
 
 	return code
@@ -570,6 +571,53 @@ func (%s *%s) Delete() error {
 `, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
 	return code
+}
+
+//
+func (mg *ModelGenerator) GetUndeleteCode() string {
+	var code string
+	softDelete := false
+
+	for key := range mg.Fields {
+		if mg.Fields[key].DbFieldName == "deleted_at" {
+			softDelete = true
+		}
+	}
+
+	if !softDelete {
+		return ""
+	}
+
+	code += fmt.Sprintf(`
+// Soft undelete a record
+func (%s *%s) Undelete() error {
+
+	if !%s.Id.Valid {
+		return nil
+	}
+
+	tx, err := %s.Ctx.OptionalBegin()
+
+	if err != nil {
+		return err
+	}
+
+	%s.SetDeletedAt("")
+
+	_, err = tx.Update("%s").
+		Set("deleted_at", %s.DeletedAt).
+		Where("id = ?", %s.Id).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return %s.Ctx.OptionalCommit(tx)
+}
+`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+
+	return code	
 }
 
 //
