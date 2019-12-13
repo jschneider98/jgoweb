@@ -376,6 +376,28 @@ func (a *Account) SetDeletedAt(val string) {
 
 // ******
 
+//
+func (a *Account) CreateByShard(shardName string) error {
+
+	dbSess, err := a.Ctx.GetDb().GetSessionByName(shardName)
+
+	if err != nil {
+		return err
+	}
+
+	ctx := NewContext(a.Ctx.GetDb())
+	ctx.SetDbSession(dbSess)
+
+	// @TODO: @HERE
+	_, err = NewAccount(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // 
 func GetAllAccounts(ctx ContextInterface) ([]Account, error) {
 	var a []Account
