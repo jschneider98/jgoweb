@@ -141,10 +141,12 @@ func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface, dbName string) e
 			return err
 		}
 
-		err = update.SetComplete()
+		if !sdu.DryRun {
+			err = update.SetComplete()
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 
 		util.Debugf("%s: '%s' done.\n", dbName, update.GetUpdateName())
