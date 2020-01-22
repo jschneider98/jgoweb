@@ -30,19 +30,35 @@ func (mg *ModelGenerator) GetListViewTitleCode() string {
 //
 func (mg *ModelGenerator) GetListViewSubNavCode() string {
 
-	code := `
+	tmplParams := struct {
+		ModelName string
+	}{}
+
+	tmplParams.ModelName = util.ToSnakeCase(mg.ModelName)
+
+	str := `
 [[define "sub-nav"]]
 <div class="p-2 text-muted" style="border-top: 1px solid #ddd">
 	<form>
-		<div>
+		<div class="form-row">
+			<div class="col-auto">
+				<a class="nav-link" href="/{{{ .ModelName }}}">Create</a>
+			</div>
+		
 			<div class="col">
-				<input class="form-control" id="filter" type="text" v-model="query" v-on:keyup="updateFilter" placeholder="Filter"></input>
+				<input class="form-control" id="filter" type="text" v-model="query" v-on:keyup="updateFilter" placeholder="Filter List"></input>
 			</div>
 		</div>
 	</form>
 </div>
 [[end]]
 `
+
+	code, err := util.TemplateToString(str, tmplParams)
+
+	if err != nil {
+		code = fmt.Sprintf("\n**** ERROR ****\n%s\n********\n", err)
+	}
 
 	return code
 }
@@ -59,26 +75,35 @@ func (mg *ModelGenerator) GetListViewBodyCode() string {
 	str := `
 [[define "body"]]
 	<div class="p-2 text-muted" v-cloak>
-		<h5 class="text-muted" style="font-size: calc(12px + 0.5vw)">{{ filteredResults.length }} out of {{ results.length }} total</h5>
+		<h5 class="text-muted" style="font-size: calc(12px + 0.5vw)">{{ filteredResults.length }} out of {{ results.length }}</h5>
 	</div>
 
 	<div v-cloak v-show="filteredResults.length > 0">
 		<table class="table table-striped">
 			<thead>
-				<tr>?{{range $val := .Mg.Fields}}?
-					<th scope="col">?{{$val.FieldName}}?</th>?{{end}}?
+				<tr>
+					<th class="no-print"></th>{{{range $val := .Mg.Fields}}}
+					<th scope="col">{{{$val.FieldName}}}</th>{{{end}}}
 				</tr>
 			</thead>
 			<tbody>
 
-				<tr v-for="item in filteredResults">?{{range $val := .Mg.Fields}}?
-					<td>item.?{{ $val.FieldName}}?</td>?{{end}}?
+				<tr v-for="item in formatData">
+					<td class="no-print">
+						<div style="min-width: 50px;">
+							<span class="text-primary">
+								<a :href="getEditRoute(item.Id.String)"><i class="fa fa-edit fa-lg"></i></a>
+								<a href="#"><i v-on:click="deleteConfirm(item.Id.String)" class="fa fa-trash fa-lg"></i></a>
+							</span>
+						</div>
+					</td>{{{range $val := .Mg.Fields}}}
+					<td>item.{{{ $val.FieldName}}}</td>{{{end}}}
 				</tr>
 
 			</tbody>
 		</table>
 
-		<h5 class="text-muted" style="font-size: calc(12px + 0.5vw)">{{ filteredResults.length }} out of {{ results.length }} total subscribers</h5>
+		<h5 class="text-muted" style="font-size: calc(12px + 0.5vw)">{{ filteredResults.length }} out of {{ results.length }}</h5>
 	</div>
 	<hr>
 [[end]]
@@ -95,24 +120,55 @@ func (mg *ModelGenerator) GetListViewBodyCode() string {
 //
 func (mg *ModelGenerator) GetListViewScriptCode() string {
 
+	tmplParams := struct {
+		EditRoute string
+		ListRoute string
+		Id string
+	}{}
+
+	tmplParams.EditRoute = util.ToSnakeCase(mg.ModelName)
+	tmplParams.ListRoute = tmplParams.EditRoute + `_list`
+	tmplParams.Id = util.ToLowerCamelCase( util.ToSnakeCase(mg.ModelName + `Id`) )
+
 	str := `
 [[define "scripts"]]
 <script>
+	window.addEventListener('load', (event) => {
+		app.updateFilter();
+	});
+
 	var app = new Vue({
 		el: '#app',
 		data: {
+			isCurrent: "true",
 			query: "",
 			results: [[ .Results ]],
 			filteredResults: [[ .Results ]],
 			loading: false
 		},
+		computed: {
+			formatData: function() {
+
+				for (let i = 0; i < this.filteredResults.length; i++) {
+					this.filteredResults[i].CreatedAt.String = medex.formatDate(this.filteredResults[i].CreatedAt.String, false);
+
+					this.filteredResults[i].UpdatedAt.String = medex.formatDate(this.filteredResults[i].UpdatedAt.String, false);
+				}
+
+				return this.filteredResults;
+			}
+		},
 		methods: {
+			getEditRoute: function({{{.Id}}}) {
+				return "/{{{.EditRoute}}}?{{{.Id}}}="  + encodeURI({{{.Id}}});
+			},
+			getDeleteLink: function({{{.Id}}}) {
+				var uri = encodeURI(` + "`?{{{.Id}}}=${ {{{.Id}}}} }&action=delete`" + `)
+				return "/{{{.ListRoute}}}" + uri;
+			},
 			updateFilter: function() {
-				var results = [];
+				return this.queryFilter();
 
-				results = this.queryFilter();
-
-				this.filteredResults = results;
 			},
 			queryFilter: function() {
 				var results = [];
@@ -126,40 +182,38 @@ func (mg *ModelGenerator) GetListViewScriptCode() string {
 				return results;
 			},
 			queryMatch: function(row) {
-				var parts = (this.query.toLowerCase()).split(" ");
+				return (row.Diagnosis.String.toLowerCase()).includes(this.query.toLowerCase());
+			},
+			deleteConfirm({{{.Id}}}) {
+				var url = this.getDeleteLink({{{.Id}}});
 
-				if (parts.length == 1) {
-					if ( (row.FirstName.toLowerCase()).includes(parts[0]) ) {
-						return true;
-					}
-
-					if ( (row.LastName.toLowerCase()).includes(parts[0]) ) {
-						return true;
-					}
-
-					if ( (row.SchoolStateId.toLowerCase()).includes(parts[0]) ) {
-						return true;
-					}
-				}
-
-				if (parts.length > 1) {
-					if ( (row.FirstName.toLowerCase()).includes(parts[0]) && (row.LastName.toLowerCase()).includes(parts[1])) {
-						return true;
-					}
-
-					if ( (row.FirstName.toLowerCase()).includes(parts[1]) && (row.LastName.toLowerCase()).includes(parts[0])) {
-						return true;
-					}
-				}
-
-				return false;
+				this.$bvModal.msgBoxConfirm("Are you sure that you want to delete?", {
+						headerBgVariant: 'danger',
+						headerTextVariant: 'light',
+						title: "WARNING: About to Delete Data",
+						okVariant: "light",
+						cancelVariant: "primary",
+						okTitle: "Delete",
+						cancelTitle: "No",
+						footerClass: "p-2",
+						hideHeaderClose: false,
+						centered: true
+					})
+					.then(value => {
+						if (value == true) {
+							window.location.replace(url);
+						}
+					})
+					.catch(err => {
+						// An error occurred
+					})
 			}
 		}
-	})
+	});
 </script>
 [[end]]
 `
-	code, err := util.TemplateToString(str, nil)
+	code, err := util.TemplateToString(str, tmplParams)
 
 	if err != nil {
 		code = fmt.Sprintf("\n**** ERROR ****\n%s\n********\n", err)
