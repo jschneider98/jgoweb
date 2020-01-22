@@ -11,6 +11,7 @@ func (mg *ModelGenerator) GenerateView() string {
 	var code string
 
 	code += mg.GetViewTitleCode()
+	code += mg.GetViewSubNavCode()
 	code += mg.GetViewBodyCode()
 	code += mg.GetViewScriptCode()
 
@@ -22,6 +23,34 @@ func (mg *ModelGenerator) GetViewTitleCode() string {
 	var code string
 
 	code += fmt.Sprintf("[[define \"title\"]]%s[[end]]\n", util.ToWords(mg.ModelName))
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetViewSubNavCode() string {
+
+	tmplParams := struct {
+		ModelName string
+	}{}
+
+	tmplParams.ModelName = util.ToSnakeCase(mg.ModelName)
+
+	str := `
+[[define "sub-nav"]]
+<div class="p-2 text-muted" style="border-top: 1px solid #ddd">
+	<div class="col-auto">
+		<a class="nav-link" href="/{{{.ModelName}}}_list">List</a>
+	</div>
+</div>
+[[end]]
+`
+
+	code, err := util.TemplateToString(str, tmplParams)
+
+	if err != nil {
+		code = fmt.Sprintf("\n**** ERROR ****\n%s\n********\n", err)
+	}
 
 	return code
 }
