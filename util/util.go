@@ -10,7 +10,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-	"html/template"
+	textTemplate "text/template"
+	template "html/template"
 	"github.com/gocraft/web"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -280,7 +281,22 @@ func NamedSprintf(str string, holders map[string]string) string {
 func TemplateToString(tmplStr string, data interface{}) (string, error) {
 	buf := new(bytes.Buffer)
 	
-	tmpl, err := template.New("test").Delims("?{{", "}}?").Parse(tmplStr)
+	tmpl, err := textTemplate.New("test").Delims("{{{", "}}}").Parse(tmplStr)
+	
+	if err != nil { return "", err }
+	
+	err = tmpl.Execute(buf, data)
+
+	if err != nil { return "", err }
+
+	return buf.String(), nil
+}
+
+//
+func HtmlTemplateToString(tmplStr string, data interface{}) (string, error) {
+	buf := new(bytes.Buffer)
+	
+	tmpl, err := template.New("test").Delims("{{{", "}}}").Parse(tmplStr)
 	
 	if err != nil { return "", err }
 	
