@@ -130,8 +130,8 @@ func (ctx *WebContext) get{{{.ModelName}}}FromRequest(req *web.Request) (*models
 			return nil, err
 		}
 
-		if sd != nil {
-			return sd, nil
+		if mdl != nil {
+			return mdl, nil
 		}
 	}
 
