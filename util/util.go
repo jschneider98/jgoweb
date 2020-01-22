@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"math"
 	"errors"
 	"regexp"
@@ -275,6 +276,20 @@ func NamedSprintf(str string, holders map[string]string) string {
 	return fmt.Sprintf(str, params...)
 }
 
+//
+func TemplateToString(tmplStr string, data interface{}) (string, error) {
+	buf := new(bytes.Buffer)
+	
+	tmpl, err := template.New("test").Delims("?{{", "}}?").Parse(tmplStr)
+	
+	if err != nil { return "", err }
+	
+	err = tmpl.Execute(buf, data)
+
+	if err != nil { return "", err }
+
+	return buf.String(), nil
+}
 
 // StrPad returns the input string padded on the left, right or both sides using padType to the specified padding length padLength.
 // https://gist.github.com/asessa/3aaec43d93044fc42b7c6d5f728cb039 (Andrea Sessa)
