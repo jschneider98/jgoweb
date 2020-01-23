@@ -97,7 +97,7 @@ func (mg *ModelGenerator) GetListViewBodyCode() string {
 							</span>
 						</div>
 					</td>{{{range $val := .Mg.Fields}}}
-					<td>item.{{{ $val.FieldName}}}</td>{{{end}}}
+					<td>{{ item.{{{ $val.FieldName.String }}} }}</td>{{{end}}}
 				</tr>
 
 			</tbody>
