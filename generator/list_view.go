@@ -163,7 +163,7 @@ func (mg *ModelGenerator) GetListViewScriptCode() string {
 				return "/{{{.EditRoute}}}?{{{.Id}}}="  + encodeURI({{{.Id}}});
 			},
 			getDeleteLink: function({{{.Id}}}) {
-				var uri = encodeURI(` + "`?{{{.Id}}}=${ {{{.Id}}}} }&action=delete`" + `)
+				var uri = encodeURI(` + "`?{{{.Id}}}=${ {{{.Id}}} }&action=delete`" + `)
 				return "/{{{.ListRoute}}}" + uri;
 			},
 			updateFilter: function() {
@@ -179,7 +179,7 @@ func (mg *ModelGenerator) GetListViewScriptCode() string {
 					}
 				}
 
-				return results;
+				this.filteredResults = results;
 			},
 			queryMatch: function(row) {
 				return (row.Diagnosis.String.toLowerCase()).includes(this.query.toLowerCase());
