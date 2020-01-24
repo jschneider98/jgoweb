@@ -117,6 +117,10 @@ func (ctx *WebContext) {{{.Prefix}}}Delete(req *web.Request) (template.HTML, err
 		return template.HTML(""), err
 	}
 
+	if mdl == nil {
+		return template.HTML(""), nil
+	}
+
 	err = mdl.Delete()
 
 	if err != nil {
