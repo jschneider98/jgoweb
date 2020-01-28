@@ -310,7 +310,7 @@ func HtmlTemplateToString(tmplStr string, data interface{}) (string, error) {
 
 //
 func GetIsoCurrentDate() (string) {
-	return time.Now().UTC().Format("2006-01-02")
+	return time.Now().Format("2006-01-02")
 }
 
 // StrPad returns the input string padded on the left, right or both sides using padType to the specified padding length padLength.
