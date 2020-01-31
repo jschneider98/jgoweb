@@ -108,17 +108,8 @@ func (mg *ModelGenerator) GetControllerReqCode() string {
 	str := `
 //
 func (ctx *WebContext) get{{{.ModelName}}}FromRequest(req *web.Request) (*models.{{{.ModelName}}}, error) {
-	mdl, err := models.New{{{.ModelName}}}(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if req.Method == "POST" {
-		mdl.Hydrate(req)
-
-		return mdl, nil
-	}
+	var mdl *models.{{{.ModelName}}}
+	var err error
 
 	params := req.URL.Query()
 	id := params.Get("{{{.Id}}}")
@@ -133,6 +124,22 @@ func (ctx *WebContext) get{{{.ModelName}}}FromRequest(req *web.Request) (*models
 		if mdl != nil {
 			return mdl, nil
 		}
+	}
+
+	mdl, err = models.New{{{.ModelName}}}(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Method == "POST" {
+		err = mdl.Hydrate(req)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return mdl, nil
 	}
 
 	mdl.AccountId = ctx.Provider.AccountId
