@@ -88,7 +88,7 @@ func (mg *ModelGenerator) GetListViewBodyCode() string {
 			</thead>
 			<tbody>
 
-				<tr v-for="item in formatData">
+				<tr v-for="item in filteredResults">
 					<td class="no-print">
 						<div style="min-width: 50px;">
 							<span class="text-primary">
@@ -133,10 +133,6 @@ func (mg *ModelGenerator) GetListViewScriptCode() string {
 	str := `
 [[define "scripts"]]
 <script>
-	window.addEventListener('load', (event) => {
-		app.updateFilter();
-	});
-
 	var app = new Vue({
 		el: '#app',
 		data: {
@@ -145,18 +141,6 @@ func (mg *ModelGenerator) GetListViewScriptCode() string {
 			results: [[ .Results ]],
 			filteredResults: [[ .Results ]],
 			loading: false
-		},
-		computed: {
-			formatData: function() {
-
-				for (let i = 0; i < this.filteredResults.length; i++) {
-					this.filteredResults[i].CreatedAt.String = medex.formatDate(this.filteredResults[i].CreatedAt.String, false);
-
-					this.filteredResults[i].UpdatedAt.String = medex.formatDate(this.filteredResults[i].UpdatedAt.String, false);
-				}
-
-				return this.filteredResults;
-			}
 		},
 		methods: {
 			getEditRoute: function({{{.Id}}}) {
@@ -182,7 +166,8 @@ func (mg *ModelGenerator) GetListViewScriptCode() string {
 				this.filteredResults = results;
 			},
 			queryMatch: function(row) {
-				return (row.Diagnosis.String.toLowerCase()).includes(this.query.toLowerCase());
+				// return (row.<FieldNameHERE>.String.toLowerCase()).includes(this.query.toLowerCase());
+				return true;
 			},
 			deleteConfirm({{{.Id}}}) {
 				var url = this.getDeleteLink({{{.Id}}});
