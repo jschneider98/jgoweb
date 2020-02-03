@@ -60,12 +60,14 @@ func (mg *ModelGenerator) GetViewBodyCode() string {
 	var code string
 	var inputs string
 	var required string
+	var labelRequired string
 	var fieldName string
 
 
 	for _, field := range mg.Fields {
 		fieldName = field.FieldName
 		required = ""
+		labelRequired = ""
 
 		if mg.IsHiddenField(fieldName) {
 			inputs += fmt.Sprintf(`
@@ -74,16 +76,17 @@ func (mg *ModelGenerator) GetViewBodyCode() string {
 
 			if field.NotNull {
 				required = "required"
+				labelRequired = "*"
 			}
 
 			inputs += fmt.Sprintf(`
 			<div class="col-sm-3 my-1">
 				<div class="form-group">
-					<label for="%s">%s</label>
+					<label for="%s">%s%s</label>
 					<input type="text" class="form-control" id="%s" name="%s" aria-describedby="%sHelp" placeholder="Enter %s" v-model="%s" %s>
 				</div>
 			</div>
-`, fieldName, util.ToWords(fieldName), fieldName, fieldName, fieldName, util.ToWords(fieldName), fieldName, required)
+`, fieldName, util.ToWords(fieldName), labelRequired, fieldName, fieldName, fieldName, util.ToWords(fieldName), fieldName, required)
 		}
 	}
 
