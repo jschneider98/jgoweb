@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"fmt"
 	"errors"
 	"io/ioutil"
 	"encoding/json"
@@ -49,8 +50,8 @@ type AutocertOptions struct {
 }
 
 // Reads json configuration file and returns Config
-func New(path string) (*Config, error) {
-	config, _ := NewFromEnv()
+func New(path string, envVar string) (*Config, error) {
+	config, _ := NewFromEnv(envVar)
 
 	if config != nil {
 		return config, nil
@@ -86,13 +87,13 @@ func NewFromFile(path string) (*Config, error) {
 }
 
 //
-func NewFromEnv() (*Config, error) {
+func NewFromEnv(envVar string) (*Config, error) {
 	var err error
 
-	conf := os.Getenv("JGO_CONFIG")
+	conf := os.Getenv(envVar)
 
 	if conf == "" {
-		err = errors.New("Missing JGO_CONFIG environment varriable.")
+		err = errors.New(fmt.Sprintf("Missing '%s' environment varriable.", envVar))
 
 		return nil, err
 	}
