@@ -19,6 +19,7 @@ var healthStream = health.NewStream()
 var sessionManager *scs.Manager
 var appConfig *config.Config
 var appConfigPath string = "./config/config.json"
+var appEnvVar string = "JGO_CONFIG"
 
 //
 func SetConfigPath(path string) {
@@ -30,6 +31,16 @@ func GetConfigPath() string {
 	return appConfigPath
 }
 
+//
+func SetConfigEnvVar(envVar string) {
+	appEnvVar = envVar
+}
+
+//
+func GetConfigEnvVar() string {
+	return appEnvVar
+}
+
 // Init config
 func InitConfig() {
 	var err error
@@ -38,7 +49,7 @@ func InitConfig() {
 		return
 	}
 
-	appConfig, err = config.New(appConfigPath)
+	appConfig, err = config.New(appConfigPath, appEnvVar)
 
 	if err != nil {
 		panic(err)
