@@ -356,12 +356,17 @@ func (ctx *WebContext) InitMetrics() {
 
 // Auth middleware
 func (ctx *WebContext) AjaxRequireUser(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	var err error
 
 	if ctx.User == nil {
-		ctx.User = NewUser(ctx)
+		ctx.User, err = NewUser(ctx)
+
+		if err != nil {
+			ctx.JobError(util.WhereAmI(), err)
+		}
 	}
 
-	err := ctx.User.SetFromSession()
+	err = ctx.User.SetFromSession()
 
 	if err != nil {
 		fmt.Fprint(rw, "{error: 'User authendication required.'}")
@@ -482,12 +487,17 @@ func (ctx *WebContext) LoadTemplate(rw web.ResponseWriter, req *web.Request, nex
 
 // Auth middleware
 func (ctx *WebContext) RequireUser(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	var err error
 
 	if ctx.User == nil {
-		ctx.User = NewUser(ctx)
+		ctx.User, err = NewUser(ctx)
+
+		if err != nil {
+			ctx.JobError(util.WhereAmI(), err)
+		}
 	}
 
-	err := ctx.User.SetFromSession()
+	err = ctx.User.SetFromSession()
 
 	if err != nil {
 		// Force sign in
