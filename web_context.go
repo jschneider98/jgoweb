@@ -221,9 +221,9 @@ func (ctx *WebContext) OptionalCommit(tx *dbr.Tx) error {
 	return tx.Commit()
 }
 
-// Complete the DB transaction if the web context is managing it. 
+// Complete the DB transaction if the web context is managing it.
 func (ctx *WebContext) FinishTransaction() error {
-	
+
 	if ctx.Tx == nil {
 		return nil
 	}
@@ -446,6 +446,7 @@ func (ctx *WebContext) LoadJob(rw web.ResponseWriter, req *web.Request, next web
 // Session middleware
 func (ctx *WebContext) LoadSession(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	ctx.Session = sessionManager.Load(req.Request)
+	ctx.Session.RenewToken(rw)
 	ctx.Session.PutString(rw, "init", "1")
 
 	next(rw, req)
