@@ -1,42 +1,42 @@
 package jgoweb
 
-import(
-	"strings"
-	"time"
-	"fmt"
+import (
 	"errors"
-	"strconv"
+	"fmt"
+	"github.com/alexedwards/scs"
+	"github.com/gocraft/dbr"
+	"github.com/gocraft/health"
+	"github.com/gocraft/web"
+	"github.com/jschneider98/jgovalidator"
+	jgoWebDb "github.com/jschneider98/jgoweb/db"
+	"github.com/jschneider98/jgoweb/util"
+	"github.com/prometheus/client_golang/prometheus"
+	"gopkg.in/go-playground/validator.v9"
+	"html/template"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
-	"os"
-	"html/template"
-	"github.com/gocraft/web"
-	"github.com/gocraft/health"
-	"github.com/gocraft/dbr"
-	"github.com/alexedwards/scs"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/jschneider98/jgoweb/util"
-	jgoWebDb "github.com/jschneider98/jgoweb/db"
-	"gopkg.in/go-playground/validator.v9"
-	"github.com/jschneider98/jgovalidator"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var db *jgoWebDb.Collection
 
 type WebContext struct {
-	User *User
-	Session *scs.Session
-	Template *template.Template
-	Job *health.Job
-	Method string
-	StartTime time.Time
-	EndPoint string
-	Validate *validator.Validate
-	Db *jgoWebDb.Collection
-	DbSess *dbr.Session
-	Tx *dbr.Tx
-	WebReqHistogram *prometheus.HistogramVec
+	User                *User
+	Session             *scs.Session
+	Template            *template.Template
+	Job                 *health.Job
+	Method              string
+	StartTime           time.Time
+	EndPoint            string
+	Validate            *validator.Validate
+	Db                  *jgoWebDb.Collection
+	DbSess              *dbr.Session
+	Tx                  *dbr.Tx
+	WebReqHistogram     *prometheus.HistogramVec
 	RollbackTransaction bool
 }
 
@@ -67,7 +67,7 @@ func InitDbCollection() {
 }
 
 //
-func NewContext(db *jgoWebDb.Collection) *WebContext{
+func NewContext(db *jgoWebDb.Collection) *WebContext {
 	return &WebContext{Db: db, Validate: jgovalidator.GetValidator()}
 }
 
@@ -124,7 +124,7 @@ func (ctx *WebContext) Begin() (*dbr.Tx, error) {
 }
 
 //
-func (ctx *WebContext) Commit() (error) {
+func (ctx *WebContext) Commit() error {
 
 	if ctx.Tx == nil {
 		return errors.New("Cannot commit. No transaction set in context.")
@@ -137,7 +137,7 @@ func (ctx *WebContext) Commit() (error) {
 }
 
 //
-func (ctx *WebContext) Rollback() (error) {
+func (ctx *WebContext) Rollback() error {
 
 	if ctx.Tx == nil {
 		return errors.New("Cannot rollback. No transaction set in context.")
@@ -413,12 +413,12 @@ func (ctx *WebContext) SetJobSuccessRollback(rw web.ResponseWriter, req *web.Req
 func (ctx *WebContext) LoadEndPoint(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	matches := strings.Split(req.URL.Path, "/")
 
-	if (len(matches) >= 2) {
+	if len(matches) >= 2 {
 		ctx.EndPoint = matches[1]
 	}
 
 	// Special ajax case
-	if (ctx.EndPoint == "ajax" && len(matches) >= 3) {
+	if ctx.EndPoint == "ajax" && len(matches) >= 3 {
 		ctx.EndPoint = matches[2]
 	}
 
@@ -458,8 +458,8 @@ func (ctx *WebContext) LoadTemplate(rw web.ResponseWriter, req *web.Request, nex
 	routeTemplate := ""
 
 	// Conditionally load route template file (if it exists)
-	if (ctx.EndPoint != "") {
-		routeTemplate = filepath.Join("static", "templates", ctx.EndPoint + ".html")
+	if ctx.EndPoint != "" {
+		routeTemplate = filepath.Join("static", "templates", ctx.EndPoint+".html")
 
 		if _, err := os.Stat(routeTemplate); os.IsNotExist(err) {
 			routeTemplate = ""
@@ -473,7 +473,7 @@ func (ctx *WebContext) LoadTemplate(rw web.ResponseWriter, req *web.Request, nex
 		ctx.JobError(util.WhereAmI(), err)
 	}
 
-	if (routeTemplate != "") {
+	if routeTemplate != "" {
 		tmpl, err = tmpl.ParseFiles(routeTemplate)
 
 		if err != nil {
