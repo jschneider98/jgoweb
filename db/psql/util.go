@@ -2,25 +2,25 @@ package psql
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 	"github.com/gocraft/dbr"
 	"github.com/gocraft/dbr/dialect"
 	"github.com/jschneider98/jgoweb"
 	"github.com/jschneider98/jgoweb/util"
+	"regexp"
+	"strings"
 )
 
 type Field struct {
-	DbFieldName string `json:"db_field_name"`
-	DbDataType string `json:"db_data_type"`
-	DbDefault dbr.NullString `json:"db_default"`
-	DbDefaultIsFunc bool `json:"db_default_is_func`
-	FieldName string `json:"field_name"`
-	DataType string `json:"data_type"`
-	Default string `json:"default"`
-	Annotation string `json:"annotation"`
-	NotNull bool `json:"not_null"`
-	SortNum int `json:"sort_num"`
+	DbFieldName     string         `json:"db_field_name"`
+	DbDataType      string         `json:"db_data_type"`
+	DbDefault       dbr.NullString `json:"db_default"`
+	DbDefaultIsFunc bool           `json:"db_default_is_func`
+	FieldName       string         `json:"field_name"`
+	DataType        string         `json:"data_type"`
+	Default         string         `json:"default"`
+	Annotation      string         `json:"annotation"`
+	NotNull         bool           `json:"not_null"`
+	SortNum         int            `json:"sort_num"`
 }
 
 func GetFields(ctx jgoweb.ContextInterface, schema string, table string) ([]Field, error) {
@@ -37,14 +37,14 @@ func GetFields(ctx jgoweb.ContextInterface, schema string, table string) ([]Fiel
 		a.attnotnull as not_null,
 		a.attnum as sort_num
 	`).
-	From(dbr.I("pg_catalog.pg_class").As("c")).
-	Join(dbr.I("pg_catalog.pg_namespace").As("n"), "n.oid = c.relnamespace").
-	Join(dbr.I("pg_catalog.pg_attribute").As("a"), "c.oid = a.attrelid").
-	Where("n.nspname = ?", schema).
-	Where("c.relname = ?", table).
-	Where("a.attnum > ?", 0).
-	Where("NOT a.attisdropped").
-	OrderBy("a.attnum")
+		From(dbr.I("pg_catalog.pg_class").As("c")).
+		Join(dbr.I("pg_catalog.pg_namespace").As("n"), "n.oid = c.relnamespace").
+		Join(dbr.I("pg_catalog.pg_attribute").As("a"), "c.oid = a.attrelid").
+		Where("n.nspname = ?", schema).
+		Where("c.relname = ?", table).
+		Where("a.attnum > ?", 0).
+		Where("NOT a.attisdropped").
+		OrderBy("a.attnum")
 
 	_, err := stmt.Load(&fields)
 
@@ -136,7 +136,7 @@ func (f *Field) GetValidation() string {
 	// 	val += `"required`
 	// } else {
 	// 	val += `"omitempty`
-	// }	
+	// }
 
 	switch f.DbDataType {
 	case "smallint", "smallserial", "serial", "integer", "bigint", "bigserial":
@@ -167,7 +167,6 @@ func (f *Field) GetValidation() string {
 
 	return val
 }
-
 
 //
 func DebugSqlStatement(stmt *dbr.SelectStmt) error {
