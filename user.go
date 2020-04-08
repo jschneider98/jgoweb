@@ -1,28 +1,29 @@
 package jgoweb
 
-
-import(
-	"fmt"
-	"errors"
-	"time"
+import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"golang.org/x/crypto/bcrypt"
+	"time"
 )
+
 // User
 type User struct {
-	Id sql.NullString `json:"Id" validate:"omitempty,uuid"`
-	AccountId sql.NullString `json:"AccountId" validate:"required,uuid"`
-	RoleId sql.NullString `json:"RoleId" validate:"required,int"`
-	GivenName sql.NullString `json:"GivenName" validate:"required"`
-	FamilyName sql.NullString `json:"FamilyName" validate:"required"`
-	Email sql.NullString `json:"Email" validate:"required"`
-	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	DeletedAt sql.NullString `json:"DeletedAt" validate:"omitempty,rfc3339"`
-	UpdatedAt sql.NullString `json:"UpdatedAt" validate:"omitempty,rfc3339"`
-	Ctx ContextInterface `json:"-" validate:"-"`
+	Id        sql.NullString   `json:"Id" validate:"omitempty,uuid"`
+	AccountId sql.NullString   `json:"AccountId" validate:"required,uuid"`
+	RoleId    sql.NullString   `json:"RoleId" validate:"required,int"`
+	FirstName sql.NullString   `json:"FirstName" validate:"required"`
+	LastName  sql.NullString   `json:"LastName" validate:"required"`
+	Email     sql.NullString   `json:"Email" validate:"required"`
+	Password  sql.NullString   `json:"Password" validate:"required,min=1,max=255"`
+	CreatedAt sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	Ctx       ContextInterface `json:"-" validate:"-"`
 }
-
 
 // Empty new model
 func NewUser(ctx ContextInterface) (*User, error) {
@@ -34,8 +35,8 @@ func NewUser(ctx ContextInterface) (*User, error) {
 
 // Set defaults
 func (u *User) SetDefaults() {
-	u.SetCreatedAt( time.Now().Format(time.RFC3339) )
-	u.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	u.SetCreatedAt(time.Now().Format(time.RFC3339))
+	u.SetUpdatedAt(time.Now().Format(time.RFC3339))
 }
 
 // New model with data
@@ -60,9 +61,9 @@ func FetchUserById(ctx ContextInterface, id string) (*User, error) {
 	var u []User
 
 	stmt := ctx.Select("*").
-	From("public.users").
-	Where("id = ?", id).
-	Limit(1)
+		From("public.users").
+		Where("id = ?", id).
+		Limit(1)
 
 	_, err := stmt.Load(&u)
 
@@ -70,7 +71,7 @@ func FetchUserById(ctx ContextInterface, id string) (*User, error) {
 		return nil, err
 	}
 
-	if (len(u) == 0) {
+	if len(u) == 0 {
 		return nil, nil
 	}
 
@@ -92,7 +93,7 @@ func (u *User) ProcessSubmit(req *web.Request) (string, bool, error) {
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
-	
+
 	err = u.Save()
 
 	if err != nil {
@@ -113,12 +114,13 @@ func (u *User) Hydrate(req *web.Request) error {
 	u.SetId(req.PostFormValue("Id"))
 	u.SetAccountId(req.PostFormValue("AccountId"))
 	u.SetRoleId(req.PostFormValue("RoleId"))
-	u.SetGivenName(req.PostFormValue("GivenName"))
-	u.SetFamilyName(req.PostFormValue("FamilyName"))
+	u.SetFirstName(req.PostFormValue("FirstName"))
+	u.SetLastName(req.PostFormValue("LastName"))
 	u.SetEmail(req.PostFormValue("Email"))
 	u.SetCreatedAt(req.PostFormValue("CreatedAt"))
 	u.SetDeletedAt(req.PostFormValue("DeletedAt"))
 	u.SetUpdatedAt(req.PostFormValue("UpdatedAt"))
+	u.SetPassword(req.PostFormValue("Password"))
 
 	return nil
 }
@@ -155,11 +157,12 @@ func (u *User) Insert() error {
 INSERT INTO
 public.users (account_id,
 	role_id,
-	given_name,
-	family_name,
+	first_name,
+	last_name,
 	email,
-	deleted_at)
-VALUES ($1,$2,$3,$4,$5,$6)
+	deleted_at,
+	password)
+VALUES ($1,$2,$3,$4,$5,$6,$7)
 RETURNING id
 
 `
@@ -173,11 +176,12 @@ RETURNING id
 	defer stmt.Close()
 
 	err = stmt.QueryRow(u.AccountId,
-			u.RoleId,
-			u.GivenName,
-			u.FamilyName,
-			u.Email,
-			u.DeletedAt).Scan(&u.Id)
+		u.RoleId,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.DeletedAt,
+		u.Password).Scan(&u.Id)
 
 	if err != nil {
 		return err
@@ -198,18 +202,18 @@ func (u *User) Update() error {
 		return err
 	}
 
-	u.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	u.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
 	_, err = tx.Update("public.users").
 		Set("id", u.Id).
 		Set("account_id", u.AccountId).
 		Set("role_id", u.RoleId).
-		Set("given_name", u.GivenName).
-		Set("family_name", u.FamilyName).
+		Set("first_name", u.FirstName).
+		Set("last_name", u.LastName).
 		Set("email", u.Email).
 		Set("deleted_at", u.DeletedAt).
 		Set("updated_at", u.UpdatedAt).
-
+		Set("password", u.Password).
 		Where("id = ?", u.Id).
 		Exec()
 
@@ -235,7 +239,7 @@ func (u *User) Delete() error {
 		return err
 	}
 
-	u.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+	u.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
 	_, err = tx.Update("public.users").
 		Set("deleted_at", u.DeletedAt).
@@ -349,51 +353,51 @@ func (u *User) SetRoleId(val string) {
 }
 
 //
-func (u *User) GetGivenName() string {
+func (u *User) GetFirstName() string {
 
-	if u.GivenName.Valid {
-		return u.GivenName.String
+	if u.FirstName.Valid {
+		return u.FirstName.String
 	}
 
 	return ""
 }
 
 //
-func (u *User) SetGivenName(val string) {
+func (u *User) SetFirstName(val string) {
 
 	if val == "" {
-		u.GivenName.Valid = false
-		u.GivenName.String = ""
+		u.FirstName.Valid = false
+		u.FirstName.String = ""
 
 		return
 	}
 
-	u.GivenName.Valid = true
-	u.GivenName.String = val
+	u.FirstName.Valid = true
+	u.FirstName.String = val
 }
 
 //
-func (u *User) GetFamilyName() string {
+func (u *User) GetLastName() string {
 
-	if u.FamilyName.Valid {
-		return u.FamilyName.String
+	if u.LastName.Valid {
+		return u.LastName.String
 	}
 
 	return ""
 }
 
 //
-func (u *User) SetFamilyName(val string) {
+func (u *User) SetLastName(val string) {
 
 	if val == "" {
-		u.FamilyName.Valid = false
-		u.FamilyName.String = ""
+		u.LastName.Valid = false
+		u.LastName.String = ""
 
 		return
 	}
 
-	u.FamilyName.Valid = true
-	u.FamilyName.String = val
+	u.LastName.Valid = true
+	u.LastName.String = val
 }
 
 //
@@ -492,17 +496,47 @@ func (u *User) SetUpdatedAt(val string) {
 	u.UpdatedAt.String = val
 }
 
+//
+func (u *User) GetPassword() string {
+
+	if u.Password.Valid {
+		return u.Password.String
+	}
+
+	return ""
+}
+
+//
+func (u *User) SetPassword(val string) {
+
+	if val == "" {
+		u.Password.Valid = false
+		u.Password.String = ""
+
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(val), bcrypt.DefaultCost)
+
+	if err != nil {
+		u.Password.Valid = false
+		u.Password.String = ""
+	}
+
+	u.Password.Valid = true
+	u.Password.String = string(hash)
+}
 
 // ***
 
-// 
+//
 func FetchUserByEmail(ctx ContextInterface, email string) (*User, error) {
 	var user []User
 
 	stmt := ctx.Select("*").
-	From("users").
-	Where("email = ?", email).
-	Limit(1)
+		From("users").
+		Where("email = ?", email).
+		Limit(1)
 
 	_, err := stmt.Load(&user)
 
@@ -510,7 +544,7 @@ func FetchUserByEmail(ctx ContextInterface, email string) (*User, error) {
 		return nil, err
 	}
 
-	if (len(user) == 0) {
+	if len(user) == 0 {
 		return nil, nil
 	}
 
@@ -549,7 +583,7 @@ func (u *User) SetFromSession() error {
 	}
 
 	if err != nil {
-		return  err
+		return err
 	}
 
 	if user == nil {
@@ -562,11 +596,17 @@ func (u *User) SetFromSession() error {
 	return nil
 }
 
-// 
+//
 func (u *User) Authenticate(password string) bool {
+	hash := u.GetPassword()
 
-	// @TEMP: @TODO: @WIP: Hard coded universal password for now...
-	if password != "letmein" {
+	if !u.Password.Valid || hash == "" {
+		return false
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+
+	if err != nil {
 		return false
 	}
 
