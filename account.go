@@ -1,21 +1,21 @@
 package jgoweb
 
-import(
-	"time"
+import (
 	"database/sql"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"time"
 )
+
 // Account
 type Account struct {
-	Id sql.NullString `json:"Id" validate:"omitempty,uuid"`
-	Domain sql.NullString `json:"Domain" validate:"required"`
-	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	UpdatedAt sql.NullString `json:"UpdatedAt" validate:"omitempty,rfc3339"`
-	DeletedAt sql.NullString `json:"DeletedAt" validate:"omitempty,rfc3339"`
-	Ctx ContextInterface `json:"-" validate:"-"`
+	Id        sql.NullString   `json:"Id" validate:"omitempty,uuid"`
+	Domain    sql.NullString   `json:"Domain" validate:"required"`
+	CreatedAt sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
+	Ctx       ContextInterface `json:"-" validate:"-"`
 }
-
 
 // Empty new model
 func NewAccount(ctx ContextInterface) (*Account, error) {
@@ -27,8 +27,8 @@ func NewAccount(ctx ContextInterface) (*Account, error) {
 
 // Set defaults
 func (a *Account) SetDefaults() {
-	a.SetCreatedAt( time.Now().Format(time.RFC3339) )
-	a.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	a.SetCreatedAt(time.Now().Format(time.RFC3339))
+	a.SetUpdatedAt(time.Now().Format(time.RFC3339))
 }
 
 // New model with data
@@ -53,9 +53,9 @@ func FetchAccountById(ctx ContextInterface, id string) (*Account, error) {
 	var a []Account
 
 	stmt := ctx.Select("*").
-	From("public.accounts").
-	Where("id = ?", id).
-	Limit(1)
+		From("public.accounts").
+		Where("id = ?", id).
+		Limit(1)
 
 	_, err := stmt.Load(&a)
 
@@ -63,7 +63,7 @@ func FetchAccountById(ctx ContextInterface, id string) (*Account, error) {
 		return nil, err
 	}
 
-	if (len(a) == 0) {
+	if len(a) == 0 {
 		return nil, nil
 	}
 
@@ -85,7 +85,7 @@ func (a *Account) ProcessSubmit(req *web.Request) (string, bool, error) {
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
-	
+
 	err = a.Save()
 
 	if err != nil {
@@ -158,7 +158,7 @@ RETURNING id
 	defer stmt.Close()
 
 	err = stmt.QueryRow(a.Domain,
-			a.DeletedAt).Scan(&a.Id)
+		a.DeletedAt).Scan(&a.Id)
 
 	if err != nil {
 		return err
@@ -179,14 +179,13 @@ func (a *Account) Update() error {
 		return err
 	}
 
-	a.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	a.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
 	_, err = tx.Update("public.accounts").
 		Set("id", a.Id).
 		Set("domain", a.Domain).
 		Set("updated_at", a.UpdatedAt).
 		Set("deleted_at", a.DeletedAt).
-
 		Where("id = ?", a.Id).
 		Exec()
 
@@ -212,7 +211,7 @@ func (a *Account) Delete() error {
 		return err
 	}
 
-	a.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+	a.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
 	_, err = tx.Update("public.accounts").
 		Set("deleted_at", a.DeletedAt).
@@ -373,7 +372,6 @@ func (a *Account) SetDeletedAt(val string) {
 	a.DeletedAt.String = val
 }
 
-
 // ******
 
 //
@@ -398,13 +396,13 @@ func (a *Account) CreateByShard(shardName string) error {
 	return nil
 }
 
-// 
+//
 func GetAllAccounts(ctx ContextInterface) ([]Account, error) {
 	var a []Account
 
 	stmt := ctx.Select("*").
-	From("public.accounts").
-	OrderBy("domain")
+		From("public.accounts").
+		OrderBy("domain")
 
 	_, err := stmt.Load(&a)
 
@@ -427,7 +425,7 @@ func ClusterGetAccounts(ctx ContextInterface) (map[string][]Account, error) {
 	for dbName, dbConn := range ctx.GetDb().GetConns() {
 		curCtx := NewContext(ctx.GetDb())
 		curCtx.SetDbSession(dbConn.NewSession(nil))
-		
+
 		accounts[dbName], err = GetAllAccounts(curCtx)
 
 		if err != nil {
@@ -436,4 +434,44 @@ func ClusterGetAccounts(ctx ContextInterface) (map[string][]Account, error) {
 	}
 
 	return accounts, nil
+}
+
+//
+func CreateAccount(ctx ContextInterface, shardName string, domain string) error {
+	dbConn, err := ctx.GetDb().GetConnByName(shardName)
+
+	if err != nil {
+		return err
+	}
+
+	shard, err := FetchShardByName(ctx, shardName)
+
+	if err != nil {
+		return err
+	}
+
+	curCtx := NewContext(ctx.GetDb())
+	curCtx.SetDbSession(dbConn.NewSession(nil))
+
+	account, err := NewAccount(curCtx)
+
+	if err != nil {
+		return err
+	}
+
+	account.SetDomain(domain)
+
+	err = account.Save()
+
+	if err != nil {
+		return err
+	}
+
+	err = ClusterAddShardMap(ctx, shard.GetId(), domain, account.GetId())
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
