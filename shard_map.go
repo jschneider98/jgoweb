@@ -1,24 +1,25 @@
 package jgoweb
 
-import(
-	"time"
+import (
 	"database/sql"
-	"github.com/gocraft/web"
+	"errors"
 	"github.com/gocraft/dbr"
+	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"time"
 )
+
 // ShardMap
 type ShardMap struct {
-	Id sql.NullString `json:"Id" validate:"omitempty,int"`
-	ShardId sql.NullString `json:"ShardId" validate:"required,int"`
-	Domain sql.NullString `json:"Domain" validate:"required"`
-	AccountId sql.NullString `json:"AccountId" validate:"required,uuid"`
-	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	UpdatedAt sql.NullString `json:"UpdatedAt" validate:"omitempty,rfc3339"`
-	DeletedAt sql.NullString `json:"DeletedAt" validate:"omitempty,rfc3339"`
-	Ctx ContextInterface `json:"-" validate:"-"`
+	Id        sql.NullString   `json:"Id" validate:"omitempty,int"`
+	ShardId   sql.NullString   `json:"ShardId" validate:"required,int"`
+	Domain    sql.NullString   `json:"Domain" validate:"required"`
+	AccountId sql.NullString   `json:"AccountId" validate:"required,uuid"`
+	CreatedAt sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
+	Ctx       ContextInterface `json:"-" validate:"-"`
 }
-
 
 // Empty new model
 func NewShardMap(ctx ContextInterface) (*ShardMap, error) {
@@ -30,8 +31,8 @@ func NewShardMap(ctx ContextInterface) (*ShardMap, error) {
 
 // Set defaults
 func (sm *ShardMap) SetDefaults() {
-	sm.SetCreatedAt( time.Now().Format(time.RFC3339) )
-	sm.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	sm.SetCreatedAt(time.Now().Format(time.RFC3339))
+	sm.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
 }
 
@@ -57,9 +58,9 @@ func FetchShardMapById(ctx ContextInterface, id string) (*ShardMap, error) {
 	var sm []ShardMap
 
 	stmt := ctx.Select("*").
-	From("public.shard_map").
-	Where("id = ?", id).
-	Limit(1)
+		From("public.shard_map").
+		Where("id = ?", id).
+		Limit(1)
 
 	_, err := stmt.Load(&sm)
 
@@ -67,7 +68,7 @@ func FetchShardMapById(ctx ContextInterface, id string) (*ShardMap, error) {
 		return nil, err
 	}
 
-	if (len(sm) == 0) {
+	if len(sm) == 0 {
 		return nil, nil
 	}
 
@@ -89,7 +90,7 @@ func (sm *ShardMap) ProcessSubmit(req *web.Request) (string, bool, error) {
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
-	
+
 	err = sm.Save()
 
 	if err != nil {
@@ -166,9 +167,9 @@ RETURNING id
 	defer stmt.Close()
 
 	err = stmt.QueryRow(sm.ShardId,
-			sm.Domain,
-			sm.AccountId,
-			sm.DeletedAt).Scan(&sm.Id)
+		sm.Domain,
+		sm.AccountId,
+		sm.DeletedAt).Scan(&sm.Id)
 
 	if err != nil {
 		return err
@@ -189,7 +190,7 @@ func (sm *ShardMap) Update() error {
 		return err
 	}
 
-	sm.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	sm.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
 	_, err = tx.Update("public.shard_map").
 		Set("id", sm.Id).
@@ -198,7 +199,6 @@ func (sm *ShardMap) Update() error {
 		Set("account_id", sm.AccountId).
 		Set("updated_at", sm.UpdatedAt).
 		Set("deleted_at", sm.DeletedAt).
-
 		Where("id = ?", sm.Id).
 		Exec()
 
@@ -224,7 +224,7 @@ func (sm *ShardMap) Delete() error {
 		return err
 	}
 
-	sm.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+	sm.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
 	_, err = tx.Update("public.shard_map").
 		Set("deleted_at", sm.DeletedAt).
@@ -435,14 +435,40 @@ func (sm *ShardMap) SetDeletedAt(val string) {
 
 // ******
 
+//
+func CreateShardMap(ctx ContextInterface, shardId string, domain string, accountId string) (*ShardMap, error) {
+	shardMap, err := FetchShardMapByDomainAccountId(ctx, domain, accountId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if shardMap != nil {
+		return shardMap, nil
+	}
+
+	shardMap, err = NewShardMap(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	shardMap.SetShardId(shardId)
+	shardMap.SetDomain(domain)
+	shardMap.SetAccountId(accountId)
+
+	return shardMap, nil
+}
+
 // Factory Method
-func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap, error) {
+func FetchShardMapByDomainAccountId(ctx ContextInterface, domain string, accountId string) (*ShardMap, error) {
 	var sm []ShardMap
 
 	stmt := ctx.Select("*").
-	From("public.shard_map").
-	Where("account_id = ?", accountId).
-	Limit(1)
+		From("public.shard_map").
+		Where("domain = ?", domain).
+		Where("account_id = ?", accountId).
+		Limit(1)
 
 	_, err := stmt.Load(&sm)
 
@@ -450,7 +476,31 @@ func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap
 		return nil, err
 	}
 
-	if (len(sm) == 0) {
+	if len(sm) == 0 {
+		return nil, nil
+	}
+
+	sm[0].Ctx = ctx
+
+	return &sm[0], nil
+}
+
+// Factory Method
+func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap, error) {
+	var sm []ShardMap
+
+	stmt := ctx.Select("*").
+		From("public.shard_map").
+		Where("account_id = ?", accountId).
+		Limit(1)
+
+	_, err := stmt.Load(&sm)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(sm) == 0 {
 		return nil, nil
 	}
 
@@ -464,11 +514,11 @@ func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
 	var sm []ShardMap
 
 	stmt := ctx.Select("sm.*").
-	From(dbr.I("public.shard_map").As("sm")).
-	Join(dbr.I("public.shards").As("s"), "s.id = sm.shard_id").
-	Where("sm.deleted_at IS NULL").
-	Where("s.deleted_at IS NULL").
-	OrderBy("sm.domain")
+		From(dbr.I("public.shard_map").As("sm")).
+		Join(dbr.I("public.shards").As("s"), "s.id = sm.shard_id").
+		Where("sm.deleted_at IS NULL").
+		Where("s.deleted_at IS NULL").
+		OrderBy("sm.domain")
 
 	_, err := stmt.Load(&sm)
 
@@ -481,4 +531,36 @@ func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
 	}
 
 	return sm, nil
+}
+
+//
+func ClusterAddShardMap(ctx ContextInterface, shardId string, domain string, accountId string) error {
+	var err error
+	var shardMap *ShardMap
+	var msg string
+
+	for dbName, dbConn := range ctx.GetDb().GetConns() {
+		curCtx := NewContext(ctx.GetDb())
+		curCtx.SetDbSession(dbConn.NewSession(nil))
+
+		shardMap, err = CreateShardMap(curCtx, shardId, domain, accountId)
+
+		if err != nil {
+			msg += dbName + ": " + err.Error() + "\n"
+		} else {
+			err = shardMap.Save()
+
+			if err != nil {
+				msg += dbName + ": " + err.Error() + "\n"
+			}
+		}
+	}
+
+	if msg != "" {
+		err = errors.New(msg)
+
+		return err
+	}
+
+	return nil
 }
