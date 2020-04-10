@@ -1,23 +1,24 @@
 package jgoweb
 
-import(
-	"time"
-	"errors"
+import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"time"
 )
+
 // Shard
 type Shard struct {
-	Id sql.NullString `json:"Id" validate:"omitempty,int"`
-	Name sql.NullString `json:"Name" validate:"required"`
-	AccountCount sql.NullString `json:"AccountCount" validate:"required,int"`
-	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	UpdatedAt sql.NullString `json:"UpdatedAt" validate:"omitempty,rfc3339"`
-	DeletedAt sql.NullString `json:"DeletedAt" validate:"omitempty,rfc3339"`
-	Ctx ContextInterface `json:"-" validate:"-"`
+	Id           sql.NullString   `json:"Id" validate:"omitempty,int"`
+	Name         sql.NullString   `json:"Name" validate:"required"`
+	AccountCount sql.NullString   `json:"AccountCount" validate:"required,int"`
+	CreatedAt    sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt    sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt    sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
+	Ctx          ContextInterface `json:"-" validate:"-"`
 }
-
 
 // Empty new model
 func NewShard(ctx ContextInterface) (*Shard, error) {
@@ -29,8 +30,8 @@ func NewShard(ctx ContextInterface) (*Shard, error) {
 
 // Set defaults
 func (s *Shard) SetDefaults() {
-	s.SetCreatedAt( time.Now().Format(time.RFC3339) )
-	s.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	s.SetCreatedAt(time.Now().Format(time.RFC3339))
+	s.SetUpdatedAt(time.Now().Format(time.RFC3339))
 }
 
 // New model with data
@@ -55,9 +56,9 @@ func FetchShardById(ctx ContextInterface, id string) (*Shard, error) {
 	var s []Shard
 
 	stmt := ctx.Select("*").
-	From("public.shards").
-	Where("id = ?", id).
-	Limit(1)
+		From("public.shards").
+		Where("id = ?", id).
+		Limit(1)
 
 	_, err := stmt.Load(&s)
 
@@ -65,7 +66,7 @@ func FetchShardById(ctx ContextInterface, id string) (*Shard, error) {
 		return nil, err
 	}
 
-	if (len(s) == 0) {
+	if len(s) == 0 {
 		return nil, nil
 	}
 
@@ -87,7 +88,7 @@ func (s *Shard) ProcessSubmit(req *web.Request) (string, bool, error) {
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
-	
+
 	err = s.Save()
 
 	if err != nil {
@@ -162,8 +163,8 @@ RETURNING id
 	defer stmt.Close()
 
 	err = stmt.QueryRow(s.Name,
-			s.AccountCount,
-			s.DeletedAt).Scan(&s.Id)
+		s.AccountCount,
+		s.DeletedAt).Scan(&s.Id)
 
 	if err != nil {
 		return err
@@ -184,7 +185,7 @@ func (s *Shard) Update() error {
 		return err
 	}
 
-	s.SetUpdatedAt( time.Now().Format(time.RFC3339) )
+	s.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
 	_, err = tx.Update("public.shards").
 		Set("id", s.Id).
@@ -192,7 +193,6 @@ func (s *Shard) Update() error {
 		Set("account_count", s.AccountCount).
 		Set("updated_at", s.UpdatedAt).
 		Set("deleted_at", s.DeletedAt).
-
 		Where("id = ?", s.Id).
 		Exec()
 
@@ -218,7 +218,7 @@ func (s *Shard) Delete() error {
 		return err
 	}
 
-	s.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
+	s.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
 	_, err = tx.Update("public.shards").
 		Set("deleted_at", s.DeletedAt).
@@ -405,7 +405,22 @@ func (s *Shard) SetDeletedAt(val string) {
 
 // ******
 
-// 
+//
+func (s *Shard) NewWebContext() (ContextInterface, error) {
+
+	dbSess, err := s.Ctx.GetDb().GetSessionByName(s.GetName())
+
+	if err != nil {
+		return nil, err
+	}
+
+	curCtx := NewContext(s.Ctx.GetDb())
+	curCtx.SetDbSession(dbSess)
+
+	return curCtx, nil
+}
+
+//
 func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, error) {
 	var shards []Shard
 
@@ -425,7 +440,7 @@ func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, erro
 	JOIN public.shards s ON s.id = sm.shard_id
 	WHERE sm.account_id = ?
 	LIMIT 1`,
-	accountId)
+		accountId)
 
 	_, err = stmt.Load(&shards)
 
@@ -433,7 +448,7 @@ func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, erro
 		return nil, err
 	}
 
-	if (len(shards) == 0) {
+	if len(shards) == 0 {
 		return nil, nil
 	}
 
@@ -450,6 +465,35 @@ func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, erro
 	return &shards[0], nil
 }
 
+// Does not alter web context... These fetches/gets are bit bit confusing :/ Be careful
+func GetShardByAccountId(ctx ContextInterface, accountId string) (*Shard, error) {
+	var shard *Shard
+	var err error
+
+	stmt := ctx.SelectBySql(`
+	SELECT
+		s.*
+	FROM public.shard_map sm
+	JOIN public.shards s ON s.id = sm.shard_id
+	WHERE sm.account_id = ?
+	LIMIT 1`,
+		accountId)
+
+	_, err = stmt.Load(&shard)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !shard.Id.Valid {
+		return nil, errors.New(fmt.Sprintf("Could not find shard by accountId: %s", accountId))
+	}
+
+	shard.Ctx = ctx
+
+	return shard, nil
+}
+
 // Does not set db session. Mainly used for logical replication of shards.
 func FetchShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
 	var shards []Shard
@@ -461,7 +505,7 @@ func FetchShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
 	FROM public.shards s
 	WHERE s.name = ?
 	LIMIT 1`,
-	shardName)
+		shardName)
 
 	_, err = stmt.Load(&shards)
 
@@ -469,7 +513,7 @@ func FetchShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
 		return nil, err
 	}
 
-	if (len(shards) == 0) {
+	if len(shards) == 0 {
 		return nil, nil
 	}
 
@@ -502,7 +546,7 @@ func CreateShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
 	return shard, nil
 }
 
-// 
+//
 func FetchShardByEmail(ctx ContextInterface, email string) (*Shard, error) {
 	var shards []Shard
 
@@ -523,7 +567,7 @@ func FetchShardByEmail(ctx ContextInterface, email string) (*Shard, error) {
 	JOIN public.shards s ON s.id = sm.shard_id
 	WHERE sm.domain = ?
 	LIMIT 1`,
-	email)
+		email)
 
 	_, err = stmt.Load(&shards)
 
@@ -531,7 +575,7 @@ func FetchShardByEmail(ctx ContextInterface, email string) (*Shard, error) {
 		return nil, err
 	}
 
-	if (len(shards) == 0) {
+	if len(shards) == 0 {
 		return nil, nil
 	}
 
@@ -548,7 +592,7 @@ func FetchShardByEmail(ctx ContextInterface, email string) (*Shard, error) {
 	return &shards[0], nil
 }
 
-// 
+//
 func FetchUserByShardEmail(ctx ContextInterface, email string) (*User, error) {
 	shard, err := FetchShardByEmail(ctx, email)
 
@@ -559,7 +603,7 @@ func FetchUserByShardEmail(ctx ContextInterface, email string) (*User, error) {
 	if shard == nil {
 		return nil, nil
 	}
-	
+
 	user, err := FetchUserByEmail(ctx, email)
 
 	if err != nil {
@@ -569,13 +613,13 @@ func FetchUserByShardEmail(ctx ContextInterface, email string) (*User, error) {
 	return user, nil
 }
 
-// 
+//
 func GetAllShards(ctx ContextInterface) ([]Shard, error) {
 	var s []Shard
 
 	stmt := ctx.Select("*").
-	From("public.shards").
-	OrderBy("account_count, name")
+		From("public.shards").
+		OrderBy("account_count, name")
 
 	_, err := stmt.Load(&s)
 
@@ -598,7 +642,7 @@ func ClusterGetShards(ctx ContextInterface) (map[string][]Shard, error) {
 	for dbName, dbConn := range ctx.GetDb().GetConns() {
 		curCtx := NewContext(ctx.GetDb())
 		curCtx.SetDbSession(dbConn.NewSession(nil))
-		
+
 		shards[dbName], err = GetAllShards(curCtx)
 
 		if err != nil {
@@ -609,7 +653,7 @@ func ClusterGetShards(ctx ContextInterface) (map[string][]Shard, error) {
 	return shards, nil
 }
 
-// 
+//
 func ClusterAddShard(ctx ContextInterface, shardName string) error {
 	var err error
 	var shard *Shard
@@ -618,7 +662,7 @@ func ClusterAddShard(ctx ContextInterface, shardName string) error {
 	for dbName, dbConn := range ctx.GetDb().GetConns() {
 		curCtx := NewContext(ctx.GetDb())
 		curCtx.SetDbSession(dbConn.NewSession(nil))
-		
+
 		shard, err = CreateShardByName(curCtx, shardName)
 
 		if err != nil {
@@ -641,7 +685,7 @@ func ClusterAddShard(ctx ContextInterface, shardName string) error {
 	return nil
 }
 
-// 
+//
 func ClusterDeleteShard(ctx ContextInterface, shardName string) error {
 	var err error
 	var shard *Shard
@@ -650,7 +694,7 @@ func ClusterDeleteShard(ctx ContextInterface, shardName string) error {
 	for dbName, dbConn := range ctx.GetDb().GetConns() {
 		curCtx := NewContext(ctx.GetDb())
 		curCtx.SetDbSession(dbConn.NewSession(nil))
-		
+
 		shard, err = FetchShardByName(curCtx, shardName)
 
 		if err != nil {
@@ -673,7 +717,7 @@ func ClusterDeleteShard(ctx ContextInterface, shardName string) error {
 	return nil
 }
 
-// 
+//
 func ClusterUndeleteShard(ctx ContextInterface, shardName string) error {
 	var err error
 	var shard *Shard
@@ -682,7 +726,7 @@ func ClusterUndeleteShard(ctx ContextInterface, shardName string) error {
 	for dbName, dbConn := range ctx.GetDb().GetConns() {
 		curCtx := NewContext(ctx.GetDb())
 		curCtx.SetDbSession(dbConn.NewSession(nil))
-		
+
 		shard, err = FetchShardByName(curCtx, shardName)
 
 		if err != nil {
