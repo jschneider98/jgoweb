@@ -554,6 +554,28 @@ func FetchUserByEmail(ctx ContextInterface, email string) (*User, error) {
 	return &user[0], nil
 }
 
+//
+func FetchAllUserByAccountId(ctx ContextInterface, accountId string) ([]User, error) {
+	var u []User
+
+	stmt := ctx.Select("*").
+		From("public.users").
+		Where("account_id = ?", accountId).
+		OrderBy("last_name, first_name")
+
+	_, err := stmt.Load(&u)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(u) == 0 {
+		return nil, nil
+	}
+
+	return u, nil
+}
+
 // set user from session
 func (u *User) SetFromSession() error {
 	var err error
