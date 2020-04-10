@@ -485,7 +485,7 @@ func GetShardByAccountId(ctx ContextInterface, accountId string) (*Shard, error)
 		return nil, err
 	}
 
-	if !shard.Id.Valid {
+	if shard == nil {
 		return nil, errors.New(fmt.Sprintf("Could not find shard by accountId: %s", accountId))
 	}
 
