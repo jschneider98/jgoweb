@@ -12,17 +12,21 @@ import (
 
 // User
 type User struct {
-	Id        sql.NullString   `json:"Id" validate:"omitempty,uuid"`
-	AccountId sql.NullString   `json:"AccountId" validate:"required,uuid"`
-	RoleId    sql.NullString   `json:"RoleId" validate:"required,int"`
-	FirstName sql.NullString   `json:"FirstName" validate:"required"`
-	LastName  sql.NullString   `json:"LastName" validate:"required"`
-	Email     sql.NullString   `json:"Email" validate:"required"`
-	Password  sql.NullString   `json:"Password" validate:"required,min=1,max=255"`
-	CreatedAt sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	DeletedAt sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
-	UpdatedAt sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
-	Ctx       ContextInterface `json:"-" validate:"-"`
+	Id                sql.NullString   `json:"Id" validate:"omitempty,uuid"`
+	AccountId         sql.NullString   `json:"AccountId" validate:"required,uuid"`
+	RoleId            sql.NullString   `json:"RoleId" validate:"required,int"`
+	FirstName         sql.NullString   `json:"FirstName" validate:"required"`
+	LastName          sql.NullString   `json:"LastName" validate:"required"`
+	Email             sql.NullString   `json:"Email" validate:"required"`
+	Password          sql.NullString   `json:"Password" validate:"required,min=1,max=255"`
+	CreatedAt         sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt         sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt         sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	Ctx               ContextInterface `json:"-" validate:"-"`
+	rawPassword       string           `json:"-", validate:"-"`
+	verifyRawPassword string           `json:"-", validate:"-"`
+	UserUniqueError   string           `validate:"errorMsg"`
+	RawPasswordError  string           `validate:"errorMsg"`
 }
 
 // Empty new model
@@ -88,7 +92,7 @@ func (u *User) ProcessSubmit(req *web.Request) (string, bool, error) {
 		return "", false, err
 	}
 
-	err = u.Ctx.GetValidator().Struct(u)
+	err = u.IsValid()
 
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
@@ -120,13 +124,33 @@ func (u *User) Hydrate(req *web.Request) error {
 	u.SetCreatedAt(req.PostFormValue("CreatedAt"))
 	u.SetDeletedAt(req.PostFormValue("DeletedAt"))
 	u.SetUpdatedAt(req.PostFormValue("UpdatedAt"))
-	u.SetPassword(req.PostFormValue("Password"))
+
+	u.rawPassword = req.PostFormValue("rawPassword")
+	u.verifyRawPassword = req.PostFormValue("verifyRawPassword")
+
+	if u.rawPassword != "" {
+		u.SetPassword(u.rawPassword, u.verifyRawPassword)
+	}
 
 	return nil
 }
 
 // Validate the model
 func (u *User) IsValid() error {
+	u.RawPasswordError = ""
+	u.UserUniqueError = ""
+
+	if u.rawPassword != u.verifyRawPassword {
+		u.RawPasswordError = "Password and Verify Password do not match."
+	}
+
+	valid, _, err := u.UserShardMapIsValid()
+
+	// err != nil cases are kind of bad. Most likely a DB error occured, but IsValid only returns validations errors...
+	if !valid || err != nil {
+		u.UserUniqueError = "User already exists."
+	}
+
 	return u.Ctx.GetValidator().Struct(u)
 }
 
@@ -211,9 +235,9 @@ func (u *User) Update() error {
 		Set("first_name", u.FirstName).
 		Set("last_name", u.LastName).
 		Set("email", u.Email).
+		Set("password", u.Password).
 		Set("deleted_at", u.DeletedAt).
 		Set("updated_at", u.UpdatedAt).
-		Set("password", u.Password).
 		Where("id = ?", u.Id).
 		Exec()
 
@@ -507,16 +531,19 @@ func (u *User) GetPassword() string {
 }
 
 //
-func (u *User) SetPassword(val string) {
+func (u *User) SetPassword(password string, verifyPassword string) {
 
-	if val == "" {
+	u.rawPassword = password
+	u.verifyRawPassword = verifyPassword
+
+	if u.rawPassword == "" || u.rawPassword != u.verifyRawPassword {
 		u.Password.Valid = false
 		u.Password.String = ""
 
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(val), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
 	if err != nil {
 		u.Password.Valid = false
@@ -633,4 +660,24 @@ func (u *User) Authenticate(password string) bool {
 	}
 
 	return true
+}
+
+// Make sure user is connected to one account id in the shard_map
+// @TODO: logic needs to be better... should not be able to create a 2nd user with the same email etc.
+func (u *User) UserShardMapIsValid() (bool, string, error) {
+	var accountId string
+
+	if !u.Email.Valid || !u.AccountId.Valid {
+		return true, "", nil
+	}
+
+	stmt := u.Ctx.Select("account_id").
+		From("public.shard_map").
+		Where("domain = ?", u.GetEmail()).
+		Where("account_id <> ?", u.GetAccountId()).
+		Limit(1)
+
+	_, err := stmt.Load(&accountId)
+
+	return accountId == "", accountId, err
 }
