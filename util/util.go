@@ -2,26 +2,26 @@ package util
 
 import (
 	"bytes"
-	"math"
 	"errors"
-	"regexp"
 	"fmt"
-	"runtime"
-	"strings"
-	"unicode"
-	"time"
-	"unicode/utf8"
-	textTemplate "text/template"
-	template "html/template"
 	"github.com/gocraft/web"
 	"gopkg.in/go-playground/validator.v9"
+	template "html/template"
+	"math"
+	"regexp"
+	"runtime"
+	"strings"
+	textTemplate "text/template"
+	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // UniqueIntArray
 // map used for O(1) performance
 // struct{} used because it doesn't take up any extra space
 type UniqueIntArray struct {
-	Set map[int]struct{}
+	Set  map[int]struct{}
 	Data []int
 }
 
@@ -50,13 +50,13 @@ func (a *UniqueIntArray) Append(value int) {
 // https://github.com/jimlawless/whereami
 func WhereAmI(depthList ...int) string {
 	var depth int
-	
+
 	if depthList == nil {
 		depth = 1
 	} else {
 		depth = depthList[0]
 	}
-	
+
 	function, file, line, _ := runtime.Caller(depth)
 	return fmt.Sprintf("%s~%s~%d", formatFilename(file), runtime.FuncForPC(function).Name(), line)
 }
@@ -86,7 +86,6 @@ func GetBaseUrl(req *web.Request) string {
 
 	return scheme + "://" + host
 }
-
 
 // my_var_id => MyVarId || my var id = MyVarId, etc.
 func ToCamelCase(val string) string {
@@ -167,7 +166,7 @@ func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
 		return template.HTML("")
 	}
 
-	msgs =  fmt.Sprintf("<div class=\"alert alert-%s\" role=\"alert\">\n", msgType)
+	msgs = fmt.Sprintf("<div class=\"alert alert-%s\" role=\"alert\">\n", msgType)
 
 	msgs += `
 	<button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -211,22 +210,23 @@ func GetNiceErrorMessage(errs error, seperator string) string {
 			msg = append(msg, fmt.Sprintf("%s must be a valid decimal number", field))
 		case "notNull":
 			msg = append(msg, fmt.Sprintf("%s must not be blank.", field))
+		case "errorMsg":
+			msg = append(msg, fmt.Sprintf("%v", err.Value()))
 		default:
 			msg = append(msg, fmt.Sprintf("%s is invalid.", field))
 		}
 
-		
-			// fmt.Println(err.Namespace())
-			// fmt.Println(err.Field())
-			// fmt.Println(err.StructNamespace()) // can differ when a custom TagNameFunc is registered or
-			// fmt.Println(err.StructField())     // by passing alt name to ReportError like below
-			// fmt.Println(err.Tag())
-			// fmt.Println(err.ActualTag())
-			// fmt.Println(err.Kind())
-			// fmt.Println(err.Type())
-			// fmt.Println(err.Value())
-			// fmt.Println(err.Param())
-			// fmt.Println()
+		// fmt.Println(err.Namespace())
+		// fmt.Println(err.Field())
+		// fmt.Println(err.StructNamespace()) // can differ when a custom TagNameFunc is registered or
+		// fmt.Println(err.StructField())     // by passing alt name to ReportError like below
+		// fmt.Println(err.Tag())
+		// fmt.Println(err.ActualTag())
+		// fmt.Println(err.Kind())
+		// fmt.Println(err.Type())
+		// fmt.Println(err.Value())
+		// fmt.Println(err.Param())
+		// fmt.Println()
 	}
 
 	return strings.Join(msg, seperator)
@@ -281,14 +281,18 @@ func NamedSprintf(str string, holders map[string]string) string {
 //
 func TemplateToString(tmplStr string, data interface{}) (string, error) {
 	buf := new(bytes.Buffer)
-	
+
 	tmpl, err := textTemplate.New("test").Delims("{{{", "}}}").Parse(tmplStr)
-	
-	if err != nil { return "", err }
-	
+
+	if err != nil {
+		return "", err
+	}
+
 	err = tmpl.Execute(buf, data)
 
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 
 	return buf.String(), nil
 }
@@ -296,20 +300,24 @@ func TemplateToString(tmplStr string, data interface{}) (string, error) {
 //
 func HtmlTemplateToString(tmplStr string, data interface{}) (string, error) {
 	buf := new(bytes.Buffer)
-	
+
 	tmpl, err := template.New("test").Delims("{{{", "}}}").Parse(tmplStr)
-	
-	if err != nil { return "", err }
-	
+
+	if err != nil {
+		return "", err
+	}
+
 	err = tmpl.Execute(buf, data)
 
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 
 	return buf.String(), nil
 }
 
 //
-func GetIsoCurrentDate() (string) {
+func GetIsoCurrentDate() string {
 	return time.Now().Format("2006-01-02")
 }
 
@@ -350,4 +358,3 @@ func StrPad(input string, padLength int, padString string, padType string) strin
 
 	return output
 }
-
