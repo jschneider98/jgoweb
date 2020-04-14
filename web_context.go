@@ -508,3 +508,13 @@ func (ctx *WebContext) RequireUser(rw web.ResponseWriter, req *web.Request, next
 
 	next(rw, req)
 }
+
+// ******
+
+// Get Template
+func (ctx *WebContext) GetTemplate(filename string) (*template.Template, error) {
+	file := filepath.Join("static", "templates", filename)
+
+	name := path.Base(file)
+	return template.New(name).Delims("[[", "]]").ParseFiles(file)
+}
