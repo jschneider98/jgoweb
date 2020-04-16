@@ -14,8 +14,6 @@ require (
 	github.com/jschneider98/jgovalidator v0.0.0-20191115174756-dd06c8857ad2
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lib/pq v1.2.0
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.2.1
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
 	gopkg.in/go-playground/validator.v9 v9.30.0
