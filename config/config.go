@@ -1,38 +1,39 @@
 package config
 
 import (
-	"os"
-	"fmt"
-	"errors"
-	"io/ioutil"
 	"encoding/json"
-	"golang.org/x/crypto/acme/autocert"
+	"errors"
+	"fmt"
 	"github.com/jschneider98/jgocache/autocert/cache"
+	"golang.org/x/crypto/acme/autocert"
+	"io/ioutil"
+	"os"
 )
 
 // Config file definition
 type Config struct {
-	Server ServerOptions `json:"server"`
-	DbConns []DbConnOptions `json:"dbConns"`
+	Server            ServerOptions           `json:"server"`
+	DbConns           []DbConnOptions         `json:"dbConns"`
 	GoogleOauth2Creds GoogleOauth2Credentials `json:"googleOauth2Credentials"`
-	Autocert AutocertOptions `json:"autocert"`
-	AutocertCache autocert.Cache `json:"-"`
+	Autocert          AutocertOptions         `json:"autocert"`
+	AutocertCache     autocert.Cache          `json:"-"`
 }
 
 // Server configuratoin
 type ServerOptions struct {
-	SessionName string `json:sessionName`
-	SessionKey string `json:sessionKey`
-	EnableSsl bool `json:enableSsl`
-	HttpsHost string `json:httpsHost`
-	HttpHost string `json:httpHost`
-	HealthHost string `json:healthHost`
+	Mode        string `json:"mode"`
+	SessionName string `json:"sessionName"`
+	SessionKey  string `json:"sessionKey"`
+	EnableSsl   bool   `json:"enableSsl"`
+	HttpsHost   string `json:"httpsHost"`
+	HttpHost    string `json:"httpHost"`
+	HealthHost  string `json:"healthHost"`
 }
 
 // DB Connection Strings
 type DbConnOptions struct {
 	ShardName string `json:"shardName"`
-	Dsn string `json:"dsn"`
+	Dsn       string `json:"dsn"`
 }
 
 // Google Oauth2 Credentials
@@ -43,9 +44,9 @@ type GoogleOauth2Credentials struct {
 
 // Autocert configuration
 type AutocertOptions struct {
-	AllowedHost string `json:"allowedHost"`
-	Email string `json:"email"`
-	DirectoryURL string `json:"directoryURL"`
+	AllowedHost  string            `json:"allowedHost"`
+	Email        string            `json:"email"`
+	DirectoryURL string            `json:"directoryURL"`
 	CacheOptions map[string]string `json:"cacheOptions"`
 }
 
@@ -59,7 +60,6 @@ func New(path string, envVar string) (*Config, error) {
 
 	return NewFromFile(path)
 }
-
 
 //
 func NewFromFile(path string) (*Config, error) {
@@ -115,8 +115,12 @@ func NewFromEnv(envVar string) (*Config, error) {
 	return config, nil
 }
 
-// Conditionally load default values 
+// Conditionally load default values
 func (c *Config) EnsureBasicOptions() {
+
+	if c.Server.Mode == "" {
+		c.Server.Mode = "prod"
+	}
 
 	if c.Server.SessionName == "" {
 		c.Server.SessionName = "web-session"
