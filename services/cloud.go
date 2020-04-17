@@ -1,15 +1,16 @@
 package services
 
-import(
-	"os"
-	"fmt"
+import (
 	"errors"
-	"time"
-	"mime/multipart"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"io"
+	"mime/multipart"
+	"os"
+	"time"
 )
 
 type CloudInterface interface {
@@ -19,7 +20,7 @@ type CloudInterface interface {
 
 type Cloud struct {
 	AwsSession *session.Session
-	AwsBucket string
+	AwsBucket  string
 }
 
 // Idea here is to add a facory, so we can return/support multiple cloud solutions (AWS, GCP, etc)
@@ -52,7 +53,7 @@ func (c *Cloud) GetAwsBucket() (string, error) {
 
 	c.AwsBucket = os.Getenv("UXT_BUCKET")
 
-	if (c.AwsBucket == "") {
+	if c.AwsBucket == "" {
 		err := errors.New(fmt.Sprint("UXT_BUCKET environment varriable not set"))
 		return "", err
 	}
@@ -70,7 +71,7 @@ func (c *Cloud) GetAwsSession() (*session.Session, error) {
 
 	region := os.Getenv("AWS_REGION")
 
-	if (region == "") {
+	if region == "" {
 		err = errors.New(fmt.Sprint("AWS_REGION environment varriable not set"))
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (c *Cloud) UploadLocalFile(filename string, key string) error {
 	}
 
 	file, err := os.Open(filename)
-	
+
 	if err != nil {
 		return err
 	}
@@ -102,8 +103,27 @@ func (c *Cloud) UploadLocalFile(filename string, key string) error {
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(c.AwsBucket),
-		Key: aws.String(key),
-		Body: file,
+		Key:    aws.String(key),
+		Body:   file,
+	})
+
+	return err
+}
+
+//
+func (c *Cloud) UploadReader(reader io.Reader, key string) error {
+	err := c.InitAws()
+
+	if err != nil {
+		return err
+	}
+
+	uploader := s3manager.NewUploader(c.AwsSession)
+
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(c.AwsBucket),
+		Key:    aws.String(key),
+		Body:   reader,
 	})
 
 	return err
@@ -121,8 +141,8 @@ func (c *Cloud) UploadMultipartFile(file multipart.File, key string) error {
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(c.AwsBucket),
-		Key: aws.String(key),
-		Body: file,
+		Key:    aws.String(key),
+		Body:   file,
 	})
 
 	return err
@@ -140,7 +160,7 @@ func (c *Cloud) GetResourceUrl(key string, minutes time.Duration) (string, error
 
 	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(c.AwsBucket),
-		Key: aws.String(key),
+		Key:    aws.String(key),
 	})
 
 	urlStr, err := req.Presign(minutes * time.Minute)
