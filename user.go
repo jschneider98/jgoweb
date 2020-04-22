@@ -12,21 +12,23 @@ import (
 
 // User
 type User struct {
-	Id                sql.NullString   `json:"Id" validate:"omitempty,uuid"`
-	AccountId         sql.NullString   `json:"AccountId" validate:"required,uuid"`
-	RoleId            sql.NullString   `json:"RoleId" validate:"required,int"`
-	FirstName         sql.NullString   `json:"FirstName" validate:"required"`
-	LastName          sql.NullString   `json:"LastName" validate:"required"`
-	Email             sql.NullString   `json:"Email" validate:"required"`
-	Password          sql.NullString   `json:"Password" validate:"required,min=1,max=255"`
-	CreatedAt         sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	DeletedAt         sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
-	UpdatedAt         sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
-	Ctx               ContextInterface `json:"-" validate:"-"`
-	rawPassword       string           `json:"-", validate:"-"`
-	verifyRawPassword string           `json:"-", validate:"-"`
-	UserUniqueError   string           `validate:"errorMsg"`
-	RawPasswordError  string           `validate:"errorMsg"`
+	Id                   sql.NullString   `json:"Id" validate:"omitempty,uuid"`
+	AccountId            sql.NullString   `json:"AccountId" validate:"required,uuid"`
+	RoleId               sql.NullString   `json:"RoleId" validate:"required,int"`
+	FirstName            sql.NullString   `json:"FirstName" validate:"required"`
+	LastName             sql.NullString   `json:"LastName" validate:"required"`
+	Email                sql.NullString   `json:"Email" validate:"required"`
+	Password             sql.NullString   `json:"Password" validate:"required,min=1,max=255"`
+	CreatedAt            sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	DeletedAt            sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
+	UpdatedAt            sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	Ctx                  ContextInterface `json:"-" validate:"-"`
+	rawPassword          string           `json:"-", validate:"-"`
+	verifyRawPassword    string           `json:"-", validate:"-"`
+	currentPassword      string           `json:"-", validate:"-"`
+	CurrentPasswordError string           `validate:"errorMsg"`
+	UserUniqueError      string           `validate:"errorMsg"`
+	RawPasswordError     string           `validate:"errorMsg"`
 }
 
 // Empty new model
@@ -127,6 +129,7 @@ func (u *User) Hydrate(req *web.Request) error {
 
 	u.rawPassword = req.PostFormValue("rawPassword")
 	u.verifyRawPassword = req.PostFormValue("verifyRawPassword")
+	u.currentPassword = req.PostFormValue("currentPassword")
 
 	if u.rawPassword != "" {
 		u.SetPassword(u.rawPassword, u.verifyRawPassword)
@@ -139,6 +142,11 @@ func (u *User) Hydrate(req *web.Request) error {
 func (u *User) IsValid() error {
 	u.RawPasswordError = ""
 	u.UserUniqueError = ""
+	u.CurrentPasswordError = ""
+
+	if u.currentPassword != "" && !u.Authenticate(u.currentPassword) {
+		u.CurrentPasswordError = "Invalid password. You must supply your current password in order to change your password."
+	}
 
 	if u.rawPassword != u.verifyRawPassword {
 		u.RawPasswordError = "Password and Verify Password do not match."
@@ -536,7 +544,12 @@ func (u *User) SetPassword(password string, verifyPassword string) {
 	u.rawPassword = password
 	u.verifyRawPassword = verifyPassword
 
-	if u.rawPassword == "" || u.rawPassword != u.verifyRawPassword {
+	passwordVerified := u.rawPassword != "" && u.rawPassword == u.verifyRawPassword
+
+	// If currentPassword is set, it must match the user's current password
+	currentPasswordVerified := u.currentPassword == "" || u.Authenticate(u.currentPassword)
+
+	if !passwordVerified || !currentPasswordVerified {
 		u.Password.Valid = false
 		u.Password.String = ""
 
