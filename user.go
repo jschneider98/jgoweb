@@ -549,6 +549,8 @@ func (u *User) SetPassword(password string, verifyPassword string) {
 	// If currentPassword is set, it must match the user's current password
 	currentPasswordVerified := u.currentPassword == "" || u.Authenticate(u.currentPassword)
 
+	fmt.Printf("\n\npasswordVerified: %v\n currentPasswordVerified: %v\n\n", passwordVerified, currentPasswordVerified)
+
 	if !passwordVerified || !currentPasswordVerified {
 		u.Password.Valid = false
 		u.Password.String = ""
@@ -559,6 +561,7 @@ func (u *User) SetPassword(password string, verifyPassword string) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
 	if err != nil {
+		fmt.Printf("\n\nERROR: %v\n\n", err)
 		u.Password.Valid = false
 		u.Password.String = ""
 	}
