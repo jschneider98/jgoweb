@@ -675,6 +675,7 @@ func (u *User) Authenticate(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 
 	if err != nil {
+		fmt.Printf("\n***\n%v\n***\n", err)
 		return false
 	}
 
