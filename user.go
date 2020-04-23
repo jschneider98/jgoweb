@@ -666,6 +666,8 @@ func (u *User) SetFromSession() error {
 func (u *User) Authenticate(password string) bool {
 	hash := u.GetPassword()
 
+	fmt.Printf("\n***\npassword: %s\nhash: %v\n***\n", password, hash)
+
 	if !u.Password.Valid || hash == "" {
 		return false
 	}
