@@ -140,21 +140,11 @@ func (u *User) Hydrate(req *web.Request) error {
 
 // Validate the model
 func (u *User) IsValid() error {
-	u.RawPasswordError = ""
 	u.UserUniqueError = ""
-	u.CurrentPasswordError = ""
-
-	if u.currentPassword != "" && !u.Authenticate(u.currentPassword) {
-		u.CurrentPasswordError = "Invalid password. You must supply your current password in order to change your password."
-	}
-
-	if u.rawPassword != u.verifyRawPassword {
-		u.RawPasswordError = "Password and Verify Password do not match."
-	}
 
 	valid, _, err := u.UserShardMapIsValid()
 
-	// err != nil cases are kind of bad. Most likely a DB error occured, but IsValid only returns validations errors...
+	// err != nil cases are kind of bad. Most likely a DB error occured, but IsValid only returns validation errors...
 	if !valid || err != nil {
 		u.UserUniqueError = "User already exists."
 	}
@@ -540,29 +530,24 @@ func (u *User) GetPassword() string {
 
 //
 func (u *User) SetPassword(password string, verifyPassword string) {
-
+	u.RawPasswordError = ""
+	u.CurrentPasswordError = ""
 	u.rawPassword = password
 	u.verifyRawPassword = verifyPassword
 
-	passwordVerified := u.rawPassword != "" && u.rawPassword == u.verifyRawPassword
+	if u.currentPassword != "" && !u.Authenticate(u.currentPassword) {
+		u.CurrentPasswordError = "Invalid password. You must supply your current password in order to change your password."
+		return
+	}
 
-	// If currentPassword is set, it must match the user's current password
-	currentPasswordVerified := u.currentPassword == "" || u.Authenticate(u.currentPassword)
-
-	fmt.Printf("\n***\ncurrent: %s\nraw: %s\nverify:%s\n", u.currentPassword, u.rawPassword, u.verifyRawPassword)
-	fmt.Printf("\n***\npasswordVerified: %v\n currentPasswordVerified: %v\n***\n", passwordVerified, currentPasswordVerified)
-
-	if !passwordVerified || !currentPasswordVerified {
-		u.Password.Valid = false
-		u.Password.String = ""
-
+	if u.rawPassword == "" || u.rawPassword != u.verifyRawPassword {
+		u.RawPasswordError = "Password and Verify Password do not match."
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
 	if err != nil {
-		fmt.Printf("\n***\nERROR: %v\n***\n", err)
 		u.Password.Valid = false
 		u.Password.String = ""
 	}
@@ -666,8 +651,6 @@ func (u *User) SetFromSession() error {
 func (u *User) Authenticate(password string) bool {
 	hash := u.GetPassword()
 
-	fmt.Printf("\n***\npassword: %s\nhash: %v\n***\n", password, hash)
-
 	if !u.Password.Valid || hash == "" {
 		return false
 	}
@@ -675,7 +658,6 @@ func (u *User) Authenticate(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 
 	if err != nil {
-		fmt.Printf("\n***\n%v\n***\n", err)
 		return false
 	}
 
