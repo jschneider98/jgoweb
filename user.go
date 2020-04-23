@@ -131,7 +131,7 @@ func (u *User) Hydrate(req *web.Request) error {
 	u.verifyRawPassword = req.PostFormValue("verifyRawPassword")
 	u.currentPassword = req.PostFormValue("currentPassword")
 
-	if u.rawPassword != "" {
+	if u.rawPassword != "" || u.verifyRawPassword != "" {
 		u.SetPassword(u.rawPassword, u.verifyRawPassword)
 	}
 
