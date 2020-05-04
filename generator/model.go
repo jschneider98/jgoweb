@@ -2,26 +2,26 @@ package generator
 
 import (
 	"fmt"
-	"strings"
-	"github.com/jschneider98/jgoweb"
-	"github.com/jschneider98/jgoweb/util"
-	"github.com/jschneider98/jgoweb/db/psql"
 	"github.com/jschneider98/jgomodel"
+	"github.com/jschneider98/jgoweb"
+	"github.com/jschneider98/jgoweb/db/psql"
+	"github.com/jschneider98/jgoweb/util"
+	"strings"
 )
 
 type ModelGenerator struct {
-	ModelName string `json:"model_name"`
-	InstanceName string `json:"instance_name"`
-	TrimSuffix string 
+	ModelName     string `json:"model_name"`
+	InstanceName  string `json:"instance_name"`
+	TrimSuffix    string
 	StructAcronym string
-	Model *jgomodel.Model
-	Fields []psql.Field
+	Model         *jgomodel.Model
+	Fields        []psql.Field
 }
 
 //
 func NewModelGenerator(ctx jgoweb.ContextInterface, schema string, table string, trimSuffix string) (*ModelGenerator, error) {
 	var err error
-	
+
 	mg := &ModelGenerator{}
 	mg.Model, err = jgomodel.NewModel(ctx, schema, table)
 
@@ -47,7 +47,7 @@ func (mg *ModelGenerator) MakeModelName() {
 	}
 
 	mg.ModelName = ""
-	
+
 	if mg.Model.Schema != "public" {
 		mg.ModelName = util.ToCamelCase(mg.Model.Schema)
 	}
@@ -97,9 +97,9 @@ func (mg *ModelGenerator) Generate() string {
 	return code
 }
 
-// 
+//
 func (mg *ModelGenerator) GetImportCode() string {
-return	`package models
+	return `package models
 
 import(
 	"time"
@@ -129,13 +129,12 @@ func (mg *ModelGenerator) GetStructCode() string {
 	return code
 }
 
-
 //
 func (mg *ModelGenerator) GetHydratorStructCode() string {
 	var code string
 
-	code += fmt.Sprintf("// %s\n", mg.ModelName + "Hydrator")
-	code += fmt.Sprintf("type %s struct {\n", mg.ModelName + "Hydrator")
+	code += fmt.Sprintf("// %s\n", mg.ModelName+"Hydrator")
+	code += fmt.Sprintf("type %s struct {\n", mg.ModelName+"Hydrator")
 
 	for key := range mg.Fields {
 		code += fmt.Sprintf("\t%s %s %s\n", mg.Fields[key].FieldName, "string", mg.Fields[key].Annotation)
@@ -158,7 +157,7 @@ func (mg *ModelGenerator) GetHydratorIsValidCode() string {
 func (%s *%s) IsValid() error {
 	return %s.Ctx.GetValidator().Struct(%s)
 }
-`, acronym, mg.ModelName + "Hydrator", acronym, acronym)
+`, acronym, mg.ModelName+"Hydrator", acronym, acronym)
 
 	return code
 }
@@ -263,7 +262,6 @@ func Fetch%sById(ctx jgoweb.ContextInterface, id string) (*%s, error) {
 	return code
 }
 
-
 //
 func (mg *ModelGenerator) GetProcessSubmit() string {
 	var code string
@@ -287,7 +285,7 @@ func (~StructAcronym~ *~ModelName~) ProcessSubmit(req *web.Request) (string, boo
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
-	
+
 	err = ~StructAcronym~.Save()
 
 	if err != nil {
@@ -307,7 +305,7 @@ func (mg *ModelGenerator) GetHydrateCode() string {
 	assignments := ""
 
 	for key := range mg.Fields {
-		
+
 		assignments += fmt.Sprintf("\t%s.Set%s(req.PostFormValue(\"%s\"))\n", mg.StructAcronym, mg.Fields[key].FieldName, mg.Fields[key].FieldName)
 
 		// fieldName := mg.Fields[key].FieldName
@@ -335,7 +333,6 @@ func (mg *ModelGenerator) GetHydrateCode() string {
 		// 	assignments += fmt.Sprintf("\t}\n\n")
 		// }
 	}
-
 
 	code += fmt.Sprintf(`
 // Hydrate the model with data
@@ -398,9 +395,9 @@ func (mg *ModelGenerator) GetInsertCode() string {
 	var objCols []string
 	var colList string
 
-	// 
+	//
 	for key := range mg.Fields {
-		if (mg.Fields[key].DbFieldName != "id" && mg.Fields[key].DbFieldName != "created_at" && mg.Fields[key].DbFieldName != "updated_at") {
+		if mg.Fields[key].DbFieldName != "id" && mg.Fields[key].DbFieldName != "created_at" && mg.Fields[key].DbFieldName != "updated_at" {
 			// (p.AccountId, p.Units, ...)
 			objCols = append(objCols, fmt.Sprintf("%s.%s", mg.StructAcronym, mg.Fields[key].FieldName))
 		}
@@ -420,11 +417,12 @@ func (%s *%s) Insert() error {
 		return err
 	}
 
-	query := ` + "`\n" + query + "\n`" + `
+	query := `+"`\n"+query+"\n`"+`
 
 	stmt, err := tx.Prepare(query)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -433,6 +431,7 @@ func (%s *%s) Insert() error {
 	err = stmt.QueryRow(%s).Scan(&%s.Id)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -481,6 +480,7 @@ func (%s *%s) Update() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -527,6 +527,7 @@ func (%s *%s) Delete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -617,7 +618,7 @@ func (%s *%s) Undelete() error {
 }
 `, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
 
-	return code	
+	return code
 }
 
 //
@@ -829,8 +830,7 @@ func (%s *%s) Set%s(val bool) {
 	return code
 }
 
-
 //
-func  (mg *ModelGenerator) IsHiddenField(fieldName string) bool {
+func (mg *ModelGenerator) IsHiddenField(fieldName string) bool {
 	return fieldName == "Id" || fieldName == "AccountId" || fieldName == "CreatedAt" || fieldName == "UpdatedAt" || fieldName == "DeletedAt"
 }
