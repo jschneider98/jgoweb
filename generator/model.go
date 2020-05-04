@@ -564,6 +564,7 @@ func (%s *%s) Delete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -611,6 +612,7 @@ func (%s *%s) Undelete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
