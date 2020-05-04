@@ -192,6 +192,7 @@ RETURNING id
 	stmt, err := tx.Prepare(query)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -206,6 +207,7 @@ RETURNING id
 		u.Password).Scan(&u.Id)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -240,6 +242,7 @@ func (u *User) Update() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -269,6 +272,7 @@ func (u *User) Delete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -296,6 +300,7 @@ func (u *User) Undelete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
