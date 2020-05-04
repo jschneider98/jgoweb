@@ -1,14 +1,14 @@
 package jgoweb
 
-import(
-	"time"
-	"errors"
+import (
 	"database/sql"
+	"errors"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"time"
 )
 
-// 
+//
 type SystemDbUpdateInterface interface {
 	NeedsToRun() (bool, error)
 	Run() error
@@ -22,13 +22,12 @@ type SystemDbUpdateInterface interface {
 // SystemDbUpdate
 type SystemDbUpdate struct {
 	ApplyUpdate func(ctx ContextInterface) error `json:"-" validate:"-"`
-	Id sql.NullString `json:"Id" validate:"omitempty,int"`
-	UpdateName sql.NullString `json:"UpdateName" validate:"required,min=1,max=255"`
-	Description sql.NullString `json:"Description" validate:"required,min=1,max=255"`
-	CreatedAt sql.NullString `json:"CreatedAt" validate:"omitempty,rfc3339"`
-	Ctx ContextInterface `json:"-" validate:"-"`
+	Id          sql.NullString                   `json:"Id" validate:"omitempty,int"`
+	UpdateName  sql.NullString                   `json:"UpdateName" validate:"required,min=1,max=255"`
+	Description sql.NullString                   `json:"Description" validate:"required,min=1,max=255"`
+	CreatedAt   sql.NullString                   `json:"CreatedAt" validate:"omitempty,rfc3339"`
+	Ctx         ContextInterface                 `json:"-" validate:"-"`
 }
-
 
 // Empty new model
 func NewSystemDbUpdate(ctx ContextInterface) (*SystemDbUpdate, error) {
@@ -40,7 +39,7 @@ func NewSystemDbUpdate(ctx ContextInterface) (*SystemDbUpdate, error) {
 
 // Set defaults
 func (sdu *SystemDbUpdate) SetDefaults() {
-	sdu.SetCreatedAt( time.Now().Format(time.RFC3339) )
+	sdu.SetCreatedAt(time.Now().Format(time.RFC3339))
 
 }
 
@@ -66,9 +65,9 @@ func FetchSystemDbUpdateById(ctx ContextInterface, id string) (*SystemDbUpdate, 
 	var sdu []SystemDbUpdate
 
 	stmt := ctx.Select("*").
-	From("system.db_updates").
-	Where("id = ?", id).
-	Limit(1)
+		From("system.db_updates").
+		Where("id = ?", id).
+		Limit(1)
 
 	_, err := stmt.Load(&sdu)
 
@@ -76,7 +75,7 @@ func FetchSystemDbUpdateById(ctx ContextInterface, id string) (*SystemDbUpdate, 
 		return nil, err
 	}
 
-	if (len(sdu) == 0) {
+	if len(sdu) == 0 {
 		return nil, nil
 	}
 
@@ -90,9 +89,9 @@ func FetchSystemDbUpdateByUpdateName(ctx ContextInterface, updateName string) (*
 	var sdu []SystemDbUpdate
 
 	stmt := ctx.Select("*").
-	From("system.db_updates").
-	Where("update_name = ?", updateName).
-	Limit(1)
+		From("system.db_updates").
+		Where("update_name = ?", updateName).
+		Limit(1)
 
 	_, err := stmt.Load(&sdu)
 
@@ -100,7 +99,7 @@ func FetchSystemDbUpdateByUpdateName(ctx ContextInterface, updateName string) (*
 		return nil, err
 	}
 
-	if (len(sdu) == 0) {
+	if len(sdu) == 0 {
 		return nil, nil
 	}
 
@@ -145,7 +144,7 @@ func (sdu *SystemDbUpdate) ProcessSubmit(req *web.Request) (string, bool, error)
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
-	
+
 	err = sdu.Save()
 
 	if err != nil {
@@ -211,15 +210,17 @@ RETURNING id
 	stmt, err := tx.Prepare(query)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	defer stmt.Close()
 
 	err = stmt.QueryRow(sdu.UpdateName,
-			sdu.Description).Scan(&sdu.Id)
+		sdu.Description).Scan(&sdu.Id)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -238,17 +239,15 @@ func (sdu *SystemDbUpdate) Update() error {
 		return err
 	}
 
-	
-
 	_, err = tx.Update("system.db_updates").
 		Set("id", sdu.Id).
 		Set("update_name", sdu.UpdateName).
 		Set("description", sdu.Description).
-
 		Where("id = ?", sdu.Id).
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -275,6 +274,7 @@ func (sdu *SystemDbUpdate) Delete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -377,7 +377,6 @@ func (sdu *SystemDbUpdate) SetCreatedAt(val string) {
 	sdu.CreatedAt.String = val
 }
 
-
 // ****** Interface Methods ******
 
 // Empty new update
@@ -395,7 +394,7 @@ func (sdu *SystemDbUpdate) SetContext(ctx ContextInterface) {
 	sdu.Ctx = ctx
 }
 
-// 
+//
 func (sdu *SystemDbUpdate) NeedsToRun() (bool, error) {
 	var err error
 	updateName := sdu.UpdateName.String
