@@ -157,6 +157,7 @@ RETURNING id
 	stmt, err := tx.Prepare(query)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -167,6 +168,7 @@ RETURNING id
 		s.DeletedAt).Scan(&s.Id)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -197,6 +199,7 @@ func (s *Shard) Update() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -226,6 +229,7 @@ func (s *Shard) Delete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -253,6 +257,7 @@ func (s *Shard) Undelete() error {
 		Exec()
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
