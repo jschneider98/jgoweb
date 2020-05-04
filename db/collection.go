@@ -1,13 +1,13 @@
 package db
 
-import(
-	"time"
-	"fmt"
-	"math/rand"
+import (
 	"errors"
+	"fmt"
 	"github.com/gocraft/dbr"
-	_ "github.com/lib/pq"
 	"github.com/jschneider98/jgoweb/config"
+	_ "github.com/lib/pq"
+	"math/rand"
+	"time"
 )
 
 type CollectionInterface interface {
@@ -17,7 +17,7 @@ type CollectionInterface interface {
 
 type Collection struct {
 	Config []config.DbConnOptions
-	Conns map[string]*dbr.Connection
+	Conns  map[string]*dbr.Connection
 }
 
 // Retrieve db obj
@@ -26,13 +26,16 @@ var NewDb = func(dbConns []config.DbConnOptions) (*Collection, error) {
 
 	for _, connInfo := range dbConns {
 		conn, err := dbr.Open("postgres", connInfo.Dsn, nil)
-		//conn.SetMaxOpenConns(10)
+		// @TODO: Get these numbers from the config
+		conn.SetMaxOpenConns(190)
+		conn.SetMaxIdleConns(95)
+		conn.SetConnMaxLifetime(30 * time.Minute)
 
 		if err != nil {
 			return nil, err
 		}
 
-		conns[connInfo.ShardName] = conn;
+		conns[connInfo.ShardName] = conn
 	}
 
 	db := &Collection{Conns: conns, Config: dbConns}
@@ -71,8 +74,8 @@ func (db *Collection) GetConns() map[string]*dbr.Connection {
 }
 
 // get Db session by name
-func(db *Collection) GetSessionByName(name string) (*dbr.Session, error) {
-	
+func (db *Collection) GetSessionByName(name string) (*dbr.Session, error) {
+
 	dbConn, err := db.GetConnByName(name)
 
 	if err != nil {
