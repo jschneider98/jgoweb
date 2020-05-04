@@ -27,8 +27,8 @@ var NewDb = func(dbConns []config.DbConnOptions) (*Collection, error) {
 	for _, connInfo := range dbConns {
 		conn, err := dbr.Open("postgres", connInfo.Dsn, nil)
 		// @TODO: Get these numbers from the config
-		conn.SetMaxOpenConns(190)
-		conn.SetMaxIdleConns(5)
+		conn.SetMaxOpenConns(100)
+		conn.SetMaxIdleConns(25)
 		conn.SetConnMaxLifetime(30 * time.Minute)
 
 		if err != nil {
