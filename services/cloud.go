@@ -1,9 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -197,14 +199,14 @@ func (c *Cloud) FileExists(key string) bool {
 }
 
 //
-func (c *Cloud) DownloadToBuffer(key string) (*aws.WriteAtBuffer, error) {
+func (c *Cloud) DownloadToBuffer(key string) (*bytes.Buffer, error) {
 	err := c.InitAws()
 
 	if err != nil {
 		return nil, err
 	}
 
-	buffer := &aws.WriteAtBuffer{}
+	awsBuffer := &aws.WriteAtBuffer{}
 
 	downloader := s3manager.NewDownloader(c.AwsSession)
 
@@ -213,11 +215,18 @@ func (c *Cloud) DownloadToBuffer(key string) (*aws.WriteAtBuffer, error) {
 		Key:    aws.String(key),
 	}
 
-	_, err = downloader.Download(buffer, input)
+	_, err = downloader.Download(awsBuffer, input)
 
 	if err != nil {
-		return nil, err
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println("********Code:", awsErr.Code())
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
+
+	buffer := bytes.NewBuffer(awsBuffer.Bytes())
 
 	return buffer, nil
 }
