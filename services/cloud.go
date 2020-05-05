@@ -174,7 +174,7 @@ func (c *Cloud) GetResourceUrl(key string, minutes time.Duration) (string, error
 
 //
 func (c *Cloud) FileExists(key string) bool {
-	err = c.InitAws()
+	err := c.InitAws()
 
 	if err != nil {
 		return err
