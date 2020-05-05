@@ -171,3 +171,27 @@ func (c *Cloud) GetResourceUrl(key string, minutes time.Duration) (string, error
 
 	return urlStr, nil
 }
+
+//
+func (c *Cloud) FileExists(key string) bool {
+	err = c.InitAws()
+
+	if err != nil {
+		return err
+	}
+
+	svc := s3.New(c.AwsSession)
+
+	input := &s3.HeadObjectInput{
+		Bucket: aws.String(c.AwsBucket),
+		Key:    aws.String(key),
+	}
+
+	result, err := svc.HeadObject(input)
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}
