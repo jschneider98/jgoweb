@@ -195,3 +195,29 @@ func (c *Cloud) FileExists(key string) bool {
 
 	return true
 }
+
+//
+func (c *Cloud) DownloadToBuffer(key string) (*aws.WriteAtBuffer, error) {
+	err := c.InitAws()
+
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := &aws.WriteAtBuffer{}
+
+	downloader := s3manager.NewDownloader(c.AwsSession)
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(c.AwsBucket),
+		Key:    aws.String(key),
+	}
+
+	_, err = downloader.Download(buffer, input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer, nil
+}
