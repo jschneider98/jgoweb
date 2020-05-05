@@ -220,7 +220,8 @@ func (c *Cloud) DownloadToBuffer(key string) (*bytes.Buffer, error) {
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "NoSuchKey" {
-				return nil, nil
+				var buf []byte
+				return bytes.NewBuffer(buf), nil
 			} else {
 				return nil, err
 			}
