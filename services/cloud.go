@@ -177,7 +177,7 @@ func (c *Cloud) FileExists(key string) bool {
 	err := c.InitAws()
 
 	if err != nil {
-		return err
+		return false
 	}
 
 	svc := s3.New(c.AwsSession)
@@ -187,7 +187,7 @@ func (c *Cloud) FileExists(key string) bool {
 		Key:    aws.String(key),
 	}
 
-	result, err := svc.HeadObject(input)
+	_, err = svc.HeadObject(input)
 
 	if err != nil {
 		return false
