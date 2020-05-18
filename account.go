@@ -134,11 +134,6 @@ func (a *Account) Save() error {
 
 // Insert a new record
 func (a *Account) Insert() error {
-	tx, err := a.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
 
 	query := `
 INSERT INTO
@@ -149,7 +144,7 @@ RETURNING id
 
 `
 
-	stmt, err := tx.Prepare(query)
+	stmt, err := a.Ctx.Prepare(query)
 
 	if err != nil {
 		return err
@@ -164,7 +159,7 @@ RETURNING id
 		return err
 	}
 
-	return a.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Update a record
@@ -173,15 +168,9 @@ func (a *Account) Update() error {
 		return nil
 	}
 
-	tx, err := a.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	a.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
-	_, err = tx.Update("public.accounts").
+	_, err := a.Ctx.Update("public.accounts").
 		Set("id", a.Id).
 		Set("domain", a.Domain).
 		Set("updated_at", a.UpdatedAt).
@@ -193,9 +182,7 @@ func (a *Account) Update() error {
 		return err
 	}
 
-	err = a.Ctx.OptionalCommit(tx)
-
-	return err
+	return nil
 }
 
 // Soft delete a record
@@ -205,15 +192,9 @@ func (a *Account) Delete() error {
 		return nil
 	}
 
-	tx, err := a.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	a.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
-	_, err = tx.Update("public.accounts").
+	_, err := a.Ctx.Update("public.accounts").
 		Set("deleted_at", a.DeletedAt).
 		Where("id = ?", a.Id).
 		Exec()
@@ -222,7 +203,7 @@ func (a *Account) Delete() error {
 		return err
 	}
 
-	return a.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Soft undelete a record
@@ -232,15 +213,9 @@ func (a *Account) Undelete() error {
 		return nil
 	}
 
-	tx, err := a.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	a.SetDeletedAt("")
 
-	_, err = tx.Update("public.accounts").
+	_, err := a.Ctx.Update("public.accounts").
 		Set("deleted_at", a.DeletedAt).
 		Where("id = ?", a.Id).
 		Exec()
@@ -249,7 +224,7 @@ func (a *Account) Undelete() error {
 		return err
 	}
 
-	return a.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 //
