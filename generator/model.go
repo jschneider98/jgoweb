@@ -480,7 +480,7 @@ func (~StructAcronym~ *~ModelName~) Update() error {
 
 	~updatedAt~
 
-	_, err = ~StructAcronym~.Ctx.Update("~FullTableName~").
+	_, err := ~StructAcronym~.Ctx.Update("~FullTableName~").
 ~columnList~
 		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
@@ -524,7 +524,7 @@ func (~StructAcronym~ *~ModelName~) Delete() error {
 		return nil
 	}
 
-	_, err = ~StructAcronym~.Ctx.DeleteFrom("~FullTableName~").
+	_, err := ~StructAcronym~.Ctx.DeleteFrom("~FullTableName~").
 		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
 
@@ -558,7 +558,7 @@ func (~StructAcronym~ *~ModelName~) Delete() error {
 
 	~StructAcronym~.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
 
-	_, err = ~StructAcronym~.Ctx.Update("~FullTableName~").
+	_, err := ~StructAcronym~.Ctx.Update("~FullTableName~").
 		Set("deleted_at", ~StructAcronym~.DeletedAt).
 		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
@@ -604,7 +604,7 @@ func (~StructAcronym~ *~ModelName~) Undelete() error {
 
 	~StructAcronym~.SetDeletedAt("")
 
-	_, err = ~StructAcronym~.Ctx.Update("~FullTableName~").
+	_, err := ~StructAcronym~.Ctx.Update("~FullTableName~").
 		Set("deleted_at", ~StructAcronym~.DeletedAt).
 		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
