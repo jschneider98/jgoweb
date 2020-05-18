@@ -225,6 +225,19 @@ func (ctx *WebContext) Update(table string) *dbr.UpdateStmt {
 	return stmt
 }
 
+//
+func (ctx *WebContext) DeleteFrom(table string) *dbr.DeleteStmt {
+	var stmt *dbr.DeleteStmt
+
+	if ctx.Tx != nil {
+		stmt = ctx.Tx.DeleteFrom(table)
+	} else {
+		stmt = ctx.DbSess.DeleteFrom(table)
+	}
+
+	return stmt
+}
+
 // Only start a transaction if one hasn't been started yet
 func (ctx *WebContext) OptionalBegin() (*dbr.Tx, error) {
 

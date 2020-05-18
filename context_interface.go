@@ -21,6 +21,7 @@ type ContextInterface interface {
 	Update(table string) *dbr.UpdateStmt
 	OptionalBegin() (*dbr.Tx, error)
 	OptionalCommit(tx *dbr.Tx) error
+	DeleteFrom(table string) *dbr.DeleteStmt
 	SetUser(user *User)
 	SessionGetString(key string) (string, error)
 	SessionPutString(rw web.ResponseWriter, key string, value string)
