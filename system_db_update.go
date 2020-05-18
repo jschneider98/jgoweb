@@ -192,11 +192,6 @@ func (sdu *SystemDbUpdate) Save() error {
 
 // Insert a new record
 func (sdu *SystemDbUpdate) Insert() error {
-	tx, err := sdu.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
 
 	query := `
 INSERT INTO
@@ -204,13 +199,11 @@ system.db_updates (update_name,
 	description)
 VALUES ($1,$2)
 RETURNING id
-
 `
 
-	stmt, err := tx.Prepare(query)
+	stmt, err := sdu.Ctx.Prepare(query)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -220,26 +213,20 @@ RETURNING id
 		sdu.Description).Scan(&sdu.Id)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return sdu.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Update a record
 func (sdu *SystemDbUpdate) Update() error {
+
 	if !sdu.Id.Valid {
 		return nil
 	}
 
-	tx, err := sdu.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Update("system.db_updates").
+	_, err := sdu.Ctx.Update("system.db_updates").
 		Set("id", sdu.Id).
 		Set("update_name", sdu.UpdateName).
 		Set("description", sdu.Description).
@@ -247,13 +234,10 @@ func (sdu *SystemDbUpdate) Update() error {
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	err = sdu.Ctx.OptionalCommit(tx)
-
-	return err
+	return nil
 }
 
 // Hard delete a record
@@ -263,22 +247,15 @@ func (sdu *SystemDbUpdate) Delete() error {
 		return nil
 	}
 
-	tx, err := sdu.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.DeleteFrom("system.db_updates").
+	_, err := sdu.Ctx.DeleteFrom("system.db_updates").
 		Where("id = ?", sdu.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return sdu.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 //
