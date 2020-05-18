@@ -219,7 +219,7 @@ func (ctx *WebContext) Update(table string) *dbr.UpdateStmt {
 	if ctx.Tx != nil {
 		stmt = ctx.Tx.Update(table)
 	} else {
-		stmt = ctx.DbSess.UpdateBySql(table)
+		stmt = ctx.DbSess.Update(table)
 	}
 
 	return stmt
