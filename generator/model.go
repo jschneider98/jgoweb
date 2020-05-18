@@ -516,7 +516,7 @@ func (mg *ModelGenerator) GetDeleteCode() string {
 	ph["~ModelName~"] = mg.ModelName
 	ph["~FullTableName~"] = mg.Model.FullTableName
 
-	code += fmt.Sprintf(`
+	code += util.NamedSprintf(`
 // Hard delete a record
 func (~StructAcronym~ *~ModelName~) Delete() error {
 
