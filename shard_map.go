@@ -33,7 +33,6 @@ func NewShardMap(ctx ContextInterface) (*ShardMap, error) {
 func (sm *ShardMap) SetDefaults() {
 	sm.SetCreatedAt(time.Now().Format(time.RFC3339))
 	sm.SetUpdatedAt(time.Now().Format(time.RFC3339))
-
 }
 
 // New model with data
@@ -141,11 +140,6 @@ func (sm *ShardMap) Save() error {
 
 // Insert a new record
 func (sm *ShardMap) Insert() error {
-	tx, err := sm.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
 
 	query := `
 INSERT INTO
@@ -155,13 +149,11 @@ public.shard_map (shard_id,
 	deleted_at)
 VALUES ($1,$2,$3,$4)
 RETURNING id
-
 `
 
-	stmt, err := tx.Prepare(query)
+	stmt, err := sm.Ctx.Prepare(query)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -173,28 +165,22 @@ RETURNING id
 		sm.DeletedAt).Scan(&sm.Id)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return sm.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Update a record
 func (sm *ShardMap) Update() error {
+
 	if !sm.Id.Valid {
 		return nil
 	}
 
-	tx, err := sm.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	sm.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
-	_, err = tx.Update("public.shard_map").
+	_, err := sm.Ctx.Update("public.shard_map").
 		Set("id", sm.Id).
 		Set("shard_id", sm.ShardId).
 		Set("domain", sm.Domain).
@@ -205,13 +191,10 @@ func (sm *ShardMap) Update() error {
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	err = sm.Ctx.OptionalCommit(tx)
-
-	return err
+	return nil
 }
 
 // Soft delete a record
@@ -221,25 +204,18 @@ func (sm *ShardMap) Delete() error {
 		return nil
 	}
 
-	tx, err := sm.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	sm.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
-	_, err = tx.Update("public.shard_map").
+	_, err := sm.Ctx.Update("public.shard_map").
 		Set("deleted_at", sm.DeletedAt).
 		Where("id = ?", sm.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return sm.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Soft undelete a record
@@ -249,25 +225,18 @@ func (sm *ShardMap) Undelete() error {
 		return nil
 	}
 
-	tx, err := sm.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	sm.SetDeletedAt("")
 
-	_, err = tx.Update("public.shard_map").
+	_, err := sm.Ctx.Update("public.shard_map").
 		Set("deleted_at", sm.DeletedAt).
 		Where("id = ?", sm.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return sm.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 //
