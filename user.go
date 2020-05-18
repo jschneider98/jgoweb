@@ -169,11 +169,6 @@ func (u *User) Save() error {
 
 // Insert a new record
 func (u *User) Insert() error {
-	tx, err := u.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
 
 	query := `
 INSERT INTO
@@ -186,13 +181,11 @@ public.users (account_id,
 	password)
 VALUES ($1,$2,$3,$4,$5,$6,$7)
 RETURNING id
-
 `
 
-	stmt, err := tx.Prepare(query)
+	stmt, err := u.Ctx.Prepare(query)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -207,28 +200,22 @@ RETURNING id
 		u.Password).Scan(&u.Id)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return u.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Update a record
 func (u *User) Update() error {
+
 	if !u.Id.Valid {
 		return nil
 	}
 
-	tx, err := u.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	u.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
-	_, err = tx.Update("public.users").
+	_, err := u.Ctx.Update("public.users").
 		Set("id", u.Id).
 		Set("account_id", u.AccountId).
 		Set("role_id", u.RoleId).
@@ -242,13 +229,10 @@ func (u *User) Update() error {
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	err = u.Ctx.OptionalCommit(tx)
-
-	return err
+	return nil
 }
 
 // Soft delete a record
@@ -258,25 +242,18 @@ func (u *User) Delete() error {
 		return nil
 	}
 
-	tx, err := u.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	u.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
-	_, err = tx.Update("public.users").
+	_, err := u.Ctx.Update("public.users").
 		Set("deleted_at", u.DeletedAt).
 		Where("id = ?", u.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return u.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Soft undelete a record
@@ -286,25 +263,18 @@ func (u *User) Undelete() error {
 		return nil
 	}
 
-	tx, err := u.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	u.SetDeletedAt("")
 
-	_, err = tx.Update("public.users").
+	_, err := u.Ctx.Update("public.users").
 		Set("deleted_at", u.DeletedAt).
 		Where("id = ?", u.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return u.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 //
