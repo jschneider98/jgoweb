@@ -354,13 +354,17 @@ func (%s *%s) Hydrate(req *web.Request) error {
 //
 func (mg *ModelGenerator) GetIsValidCode() string {
 	var code string
+	ph := make(map[string]string)
 
-	code += fmt.Sprintf(`
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+
+	code += util.NamedSprintf(`
 // Validate the model
-func (%s *%s) IsValid() error {
-	return %s.Ctx.GetValidator().Struct(%s)
+func (~StructAcronym~ *~ModelName~) IsValid() error {
+	return ~StructAcronym~.Ctx.GetValidator().Struct(~StructAcronym~)
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
@@ -368,23 +372,27 @@ func (%s *%s) IsValid() error {
 //
 func (mg *ModelGenerator) GetSaveCode() string {
 	var code string
+	ph := make(map[string]string)
 
-	code += fmt.Sprintf(`
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+
+	code += util.NamedSprintf(`
 // Insert/Update based on pkey value
-func (%s *%s) Save() error {
-	err := %s.IsValid()
+func (~StructAcronym~ *~ModelName~) Save() error {
+	err := ~StructAcronym~.IsValid()
 
 	if err != nil {
 		return err
 	}
 
-	if !%s.Id.Valid {
-		return %s.Insert()
+	if !~StructAcronym~.Id.Valid {
+		return ~StructAcronym~.Insert()
 	} else {
-		return %s.Update()
+		return ~StructAcronym~.Update()
 	}
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
@@ -394,6 +402,7 @@ func (mg *ModelGenerator) GetInsertCode() string {
 	var code string
 	var objCols []string
 	var colList string
+	ph := make(map[string]string)
 
 	//
 	for key := range mg.Fields {
@@ -408,36 +417,32 @@ func (mg *ModelGenerator) GetInsertCode() string {
 	colList = strings.Join(objCols, ",\t\t\t")
 	colList = strings.ReplaceAll(colList, ",", ",\n")
 
-	code += fmt.Sprintf(`
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~colList~"] = colList
+
+	code += util.NamedSprintf(`
 // Insert a new record
-func (%s *%s) Insert() error {
-	tx, err := %s.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
+func (~StructAcronym~ *~ModelName~) Insert() error {
 	query := `+"`\n"+query+"\n`"+`
 
-	stmt, err := tx.Prepare(query)
+	stmt, err := ~StructAcronym~.Ctx.Prepare(query)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	defer stmt.Close()
 
-	err = stmt.QueryRow(%s).Scan(&%s.Id)
+	err = stmt.QueryRow(~colList~).Scan(&~StructAcronym~.Id)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return %s.Ctx.OptionalCommit(tx)
+	return nil
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, colList, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
@@ -447,6 +452,7 @@ func (mg *ModelGenerator) GetUpdateCode() string {
 	var code string
 	columnList := ""
 	updatedAt := ""
+	ph := make(map[string]string)
 
 	for key := range mg.Fields {
 
@@ -459,36 +465,33 @@ func (mg *ModelGenerator) GetUpdateCode() string {
 		}
 	}
 
-	code += fmt.Sprintf(`
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~updatedAt~"] = updatedAt
+	ph["~FullTableName~"] = mg.Model.FullTableName
+	ph["~columnList~"] = columnList
+
+	code += util.NamedSprintf(`
 // Update a record
-func (%s *%s) Update() error {
-	if !%s.Id.Valid {
+func (~StructAcronym~ *~ModelName~) Update() error {
+	if !~StructAcronym~.Id.Valid {
 		return nil
 	}
 
-	tx, err := %s.Ctx.OptionalBegin()
+	~updatedAt~
 
-	if err != nil {
-		return err
-	}
-
-	%s
-
-	_, err = tx.Update("%s").
-%s
-		Where("id = ?", %s.Id).
+	_, err = ~StructAcronym~.Ctx.Update("~FullTableName~").
+~columnList~
+		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	err = %s.Ctx.OptionalCommit(tx)
-
-	return err
+	return nil
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, updatedAt, mg.Model.FullTableName, columnList, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
@@ -497,6 +500,7 @@ func (%s *%s) Update() error {
 func (mg *ModelGenerator) GetDeleteCode() string {
 	var code string
 	softDelete := false
+	ph := make(map[string]string)
 
 	for key := range mg.Fields {
 		if mg.Fields[key].DbFieldName == "deleted_at" {
@@ -508,32 +512,29 @@ func (mg *ModelGenerator) GetDeleteCode() string {
 		return mg.GetSoftDeleteCode()
 	}
 
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~FullTableName~"] = mg.Model.FullTableName
+
 	code += fmt.Sprintf(`
 // Hard delete a record
-func (%s *%s) Delete() error {
+func (~StructAcronym~ *~ModelName~) Delete() error {
 
-	if !%s.Id.Valid {
+	if !~StructAcronym~.Id.Valid {
 		return nil
 	}
 
-	tx, err := %s.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.DeleteFrom("%s").
-		Where("id = ?", %s.Id).
+	_, err = ~StructAcronym~.Ctx.DeleteFrom("~FullTableName~").
+		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return %s.Ctx.OptionalCommit(tx)
+	return nil
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
@@ -541,36 +542,34 @@ func (%s *%s) Delete() error {
 //
 func (mg *ModelGenerator) GetSoftDeleteCode() string {
 	var code string
+	ph := make(map[string]string)
 
-	code += fmt.Sprintf(`
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~FullTableName~"] = mg.Model.FullTableName
+
+	code += util.NamedSprintf(`
 // Soft delete a record
-func (%s *%s) Delete() error {
+func (~StructAcronym~ *~ModelName~) Delete() error {
 
-	if !%s.Id.Valid {
+	if !~StructAcronym~.Id.Valid {
 		return nil
 	}
 
-	tx, err := %s.Ctx.OptionalBegin()
+	~StructAcronym~.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
 
-	if err != nil {
-		return err
-	}
-
-	%s.SetDeletedAt( (time.Now()).Format(time.RFC3339) )
-
-	_, err = tx.Update("%s").
-		Set("deleted_at", %s.DeletedAt).
-		Where("id = ?", %s.Id).
+	_, err = ~StructAcronym~.Ctx.Update("~FullTableName~").
+		Set("deleted_at", ~StructAcronym~.DeletedAt).
+		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return %s.Ctx.OptionalCommit(tx)
+	return nil
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
@@ -579,6 +578,7 @@ func (%s *%s) Delete() error {
 func (mg *ModelGenerator) GetUndeleteCode() string {
 	var code string
 	softDelete := false
+	ph := make(map[string]string)
 
 	for key := range mg.Fields {
 		if mg.Fields[key].DbFieldName == "deleted_at" {
@@ -590,35 +590,32 @@ func (mg *ModelGenerator) GetUndeleteCode() string {
 		return ""
 	}
 
-	code += fmt.Sprintf(`
-// Soft undelete a record
-func (%s *%s) Undelete() error {
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~FullTableName~"] = mg.Model.FullTableName
 
-	if !%s.Id.Valid {
+	code += util.NamedSprintf(`
+// Soft undelete a record
+func (~StructAcronym~ *~ModelName~) Undelete() error {
+
+	if !~StructAcronym~.Id.Valid {
 		return nil
 	}
 
-	tx, err := %s.Ctx.OptionalBegin()
+	~StructAcronym~.SetDeletedAt("")
 
-	if err != nil {
-		return err
-	}
-
-	%s.SetDeletedAt("")
-
-	_, err = tx.Update("%s").
-		Set("deleted_at", %s.DeletedAt).
-		Where("id = ?", %s.Id).
+	_, err = ~StructAcronym~.Ctx.Update("~FullTableName~").
+		Set("deleted_at", ~StructAcronym~.DeletedAt).
+		Where("id = ?", ~StructAcronym~.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return %s.Ctx.OptionalCommit(tx)
+	return nil
 }
-`, mg.StructAcronym, mg.ModelName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym, mg.Model.FullTableName, mg.StructAcronym, mg.StructAcronym, mg.StructAcronym)
+`, ph)
 
 	return code
 }
