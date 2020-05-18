@@ -200,6 +200,19 @@ func (ctx *WebContext) InsertBySql(query string, value ...interface{}) *dbr.Inse
 }
 
 //
+func (ctx *WebContext) InsertInto(table string) *dbr.InsertStmt {
+	var stmt *dbr.InsertStmt
+
+	if ctx.Tx != nil {
+		stmt = ctx.Tx.InsertInto(table)
+	} else {
+		stmt = ctx.DbSess.InsertInto(table)
+	}
+
+	return stmt
+}
+
+//
 func (ctx *WebContext) UpdateBySql(query string, value ...interface{}) *dbr.UpdateStmt {
 	var stmt *dbr.UpdateStmt
 
