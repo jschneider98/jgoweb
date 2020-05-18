@@ -833,3 +833,79 @@ func (%s *%s) Set%s(val bool) {
 func (mg *ModelGenerator) IsHiddenField(fieldName string) bool {
 	return fieldName == "Id" || fieldName == "AccountId" || fieldName == "CreatedAt" || fieldName == "UpdatedAt" || fieldName == "DeletedAt"
 }
+
+// **************
+
+//
+func (mg *ModelGenerator) GenerateTest() string {
+	var code string
+
+	code = mg.GetTestImportCode()
+	code += mg.GetTestFetchById()
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestImportCode() string {
+	return `// +build integration
+
+package models
+
+import (
+	"github.com/gocraft/web"
+	"github.com/jschneider98/jgoweb"
+	"net/http"
+	"testing"
+)
+`
+}
+
+//
+func (mg *ModelGenerator) GetTestFetchById() string {
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+
+	code += until.NamedSprintf(`
+//
+func TestFetch~ModelName~ById(t *testing.T) {
+	jgoweb.InitMockCtx()
+	InitMock~ModelName~()
+
+	// force not found
+	id = "00000000-0000-0000-0000-000000000000"
+	~StructAcronym~, err := FetchProductById(jgoweb.MockCtx, id)
+
+	if err != nil {
+		t.Errorf("\nERROR: Failed to fetch ~ModelName~ by id: %v\n", err)
+		return
+	}
+
+	if ~StructAcronym~ != nil {
+		t.Errorf("\nERROR: Should have failed to find ~ModelName~: %v\n", id)
+		return
+	}
+
+	~StructAcronym~, err = Fetch~ModelName~ById(jgoweb.MockCtx, Mock~ModelName~.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	if ~StructAcronym~ == nil {
+		t.Errorf("\nERROR: Should have found ~ModelName~ with Id: %v\n", Mock~ModelName~.GetId())
+		return
+	}
+
+	if ~StructAcronym~.GetId() != Mock~ModelName~.GetId() {
+		t.Errorf("\nERROR: Fetch mismatch. Expected: %v Got: %v\n", Mock~ModelName~.GetId(), ~StructAcronym~.GetId())
+		return
+	}
+}`, ph)
+
+	return code
+}
