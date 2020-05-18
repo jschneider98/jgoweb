@@ -138,11 +138,6 @@ func (s *Shard) Save() error {
 
 // Insert a new record
 func (s *Shard) Insert() error {
-	tx, err := s.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
 
 	query := `
 INSERT INTO
@@ -151,13 +146,11 @@ public.shards (name,
 	deleted_at)
 VALUES ($1,$2,$3)
 RETURNING id
-
 `
 
-	stmt, err := tx.Prepare(query)
+	stmt, err := s.Ctx.Prepare(query)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -168,28 +161,22 @@ RETURNING id
 		s.DeletedAt).Scan(&s.Id)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return s.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Update a record
 func (s *Shard) Update() error {
+
 	if !s.Id.Valid {
 		return nil
 	}
 
-	tx, err := s.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	s.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
-	_, err = tx.Update("public.shards").
+	_, err := s.Ctx.Update("public.shards").
 		Set("id", s.Id).
 		Set("name", s.Name).
 		Set("account_count", s.AccountCount).
@@ -199,13 +186,10 @@ func (s *Shard) Update() error {
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	err = s.Ctx.OptionalCommit(tx)
-
-	return err
+	return nil
 }
 
 // Soft delete a record
@@ -215,25 +199,18 @@ func (s *Shard) Delete() error {
 		return nil
 	}
 
-	tx, err := s.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	s.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
-	_, err = tx.Update("public.shards").
+	_, err := s.Ctx.Update("public.shards").
 		Set("deleted_at", s.DeletedAt).
 		Where("id = ?", s.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return s.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 // Soft undelete a record
@@ -243,25 +220,18 @@ func (s *Shard) Undelete() error {
 		return nil
 	}
 
-	tx, err := s.Ctx.OptionalBegin()
-
-	if err != nil {
-		return err
-	}
-
 	s.SetDeletedAt("")
 
-	_, err = tx.Update("public.shards").
+	_, err := s.Ctx.Update("public.shards").
 		Set("deleted_at", s.DeletedAt).
 		Where("id = ?", s.Id).
 		Exec()
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	return s.Ctx.OptionalCommit(tx)
+	return nil
 }
 
 //
