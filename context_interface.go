@@ -1,6 +1,7 @@
 package jgoweb
 
 import (
+	"database/sql"
 	"github.com/gocraft/dbr"
 	"github.com/gocraft/web"
 	jgoWebDb "github.com/jschneider98/jgoweb/db"
@@ -14,8 +15,10 @@ type ContextInterface interface {
 	Rollback() error
 	Select(column ...string) *dbr.SelectBuilder
 	SelectBySql(query string, value ...interface{}) *dbr.SelectBuilder
+	Prepare(query string) (*sql.Stmt, error)
 	InsertBySql(query string, value ...interface{}) *dbr.InsertStmt
 	UpdateBySql(query string, value ...interface{}) *dbr.UpdateStmt
+	Update(table string) *dbr.UpdateStmt
 	OptionalBegin() (*dbr.Tx, error)
 	OptionalCommit(tx *dbr.Tx) error
 	SetUser(user *User)

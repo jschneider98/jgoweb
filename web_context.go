@@ -1,6 +1,7 @@
 package jgoweb
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/alexedwards/scs"
@@ -176,6 +177,16 @@ func (ctx *WebContext) SelectBySql(query string, value ...interface{}) *dbr.Sele
 }
 
 //
+func (ctx *WebContext) Prepare(query string) (*sql.Stmt, error) {
+
+	if ctx.Tx != nil {
+		return ctx.Tx.Prepare(query)
+	} else {
+		return ctx.DbSess.Prepare(query)
+	}
+}
+
+//
 func (ctx *WebContext) InsertBySql(query string, value ...interface{}) *dbr.InsertStmt {
 	var stmt *dbr.InsertStmt
 
@@ -196,6 +207,19 @@ func (ctx *WebContext) UpdateBySql(query string, value ...interface{}) *dbr.Upda
 		stmt = ctx.Tx.UpdateBySql(query, value...)
 	} else {
 		stmt = ctx.DbSess.UpdateBySql(query, value...)
+	}
+
+	return stmt
+}
+
+//
+func (ctx *WebContext) Update(table string) *dbr.UpdateStmt {
+	var stmt *dbr.UpdateStmt
+
+	if ctx.Tx != nil {
+		stmt = ctx.Tx.Update(table)
+	} else {
+		stmt = ctx.DbSess.UpdateBySql(table)
 	}
 
 	return stmt
