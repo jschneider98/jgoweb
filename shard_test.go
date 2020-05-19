@@ -473,3 +473,14 @@ func TestGetAllShards(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestClusterGetShards(t *testing.T) {
+	InitMockCtx()
+
+	_, err := ClusterGetShards(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
