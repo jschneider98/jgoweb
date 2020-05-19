@@ -10,17 +10,9 @@ import (
 func TestFetchShardByAccountId(t *testing.T) {
 	InitMockCtx()
 
-	accountId := "bad_id"
+	accountId := "00000000-0000-0000-0000-000000000000"
 
 	shard, err := FetchShardByAccountId(MockCtx, accountId)
-
-	if err == nil {
-		t.Errorf("\nERROR: non-uuid should return an error\n")
-	}
-
-	accountId = "00000000-0000-0000-0000-000000000000"
-
-	shard, err = FetchShardByAccountId(MockCtx, accountId)
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
