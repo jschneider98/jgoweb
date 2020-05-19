@@ -420,3 +420,12 @@ func TestShardMapProcessSubmit(t *testing.T) {
 		t.Errorf("\nERROR: %v", msg)
 	}
 }
+
+//
+func TestFetchShardMapByAccountId(t *testing.T) {
+	_, err := FetchShardMapByAccountId(MockCtx, MockUser.GetAccountId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
