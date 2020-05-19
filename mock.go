@@ -16,6 +16,23 @@ var MockCtx *WebContext
 var MockAccount *Account
 var MockShard *Shard
 var MockShardMap *ShardMap
+var MockSystemDbUpdate *SystemDbUpdate
+
+//
+func InitMockCtx() {
+	InitDbCollection()
+	var err error
+
+	if MockCtx == nil {
+		MockCtx = &WebContext{}
+		MockCtx.Db = db
+		MockCtx.DbSess, err = db.GetSessionByName("uxt_0000")
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
 
 //
 func InitMockUser() {
@@ -88,18 +105,21 @@ func InitMockShardMap() {
 }
 
 //
-func InitMockCtx() {
-	InitDbCollection()
-	var err error
+func InitMockSystemDbUpdate() {
 
-	if MockCtx == nil {
-		MockCtx = &WebContext{}
-		MockCtx.Db = db
-		MockCtx.DbSess, err = db.GetSessionByName("uxt_0000")
+	if MockSystemDbUpdate == nil {
+		var err error
+
+		MockSystemDbUpdate, err = NewSystemDbUpdate(MockCtx)
 
 		if err != nil {
 			panic(err)
 		}
+
+		MockSystemDbUpdate.SetUpdateName("Integration Test")
+		MockSystemDbUpdate.SetDescription("Integration Test")
+
+		MockSystemDbUpdate.Save()
 	}
 }
 
