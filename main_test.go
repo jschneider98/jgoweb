@@ -34,6 +34,7 @@ func InitTest() {
 	InitMockAccount()
 	InitMockShard()
 	InitMockShardMap()
+	InitMockSystemDbUpdate()
 }
 
 //
