@@ -429,3 +429,12 @@ func TestFetchShardMapByAccountId(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestGetAllShardMaps(t *testing.T) {
+	_, err := GetAllShardMaps(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
