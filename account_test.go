@@ -44,9 +44,154 @@ func TestFetchAccountById(t *testing.T) {
 }
 
 //
+func TestId(t *testing.T) {
+	InitMockAccount()
+	origVal := MockAccount.GetId()
+	testVal := "test"
+
+	MockAccount.SetId("")
+
+	if MockAccount.Id.Valid {
+		t.Errorf("ERROR: Id should be invalid.\n")
+	}
+
+	if MockAccount.GetId() != "" {
+		t.Errorf("ERROR: Set Id failed. Should have a blank value. Got: %s", MockAccount.GetId())
+	}
+
+	MockAccount.SetId(testVal)
+
+	if !MockAccount.Id.Valid {
+		t.Errorf("ERROR: Id should be valid.\n")
+	}
+
+	if MockAccount.GetId() != testVal {
+		t.Errorf("ERROR: Set Id failed. Expected: %s, Got: %s", testVal, MockAccount.GetId())
+	}
+
+	MockAccount.SetId(origVal)
+}
+
+//
+func TestDomain(t *testing.T) {
+	InitMockAccount()
+	origVal := MockAccount.GetDomain()
+	testVal := "test"
+
+	MockAccount.SetDomain("")
+
+	if MockAccount.Domain.Valid {
+		t.Errorf("ERROR: Domain should be invalid.\n")
+	}
+
+	if MockAccount.GetDomain() != "" {
+		t.Errorf("ERROR: Set Domain failed. Should have a blank value. Got: %s", MockAccount.GetDomain())
+	}
+
+	MockAccount.SetDomain(testVal)
+
+	if !MockAccount.Domain.Valid {
+		t.Errorf("ERROR: Domain should be valid.\n")
+	}
+
+	if MockAccount.GetDomain() != testVal {
+		t.Errorf("ERROR: Set Domain failed. Expected: %s, Got: %s", testVal, MockAccount.GetDomain())
+	}
+
+	MockAccount.SetDomain(origVal)
+}
+
+//
+func TestCreatedAt(t *testing.T) {
+	InitMockAccount()
+	origVal := MockAccount.GetCreatedAt()
+	testVal := "test"
+
+	MockAccount.SetCreatedAt("")
+
+	if MockAccount.CreatedAt.Valid {
+		t.Errorf("ERROR: CreatedAt should be invalid.\n")
+	}
+
+	if MockAccount.GetCreatedAt() != "" {
+		t.Errorf("ERROR: Set CreatedAt failed. Should have a blank value. Got: %s", MockAccount.GetCreatedAt())
+	}
+
+	MockAccount.SetCreatedAt(testVal)
+
+	if !MockAccount.CreatedAt.Valid {
+		t.Errorf("ERROR: CreatedAt should be valid.\n")
+	}
+
+	if MockAccount.GetCreatedAt() != testVal {
+		t.Errorf("ERROR: Set CreatedAt failed. Expected: %s, Got: %s", testVal, MockAccount.GetCreatedAt())
+	}
+
+	MockAccount.SetCreatedAt(origVal)
+}
+
+//
+func TestUpdatedAt(t *testing.T) {
+	InitMockAccount()
+	origVal := MockAccount.GetUpdatedAt()
+	testVal := "test"
+
+	MockAccount.SetUpdatedAt("")
+
+	if MockAccount.UpdatedAt.Valid {
+		t.Errorf("ERROR: UpdatedAt should be invalid.\n")
+	}
+
+	if MockAccount.GetUpdatedAt() != "" {
+		t.Errorf("ERROR: Set UpdatedAt failed. Should have a blank value. Got: %s", MockAccount.GetUpdatedAt())
+	}
+
+	MockAccount.SetUpdatedAt(testVal)
+
+	if !MockAccount.UpdatedAt.Valid {
+		t.Errorf("ERROR: UpdatedAt should be valid.\n")
+	}
+
+	if MockAccount.GetUpdatedAt() != testVal {
+		t.Errorf("ERROR: Set UpdatedAt failed. Expected: %s, Got: %s", testVal, MockAccount.GetUpdatedAt())
+	}
+
+	MockAccount.SetUpdatedAt(origVal)
+}
+
+//
+func TestDeletedAt(t *testing.T) {
+	InitMockAccount()
+	origVal := MockAccount.GetDeletedAt()
+	testVal := "test"
+
+	MockAccount.SetDeletedAt("")
+
+	if MockAccount.DeletedAt.Valid {
+		t.Errorf("ERROR: DeletedAt should be invalid.\n")
+	}
+
+	if MockAccount.GetDeletedAt() != "" {
+		t.Errorf("ERROR: Set DeletedAt failed. Should have a blank value. Got: %s", MockAccount.GetDeletedAt())
+	}
+
+	MockAccount.SetDeletedAt(testVal)
+
+	if !MockAccount.DeletedAt.Valid {
+		t.Errorf("ERROR: DeletedAt should be valid.\n")
+	}
+
+	if MockAccount.GetDeletedAt() != testVal {
+		t.Errorf("ERROR: Set DeletedAt failed. Expected: %s, Got: %s", testVal, MockAccount.GetDeletedAt())
+	}
+
+	MockAccount.SetDeletedAt(origVal)
+}
+
+//
 func TestAccountInsert(t *testing.T) {
 	InitMockAccount()
-	Domain := "Domain"
+	Domain := "Domain Insert"
 
 	a, err := NewAccount(MockCtx)
 
@@ -75,5 +220,78 @@ func TestAccountInsert(t *testing.T) {
 
 	if a == nil || a.GetDomain() != Domain {
 		t.Errorf("\nERROR: Account does not match save values. Insert failed.\n")
+	}
+}
+
+//
+func TestAccountUpdate(t *testing.T) {
+	InitMockAccount()
+	Domain := "Domain Update"
+
+	MockAccount.SetDomain(Domain)
+
+	err := MockAccount.Save()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	// verify write
+	a, err := FetchAccountById(MockCtx, MockAccount.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	if a == nil || a.GetDomain() != Domain {
+		t.Errorf("\nERROR: Account does not match save values. Update failed.\n")
+	}
+}
+
+//
+func TestAccountDelete(t *testing.T) {
+	InitMockAccount()
+	err := MockAccount.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	// verify write
+	a, err := FetchAccountById(MockCtx, MockAccount.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	if !a.DeletedAt.Valid {
+		t.Errorf("\nERROR: Account does not match save values. Delete failed.\n")
+	}
+}
+
+//
+func TestAccountUndelete(t *testing.T) {
+	InitMockAccount()
+	err := MockAccount.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	err = MockAccount.Undelete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	// verify write
+	a, err := FetchAccountById(MockCtx, MockAccount.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	if a == nil || a.DeletedAt.Valid {
+		t.Errorf("\nERROR: Account does not match save values. Undelete failed.\n")
 	}
 }
