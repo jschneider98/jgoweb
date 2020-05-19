@@ -462,3 +462,14 @@ func TestCreateShardByName(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestGetAllShards(t *testing.T) {
+	InitMockCtx()
+
+	_, err := GetAllShards(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
