@@ -24,13 +24,16 @@ func TestMain(m *testing.M) {
 func InitTest() {
 	SetConfigEnvVar("JGOWEB_TEST_CONFIG")
 	InitMockCtx()
-	InitMockUser()
-
 	_, err := MockCtx.Begin()
 
 	if err != nil {
 		panic(err)
 	}
+
+	InitMockUser()
+	InitMockAccount()
+	InitMockShard()
+	InitMockShardMap()
 }
 
 //
