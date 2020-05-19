@@ -946,7 +946,7 @@ func (mg *ModelGenerator) GetTestSetterGetterByField(fieldName string) string {
 
 	code += util.NamedSprintf(`
 //
-func Test~FieldName~(t *testing.T) {
+func Test~ModelName~~FieldName~(t *testing.T) {
 	InitMock~ModelName~()
 	origVal := Mock~ModelName~.Get~FieldName~()
 	testVal := "test"
