@@ -843,6 +843,7 @@ func (mg *ModelGenerator) GenerateTest() string {
 	code = mg.GetTestImportCode()
 	code += mg.GetTestFetchByIdCode()
 	code += mg.GetTestInsertCode()
+	code += mg.GetTestUpdateCode()
 
 	return code
 }
@@ -906,7 +907,8 @@ func TestFetch~ModelName~ById(t *testing.T) {
 		t.Errorf("\nERROR: Fetch mismatch. Expected: %%v Got: %%v\n", Mock~ModelName~.GetId(), ~StructAcronym~.GetId())
 		return
 	}
-}`, ph)
+}
+`, ph)
 
 	return code
 }
@@ -925,7 +927,7 @@ func (mg *ModelGenerator) GetTestInsertCode() string {
 	ph["~ModelName~"] = mg.ModelName
 	ph["~SetSaveVals~"] = ""
 	ph["~Setters~"] = ""
-	ph["~Assert~"] = fmt.Sprintf("(%s == nil", mg.StructAcronym)
+	ph["~Assert~"] = fmt.Sprintf("%s == nil", mg.StructAcronym)
 
 	for _, field := range mg.Fields {
 
@@ -965,10 +967,58 @@ func Test~ModelName~Insert(t *testing.T) {
 		t.Errorf("\nERROR: %%v\n", err)
 	}
 
-	if ~Assert~) {
+	if ~Assert~ {
 		t.Errorf("\nERROR: ~ModelName~ does not match save values. Insert failed.\n")
 	}
-}`, ph)
+}
+`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestUpdateCode() string {
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~SetSaveVals~"] = ""
+	ph["~Setters~"] = ""
+	ph["~Assert~"] = fmt.Sprintf("%s == nil", mg.StructAcronym)
+
+	for _, field := range mg.Fields {
+
+		if !mg.IsTimestamp(field.FieldName) && field.FieldName != "Id" {
+			ph["~SetSaveVals~"] += fmt.Sprintf("%s := \"%s\"\n\t", field.FieldName, field.FieldName)
+			ph["~Setters~"] += fmt.Sprintf("%s.Set%s(%s)\n\t", mg.StructAcronym, field.FieldName, field.FieldName)
+			ph["~Assert~"] += fmt.Sprintf(" || %s.Get%s() != %s", mg.StructAcronym, field.FieldName, field.FieldName)
+		}
+	}
+
+	code += util.NamedSprintf(`
+//
+func Test~ModelName~Update(t *testing.T) {
+	InitMock~ModelName~()
+	~SetSaveVals~
+	err := Mock~ModelName~.Save()
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	// verify write
+	~StructAcronym~, err := Fetch~ModelName~ById(jgoweb.MockCtx, Mock~ModelName~.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	if ~Assert~ {
+		t.Errorf("\nERROR: ~ModelName~ does not match save values. Update failed.\n")
+	}
+}
+`, ph)
 
 	return code
 }
