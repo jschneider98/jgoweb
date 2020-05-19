@@ -14,6 +14,7 @@ import (
 var MockUser *User
 var MockCtx *WebContext
 var MockAccount *Account
+var MockShard *Shard
 
 //
 func InitMockUser() {
@@ -39,6 +40,21 @@ func InitMockAccount() {
 		var err error
 
 		MockAccount, err = FetchAccountById(MockCtx, MockUser.GetAccountId())
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+//
+func InitMockShard() {
+	InitMockUser()
+
+	if MockShard == nil {
+		var err error
+
+		MockShard, err = FetchShardByAccountId(MockCtx, MockUser.GetAccountId())
 
 		if err != nil {
 			panic(err)
