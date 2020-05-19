@@ -841,7 +841,8 @@ func (mg *ModelGenerator) GenerateTest() string {
 	var code string
 
 	code = mg.GetTestImportCode()
-	code += mg.GetTestFetchById()
+	code += mg.GetTestFetchByIdCode()
+	code += mg.GetTestInsertCode()
 
 	return code
 }
@@ -862,48 +863,110 @@ import (
 }
 
 //
-func (mg *ModelGenerator) GetTestFetchById() string {
+func (mg *ModelGenerator) GetTestFetchByIdCode() string {
 	var code string
 	ph := make(map[string]string)
 
 	ph["~StructAcronym~"] = mg.StructAcronym
 	ph["~ModelName~"] = mg.ModelName
 
-	code += until.NamedSprintf(`
+	code += util.NamedSprintf(`
 //
 func TestFetch~ModelName~ById(t *testing.T) {
 	jgoweb.InitMockCtx()
 	InitMock~ModelName~()
 
 	// force not found
-	id = "00000000-0000-0000-0000-000000000000"
-	~StructAcronym~, err := FetchProductById(jgoweb.MockCtx, id)
+	id := "00000000-0000-0000-0000-000000000000"
+	~StructAcronym~, err := Fetch~ModelName~ById(jgoweb.MockCtx, id)
 
 	if err != nil {
-		t.Errorf("\nERROR: Failed to fetch ~ModelName~ by id: %v\n", err)
+		t.Errorf("\nERROR: Failed to fetch ~ModelName~ by id: %%v\n", err)
 		return
 	}
 
 	if ~StructAcronym~ != nil {
-		t.Errorf("\nERROR: Should have failed to find ~ModelName~: %v\n", id)
+		t.Errorf("\nERROR: Should have failed to find ~ModelName~: %%v\n", id)
 		return
 	}
 
 	~StructAcronym~, err = Fetch~ModelName~ById(jgoweb.MockCtx, Mock~ModelName~.GetId())
 
 	if err != nil {
-		t.Errorf("\nERROR: %v\n", err)
+		t.Errorf("\nERROR: %%v\n", err)
 		return
 	}
 
 	if ~StructAcronym~ == nil {
-		t.Errorf("\nERROR: Should have found ~ModelName~ with Id: %v\n", Mock~ModelName~.GetId())
+		t.Errorf("\nERROR: Should have found ~ModelName~ with Id: %%v\n", Mock~ModelName~.GetId())
 		return
 	}
 
 	if ~StructAcronym~.GetId() != Mock~ModelName~.GetId() {
-		t.Errorf("\nERROR: Fetch mismatch. Expected: %v Got: %v\n", Mock~ModelName~.GetId(), ~StructAcronym~.GetId())
+		t.Errorf("\nERROR: Fetch mismatch. Expected: %%v Got: %%v\n", Mock~ModelName~.GetId(), ~StructAcronym~.GetId())
 		return
+	}
+}`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) IsTimestamp(fieldName string) bool {
+	return fieldName == "CreatedAt" || fieldName == "UpdatedAt" || fieldName == "DeletedAt"
+}
+
+//
+func (mg *ModelGenerator) GetTestInsertCode() string {
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~SetSaveVals~"] = ""
+	ph["~Setters~"] = ""
+	ph["~Assert~"] = fmt.Sprintf("(%s == nil", mg.StructAcronym)
+
+	for _, field := range mg.Fields {
+
+		if !mg.IsTimestamp(field.FieldName) && field.FieldName != "Id" {
+			ph["~SetSaveVals~"] += fmt.Sprintf("%s := \"%s\"\n\t", field.FieldName, field.FieldName)
+			ph["~Setters~"] += fmt.Sprintf("%s.Set%s(%s)\n\t", mg.StructAcronym, field.FieldName, field.FieldName)
+			ph["~Assert~"] += fmt.Sprintf(" || %s.Get%s() != %s", mg.StructAcronym, field.FieldName, field.FieldName)
+		}
+	}
+
+	code += util.NamedSprintf(`
+//
+func Test~ModelName~Insert(t *testing.T) {
+	InitMock~ModelName~()
+	~SetSaveVals~
+	~StructAcronym~, err := New~ModelName~(jgoweb.MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: New~ModelName~() failed. %%v\n", err)
+	}
+
+	~Setters~
+	err = ~StructAcronym~.Save()
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	if !~StructAcronym~.Id.Valid {
+		t.Errorf("\nERROR: ~ModelName~.Id should be set.\n")
+	}
+
+	// verify write
+	~StructAcronym~, err = Fetch~ModelName~ById(jgoweb.MockCtx, ~StructAcronym~.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	if ~Assert~) {
+		t.Errorf("\nERROR: ~ModelName~ does not match save values. Insert failed.\n")
 	}
 }`, ph)
 
