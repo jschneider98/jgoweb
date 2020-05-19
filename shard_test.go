@@ -260,6 +260,7 @@ func TestShardInsert(t *testing.T) {
 //
 func TestShardUpdate(t *testing.T) {
 	InitMockShard()
+	origName := MockShard.GetName()
 	Name := "Name Update"
 	AccountCount := "2"
 
@@ -282,6 +283,8 @@ func TestShardUpdate(t *testing.T) {
 	if s == nil || s.GetName() != Name || s.GetAccountCount() != AccountCount {
 		t.Errorf("\nERROR: Shard does not match save values. Update failed.\n")
 	}
+
+	MockShard.SetName(origName)
 }
 
 //
@@ -410,5 +413,16 @@ func TestFetchShardByAccountId(t *testing.T) {
 
 	if shard == nil {
 		t.Errorf("\nValid account ID should return a shard.\n")
+	}
+}
+
+//
+func TestShardNewWebContext(t *testing.T) {
+	InitMockShard()
+
+	_, err := MockShard.NewWebContext()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
 	}
 }
