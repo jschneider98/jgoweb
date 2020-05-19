@@ -497,18 +497,23 @@ func (~StructAcronym~ *~ModelName~) Update() error {
 }
 
 //
-func (mg *ModelGenerator) GetDeleteCode() string {
-	var code string
-	softDelete := false
-	ph := make(map[string]string)
+func (mg *ModelGenerator) IsSoftDelete() bool {
 
 	for key := range mg.Fields {
 		if mg.Fields[key].DbFieldName == "deleted_at" {
-			softDelete = true
+			return true
 		}
 	}
 
-	if softDelete {
+	return false
+}
+
+//
+func (mg *ModelGenerator) GetDeleteCode() string {
+	var code string
+	ph := make(map[string]string)
+
+	if mg.IsSoftDelete() {
 		return mg.GetSoftDeleteCode()
 	}
 
@@ -844,6 +849,7 @@ func (mg *ModelGenerator) GenerateTest() string {
 	code += mg.GetTestFetchByIdCode()
 	code += mg.GetTestInsertCode()
 	code += mg.GetTestUpdateCode()
+	code += mg.GetTestDeleteCode()
 
 	return code
 }
@@ -1017,6 +1023,89 @@ func Test~ModelName~Update(t *testing.T) {
 	if ~Assert~ {
 		t.Errorf("\nERROR: ~ModelName~ does not match save values. Update failed.\n")
 	}
+}
+`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestDeleteCode() string {
+
+	if mg.IsSoftDelete() {
+		return mg.GetTestSoftDeleteCode()
+	}
+
+	return mg.GetTestHardDeleteCode()
+}
+
+//
+func (mg *ModelGenerator) GetTestSoftDeleteCode() string {
+
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+
+	code += util.NamedSprintf(`
+//
+func Test~ModelName~Delete(t *testing.T) {
+	InitMock~ModelName~()
+	err := Mock~ModelName~.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	// verify write
+	~StructAcronym~, err := Fetch~ModelName~ById(jgoweb.MockCtx, Mock~ModelName~.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	if !~StructAcronym~.DeletedAt.Valid {
+		t.Errorf("\nERROR: ~ModelName~ does not match save values. Delete failed.\n")
+	}
+}
+`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestHardDeleteCode() string {
+
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+
+	code += util.NamedSprintf(`
+//
+func Test~ModelName~Delete(t *testing.T) {
+	InitMock~ModelName~()
+	err := Mock~ModelName~.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	// verify write
+	~StructAcronym~, err := Fetch~ModelName~ById(jgoweb.MockCtx, Mock~ModelName~.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	if ~StructAcronym~ != nil {
+		t.Errorf("\nERROR: Delete failed. Fetch should return nil.\n")
+		return
+	}
+
+	Mock~ModelName~ = nil
 }
 `, ph)
 
