@@ -21,3 +21,5 @@ coverage.html
 # Config files
 creds.json
 conns.json
+
+config/config.json
