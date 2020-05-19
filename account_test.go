@@ -362,3 +362,14 @@ func TestGetAllAccounts(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestClusterGetAccounts(t *testing.T) {
+	InitMockCtx()
+
+	_, err := ClusterGetAccounts(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
