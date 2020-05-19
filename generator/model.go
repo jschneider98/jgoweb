@@ -851,6 +851,10 @@ func (mg *ModelGenerator) GenerateTest() string {
 	code += mg.GetTestUpdateCode()
 	code += mg.GetTestDeleteCode()
 
+	if mg.IsSoftDelete() {
+		code += mg.GetTestUndeleteCode()
+	}
+
 	return code
 }
 
@@ -1106,6 +1110,47 @@ func Test~ModelName~Delete(t *testing.T) {
 	}
 
 	Mock~ModelName~ = nil
+}
+`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestUndeleteCode() string {
+
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+
+	code += util.NamedSprintf(`
+//
+func Test~ModelName~Undelete(t *testing.T) {
+	InitMock~ModelName~()
+	err := Mock~ModelName~.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	err := Mock~ModelName~.Unelete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	// verify write
+	~StructAcronym~, err := Fetch~ModelName~ById(jgoweb.MockCtx, Mock~ModelName~.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
+	if ~StructAcronym~ == nil || ~StructAcronym~.DeletedAt.Valid {
+		t.Errorf("\nERROR: ~ModelName~ does not match save values. Undelete failed.\n")
+	}
 }
 `, ph)
 
