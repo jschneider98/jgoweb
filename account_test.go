@@ -47,7 +47,7 @@ func TestFetchAccountById(t *testing.T) {
 }
 
 //
-func TestId(t *testing.T) {
+func TestAccountId(t *testing.T) {
 	InitMockAccount()
 	origVal := MockAccount.GetId()
 	testVal := "test"
@@ -76,7 +76,7 @@ func TestId(t *testing.T) {
 }
 
 //
-func TestDomain(t *testing.T) {
+func TestAccountDomain(t *testing.T) {
 	InitMockAccount()
 	origVal := MockAccount.GetDomain()
 	testVal := "test"
@@ -105,7 +105,7 @@ func TestDomain(t *testing.T) {
 }
 
 //
-func TestCreatedAt(t *testing.T) {
+func TestAccountCreatedAt(t *testing.T) {
 	InitMockAccount()
 	origVal := MockAccount.GetCreatedAt()
 	testVal := "test"
@@ -134,7 +134,7 @@ func TestCreatedAt(t *testing.T) {
 }
 
 //
-func TestUpdatedAt(t *testing.T) {
+func TestAccountUpdatedAt(t *testing.T) {
 	InitMockAccount()
 	origVal := MockAccount.GetUpdatedAt()
 	testVal := "test"
@@ -163,7 +163,7 @@ func TestUpdatedAt(t *testing.T) {
 }
 
 //
-func TestDeletedAt(t *testing.T) {
+func TestAccountDeletedAt(t *testing.T) {
 	InitMockAccount()
 	origVal := MockAccount.GetDeletedAt()
 	testVal := "test"
@@ -302,6 +302,11 @@ func TestAccountUndelete(t *testing.T) {
 //
 func TestNewAccountWithData(t *testing.T) {
 	httpReq, err := http.NewRequest("GET", "http://example.com", nil)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
 	req := &web.Request{}
 	req.Request = httpReq
 
@@ -342,5 +347,18 @@ func TestAccountProcessSubmit(t *testing.T) {
 
 	if !saved {
 		t.Errorf("\nERROR: %v", msg)
+	}
+}
+
+// ******
+
+//
+func TestGetAllAccounts(t *testing.T) {
+	InitMockCtx()
+
+	_, err := GetAllAccounts(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
 	}
 }
