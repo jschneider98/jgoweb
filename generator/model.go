@@ -856,6 +856,8 @@ func (mg *ModelGenerator) GenerateTest() string {
 		code += mg.GetTestUndeleteCode()
 	}
 
+	code += mg.GetTestNewWithDataCode()
+
 	return code
 }
 
@@ -1206,6 +1208,32 @@ func Test~ModelName~Undelete(t *testing.T) {
 
 	if ~StructAcronym~ == nil || ~StructAcronym~.DeletedAt.Valid {
 		t.Errorf("\nERROR: ~ModelName~ does not match save values. Undelete failed.\n")
+	}
+}
+`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestNewWithDataCode() string {
+
+	var code string
+	ph := make(map[string]string)
+
+	ph["~ModelName~"] = mg.ModelName
+
+	code += util.NamedSprintf(`
+//
+func TestNew~ModelName~WithData(t *testing.T) {
+	httpReq, err := http.NewRequest("GET", "http://example.com", nil)
+	req := &web.Request{}
+	req.Request = httpReq
+
+	_, err = New~ModelName~WithData(jgoweb.MockCtx, req)
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
 	}
 }
 `, ph)
