@@ -857,6 +857,7 @@ func (mg *ModelGenerator) GenerateTest() string {
 	}
 
 	code += mg.GetTestNewWithDataCode()
+	code += mg.GetTestProcessSubmitCode()
 
 	return code
 }
@@ -872,6 +873,7 @@ import (
 	"github.com/jschneider98/jgoweb"
 	"net/http"
 	"testing"
+	"strings"
 )
 `
 }
@@ -1103,7 +1105,6 @@ func (mg *ModelGenerator) GetTestDeleteCode() string {
 
 //
 func (mg *ModelGenerator) GetTestSoftDeleteCode() string {
-
 	var code string
 	ph := make(map[string]string)
 
@@ -1138,7 +1139,6 @@ func Test~ModelName~Delete(t *testing.T) {
 
 //
 func (mg *ModelGenerator) GetTestHardDeleteCode() string {
-
 	var code string
 	ph := make(map[string]string)
 
@@ -1176,7 +1176,6 @@ func Test~ModelName~Delete(t *testing.T) {
 
 //
 func (mg *ModelGenerator) GetTestUndeleteCode() string {
-
 	var code string
 	ph := make(map[string]string)
 
@@ -1217,7 +1216,6 @@ func Test~ModelName~Undelete(t *testing.T) {
 
 //
 func (mg *ModelGenerator) GetTestNewWithDataCode() string {
-
 	var code string
 	ph := make(map[string]string)
 
@@ -1227,6 +1225,11 @@ func (mg *ModelGenerator) GetTestNewWithDataCode() string {
 //
 func TestNew~ModelName~WithData(t *testing.T) {
 	httpReq, err := http.NewRequest("GET", "http://example.com", nil)
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+	}
+
 	req := &web.Request{}
 	req.Request = httpReq
 
@@ -1234,6 +1237,60 @@ func TestNew~ModelName~WithData(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("\nERROR: %%v\n", err)
+	}
+}
+`, ph)
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestProcessSubmitCode() string {
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~PostVals~"] = "z=post"
+
+	for _, field := range mg.Fields {
+
+		if !mg.IsTimestamp(field.FieldName) && field.FieldName != "Id" {
+			ph["~PostVals~"] += fmt.Sprintf("&%s=%s", field.FieldName, field.FieldName)
+		}
+	}
+
+	code += util.NamedSprintf(`
+//
+func Test~ModelName~ProcessSubmit(t *testing.T) {
+	~StructAcronym~, err := New~ModelName~(jgoweb.MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+		return
+	}
+
+	httpReq, err := http.NewRequest("POST", "http://example.com", strings.NewReader("~PostVals~"))
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+
+	req := &web.Request{}
+	req.Request = httpReq
+
+	msg, saved, err := ~StructAcronym~.ProcessSubmit(req)
+
+	if err != nil {
+		t.Errorf("\nERROR: %%v\n", err)
+		return
+	}
+
+	if !saved {
+		t.Errorf("\nERROR: %%v", msg)
 	}
 }
 `, ph)
