@@ -585,3 +585,13 @@ func TestUserProcessSubmit(t *testing.T) {
 		t.Errorf("\nERROR: %v", msg)
 	}
 }
+
+//
+func TestFetchAllUserByAccountId(t *testing.T) {
+	_, err := FetchAllUserByAccountId(MockCtx, MockUser.GetAccountId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+}
