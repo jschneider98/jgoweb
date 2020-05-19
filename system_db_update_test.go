@@ -300,3 +300,48 @@ func TestSystemDbUpdateProcessSubmit(t *testing.T) {
 		t.Errorf("\nERROR: %v", msg)
 	}
 }
+
+//
+func TestCreateSystemDbUpdateByUpdateName(t *testing.T) {
+	_, err := CreateSystemDbUpdateByUpdateName(MockCtx, "New test update")
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
+
+//
+func TestSystemDbUpdateRun(t *testing.T) {
+	sdu := CreateSystemDbUpdateNoContext("New test update", "New test update")
+	sdu.SetContext(MockCtx)
+	sdu.Clone()
+
+	sdu.ApplyUpdate = func(ctx ContextInterface) error {
+		return nil
+	}
+
+	needsToRun, err := sdu.NeedsToRun()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	if !needsToRun {
+		t.Errorf("\nERROR: DB update should need to run.\n")
+	}
+
+	err = sdu.Run()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	err = sdu.SetComplete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+}
