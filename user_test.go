@@ -3,6 +3,10 @@
 package jgoweb
 
 import (
+	"fmt"
+	"github.com/gocraft/web"
+	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -405,107 +409,179 @@ func TestUserIsValid(t *testing.T) {
 }
 
 //
-// func TestUserBadId(t *testing.T) {
-// 	id := MockUser.Id
-// 	MockUser.SetId("bad_uuid")
+func TestUserInsert(t *testing.T) {
+	InitMockUser()
+	FirstName := "FirstName Insert"
+	LastName := "LastName Insert"
+	Email := "Email Insert"
+	Password := "Password Insert"
+	RoleId := "3"
 
-// 	err := MockUser.IsValid()
-
-// 	if err == nil {
-// 		t.Errorf("Wrong error returned by validator: %v", err)
-// 	}
-
-// 	MockUser.Id = id
-// }
-
-//
-// func TestUserOptionalId(t *testing.T) {
-// 	id := MockUser.GetId()
-// 	MockUser.SetId("")
-
-// 	err := MockUser.IsValid()
-
-// 	if err != nil {
-// 		t.Errorf("User.Id should be valid (optional): %v %v", MockUser.Id, err)
-// 	}
-
-// 	MockUser.SetId(id)
-// }
-
-//
-// func TestUserBadAccountId(t *testing.T) {
-// 	id := MockUser.GetAccountId()
-// 	MockUser.SetAccountId("bad_uuid")
-
-// 	err := MockUser.IsValid()
-
-// 	if err == nil {
-// 		t.Errorf("User.AccountId should be invalid: %v", MockUser.GetAccountId())
-// 	}
-
-// 	MockUser.SetAccountId(id)
-// }
-
-//
-func TestUserUpdate(t *testing.T) {
-	var err error
-
-	MockUser.SetFirstName("Bob")
-
-	err = MockUser.Save()
+	u, err := NewUser(MockCtx)
 
 	if err != nil {
-		t.Errorf("Failed to update %v, email: %v, accountID: %v", err, MockUser.GetEmail(), MockUser.GetAccountId())
+		t.Errorf("\nERROR: NewUser() failed. %v\n", err)
 	}
 
-	//
-	user, err := FetchUserByEmail(MockUser.Ctx, MockUser.GetEmail())
+	u.SetAccountId(MockUser.GetAccountId())
+	u.SetRoleId(RoleId)
+	u.SetFirstName(FirstName)
+	u.SetLastName(LastName)
+	u.SetEmail(Email)
+	u.SetPassword(Password, Password)
+
+	err = u.Save()
 
 	if err != nil {
-		t.Errorf("Failed to fetch user by email: %v", err)
+		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if user == nil {
-		t.Errorf("Failed to fetch user %v: ", MockUser.GetEmail())
+	if !u.Id.Valid {
+		t.Errorf("\nERROR: User.Id should be set.\n")
 	}
 
-	if user.GetFirstName() != "Bob" {
-		t.Errorf("First name not updated: Expected %v Got: %v", "Bob", user.GetFirstName())
+	// verify write
+	u, err = FetchUserById(MockCtx, u.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	if u == nil || u.GetRoleId() != RoleId || u.GetFirstName() != FirstName || u.GetLastName() != LastName || u.GetEmail() != Email {
+		t.Errorf("\nERROR: User does not match save values. Insert failed.\n")
 	}
 }
 
 //
-func TestUserInsert(t *testing.T) {
-	var err error
+func TestUserUpdate(t *testing.T) {
+	InitMockUser()
+	FirstName := "FirstName Update"
+	LastName := "LastName Update"
+	Email := "Email Update"
 
-	var user *User
-	user = &User{}
-	user.Ctx = MockUser.Ctx
+	MockUser.SetFirstName(FirstName)
+	MockUser.SetLastName(LastName)
+	MockUser.SetEmail(Email)
 
-	user.AccountId = MockUser.AccountId
-	user.SetRoleId("1")
-	user.SetFirstName("Test")
-	user.SetLastName("User")
-	user.SetEmail("MockUser@uxt.com")
-	user.SetPassword("test", "test")
-
-	err = user.Save()
+	err := MockUser.Save()
 
 	if err != nil {
-		t.Errorf("Failed to insert %v", err)
+		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	user, err = FetchUserByEmail(MockUser.Ctx, user.GetEmail())
+	// verify write
+	u, err := FetchUserById(MockCtx, MockUser.GetId())
 
 	if err != nil {
-		t.Errorf("Failed to fetch user by email: %v", err)
+		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if user == nil {
-		t.Errorf("Failed to fetch user %v: ", MockUser.GetEmail())
+	if u == nil || u.GetFirstName() != FirstName || u.GetLastName() != LastName || u.GetEmail() != Email {
+		t.Errorf("\nERROR: User does not match save values. Update failed.\n")
+	}
+}
+
+//
+func TestUserDelete(t *testing.T) {
+	InitMockUser()
+	err := MockUser.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if user.GetFirstName() != "Test" {
-		t.Errorf("First name not inserted: Expected %v Got: %v", "Test", user.GetFirstName())
+	// verify write
+	u, err := FetchUserById(MockCtx, MockUser.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	if !u.DeletedAt.Valid {
+		t.Errorf("\nERROR: User does not match save values. Delete failed.\n")
+	}
+}
+
+//
+func TestUserUndelete(t *testing.T) {
+	InitMockUser()
+	err := MockUser.Delete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	err = MockUser.Undelete()
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	// verify write
+	u, err := FetchUserById(MockCtx, MockUser.GetId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	if u == nil || u.DeletedAt.Valid {
+		t.Errorf("\nERROR: User does not match save values. Undelete failed.\n")
+	}
+}
+
+//
+func TestNewUserWithData(t *testing.T) {
+	httpReq, err := http.NewRequest("GET", "http://example.com", nil)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+
+	req := &web.Request{}
+	req.Request = httpReq
+
+	_, err = NewUserWithData(MockCtx, req)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
+
+//
+func TestUserProcessSubmit(t *testing.T) {
+	u, err := NewUser(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	httpReq, err := http.NewRequest(
+		"POST",
+		"http://example.com",
+		strings.NewReader(
+			fmt.Sprintf("z=post&AccountId=%s&RoleId=3&FirstName=FirstName&LastName=LastName&Email=Email&rawPassword=Password&verifyRawPassword=Password", MockUser.GetAccountId()),
+		),
+	)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+
+	req := &web.Request{}
+	req.Request = httpReq
+
+	msg, saved, err := u.ProcessSubmit(req)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	if !saved {
+		t.Errorf("\nERROR: %v", msg)
 	}
 }
