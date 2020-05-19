@@ -2,17 +2,18 @@ package jgoweb
 
 import (
 	"fmt"
-	"strings"
-	"runtime"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"io/ioutil"
+	"runtime"
+	"strings"
 	"testing"
 )
 
 var MockUser *User
 var MockCtx *WebContext
+var MockAccount *Account
 
 //
 func InitMockUser() {
@@ -23,6 +24,21 @@ func InitMockUser() {
 		var err error
 
 		MockUser, err = FetchUserByShardEmail(MockCtx, "jschneider98@gmail.com")
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+//
+func InitMockAccount() {
+	InitMockUser()
+
+	if MockAccount == nil {
+		var err error
+
+		MockAccount, err = FetchAccountById(MockCtx, MockUser.GetAccountId())
 
 		if err != nil {
 			panic(err)
@@ -60,7 +76,6 @@ func CallerInfo() string {
 // Make a testing request (lifted/modified from gocraft/web)
 func NewTestRequest(method, path string, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
 	request, _ := http.NewRequest(method, path, body)
-
 
 	if method == "POST" && body != nil {
 		request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
