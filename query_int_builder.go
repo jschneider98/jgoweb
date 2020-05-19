@@ -1,18 +1,19 @@
 package jgoweb
 
 import (
+	"fmt"
 	"strings"
 )
 
 type QueryIntBuilder struct {
-	Query string
-	RawQuery string
+	Query        string
+	RawQuery     string
 	InvalidQuery string
-	ctx ContextInterface
+	ctx          ContextInterface
 }
 
 //
-func NewQueryIntBuilder(ctx ContextInterface, rawQuery string) (*QueryIntBuilder) {
+func NewQueryIntBuilder(ctx ContextInterface, rawQuery string) *QueryIntBuilder {
 	builder := QueryIntBuilder{}
 
 	builder.RawQuery = rawQuery
@@ -80,6 +81,7 @@ func (b *QueryIntBuilder) IsValid() bool {
 	err := b.ctx.SelectBySql("SELECT (?::query_int)::text", b.Query).LoadOne(&temp)
 
 	if err != nil {
+		fmt.Printf("\n%v\n", err)
 		return false
 	}
 
@@ -96,19 +98,19 @@ func (b *QueryIntBuilder) Parse() string {
 }
 
 //
-func (b *QueryIntBuilder) GetOperator(rawQuery string) (string) {
+func (b *QueryIntBuilder) GetOperator(rawQuery string) string {
 
 	switch rawQuery {
-		case "and":
-			return "&"
-		case "or":
-			return "|"
-		case "not":
-			return "!"
-		case "(":
-			return "("
-		case ")":
-			return ")"
+	case "and":
+		return "&"
+	case "or":
+		return "|"
+	case "not":
+		return "!"
+	case "(":
+		return "("
+	case ")":
+		return ")"
 	}
 
 	return ""
@@ -133,7 +135,7 @@ FROM (
 ) as main
 `
 
-	stmt := b.ctx.SelectBySql(sql, "%" + rawQuery + "%")
+	stmt := b.ctx.SelectBySql(sql, "%"+rawQuery+"%")
 	err := stmt.LoadOne(&result)
 
 	if err != nil {
