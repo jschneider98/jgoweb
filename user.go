@@ -147,6 +147,8 @@ func (u *User) IsValid() error {
 	// err != nil cases are kind of bad. Most likely a DB error occured, but IsValid only returns validation errors...
 	if !valid || err != nil {
 		u.UserUniqueError = "User already exists."
+
+		fmt.Printf("ERROR: %v", err)
 	}
 
 	return u.Ctx.GetValidator().Struct(u)

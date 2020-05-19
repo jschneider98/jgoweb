@@ -4,7 +4,6 @@ package jgoweb
 
 import (
 	"testing"
-	"database/sql"
 )
 
 //
@@ -12,22 +11,38 @@ func TestNewUser(t *testing.T) {
 	user := &User{}
 
 	InitMockCtx()
-	user = NewUser(MockCtx)
-	user.Email = "test@sure.com"
+	user, err := NewUser(MockCtx)
+
+	if err != nil {
+		t.Errorf("ERROR: %v", err)
+	}
+
+	user.SetEmail("test_valid_email@sure_not_a_valid_domain.com")
+	user.SetFirstName("test")
+	user.SetLastName("user1")
+	user.SetAccountId(MockUser.GetAccountId())
+	user.SetPassword("test", "test")
+	user.SetRoleId("1")
+
+	err = user.Save()
+
+	if err != nil {
+		t.Errorf("ERROR: %v", err)
+	}
 }
 
 //
 func TestFetchUserByEmail(t *testing.T) {
 	InitMockUser()
 
-	user, err := FetchUserByEmail(MockUser.Ctx, MockUser.Email)
+	user, err := FetchUserByEmail(MockUser.Ctx, MockUser.GetEmail())
 
 	if err != nil {
 		t.Errorf("Failed to fetch user by email: %v", err)
 	}
 
 	if user == nil {
-		t.Errorf("Failed to fetch user %v: ", MockUser.Email)
+		t.Errorf("Failed to fetch user %v: ", MockUser.GetEmail())
 	}
 
 	if user.Email != MockUser.Email {
@@ -37,8 +52,8 @@ func TestFetchUserByEmail(t *testing.T) {
 	MockUser.Id = user.Id
 	MockUser.AccountId = user.AccountId
 	MockUser.RoleId = user.RoleId
-	MockUser.GivenName = user.GivenName
-	MockUser.FamilyName = user.FamilyName
+	MockUser.FirstName = user.FirstName
+	MockUser.LastName = user.LastName
 	MockUser.Email = user.Email
 	MockUser.CreatedAt = user.CreatedAt
 	MockUser.UpdatedAt = user.UpdatedAt
@@ -58,7 +73,8 @@ func TestFetchUserByEmail(t *testing.T) {
 
 //
 func TestFetchUserById(t *testing.T) {
-	user, err := FetchUserById(MockUser.Ctx, MockUser.Id)
+	var userId string
+	user, err := FetchUserById(MockUser.Ctx, MockUser.GetId())
 
 	if err != nil {
 		t.Errorf("Failed to fetch user by Id: %v", err)
@@ -70,14 +86,6 @@ func TestFetchUserById(t *testing.T) {
 
 	if user.Email != MockUser.Email {
 		t.Errorf("Fetched wrong user? Expected: %v Got: %v", MockUser.Email, user.Email)
-	}
-
-	// force error
-	userId := "not_a_user"
-	_, err = FetchUserById(MockUser.Ctx, userId)
-
-	if err == nil {
-		t.Errorf("FetchUserById should have failed with uuid of: %v", userId)
 	}
 
 	// force not found
@@ -101,379 +109,106 @@ func TestAuthenticate(t *testing.T) {
 		t.Errorf("User authentication failed. Incorrect password returned true.")
 	}
 
-	result = MockUser.Authenticate("letmein")
+	// result = MockUser.Authenticate("letmein")
 
-	if result == false {
-		t.Errorf("User authentication failed. Correct password returned false.")
-	}
+	// if result == false {
+	// 	t.Errorf("User authentication failed. Correct password returned false.")
+	// }
 }
 
 //
 func TestUserIsValid(t *testing.T) {
-	isValid, err := MockUser.isValid()
+	err := MockUser.IsValid()
 
-	if !isValid {
+	if err != nil {
 		t.Errorf("User should be valid: %v", err)
 	}
 }
 
 //
-func TestUserBadId(t *testing.T) {
-	id := MockUser.Id
-	MockUser.Id = "bad_uuid"
+// func TestUserBadId(t *testing.T) {
+// 	id := MockUser.Id
+// 	MockUser.SetId("bad_uuid")
 
-	isValid, err := MockUser.isValid()
+// 	err := MockUser.IsValid()
 
-	if isValid {
-		t.Errorf("User.Id should be invalid: %v", MockUser.Id)
-	}
+// 	if err == nil {
+// 		t.Errorf("Wrong error returned by validator: %v", err)
+// 	}
 
-	if err == nil || err.Error() != "id: bad_uuid does not validate as uuid" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.Id = id
-}
+// 	MockUser.Id = id
+// }
 
 //
-func TestUserOptionalId(t *testing.T) {
-	id := MockUser.Id
-	MockUser.Id = ""
+// func TestUserOptionalId(t *testing.T) {
+// 	id := MockUser.GetId()
+// 	MockUser.SetId("")
 
-	isValid, err := MockUser.isValid()
+// 	err := MockUser.IsValid()
 
-	if !isValid {
-		t.Errorf("User.Id should be valid (optional): %v %v", MockUser.Id, err)
-	}
+// 	if err != nil {
+// 		t.Errorf("User.Id should be valid (optional): %v %v", MockUser.Id, err)
+// 	}
 
-	MockUser.Id = id
-}
-
-//
-func TestUserBadAccountId(t *testing.T) {
-	id := MockUser.AccountId
-	MockUser.AccountId = "bad_uuid"
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.AccountId should be invalid: %v", MockUser.AccountId)
-	}
-
-	if err == nil || err.Error() != "account_id: bad_uuid does not validate as uuid" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.AccountId = id
-}
+// 	MockUser.SetId(id)
+// }
 
 //
-func TestUserBadRoleId(t *testing.T) {
-	id := MockUser.RoleId
-	MockUser.RoleId = 0
+// func TestUserBadAccountId(t *testing.T) {
+// 	id := MockUser.GetAccountId()
+// 	MockUser.SetAccountId("bad_uuid")
 
-	isValid, err := MockUser.isValid()
+// 	err := MockUser.IsValid()
 
-	if isValid {
-		t.Errorf("User.RoleId should be invalid: %v", MockUser.RoleId)
-	}
+// 	if err == nil {
+// 		t.Errorf("User.AccountId should be invalid: %v", MockUser.GetAccountId())
+// 	}
 
-	if err == nil || err.Error() != "role_id: non zero value required" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	//
-	MockUser.RoleId = 101
-
-	isValid, err = MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.RoleId should be invalid: %v", MockUser.RoleId)
-	}
-
-	if err == nil || err.Error() != "role_id: 101 does not validate as range(1|100)" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.RoleId = id
-}
-
-//
-func TestUserBadGivenName(t *testing.T) {
-	longStr := "IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3"
-	name := MockUser.GivenName
-	MockUser.GivenName = ""
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.GivenName should be invalid: %v", MockUser.GivenName)
-	}
-
-	if err == nil || err.Error() != "given_name: non zero value required" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	//
-
-	MockUser.GivenName = longStr
-
-	isValid, err = MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.GivenName should be invalid: %v", MockUser.GivenName)
-	}
-
-	if err == nil || err.Error() != "given_name: IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3 does not validate as length(1|254)" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.GivenName = name
-}
-
-//
-func TestUserBadFamilyName(t *testing.T) {
-	longStr := "IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3"
-	name := MockUser.FamilyName
-	MockUser.FamilyName = ""
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.FamilyName should be invalid: %v", MockUser.FamilyName)
-	}
-
-	if err == nil || err.Error() != "family_name: non zero value required" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	//
-
-	MockUser.FamilyName = longStr
-
-	isValid, err = MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.FamilyName should be invalid: %v", MockUser.FamilyName)
-	}
-
-	if err == nil || err.Error() != "family_name: IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3 does not validate as length(1|254)" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.FamilyName = name
-}
-
-//
-func TestUserBadEmail(t *testing.T) {
-	longStr := "IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3@gmail.com"
-	email := MockUser.Email
-	MockUser.Email = ""
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.Email should be invalid: %v", MockUser.Email)
-	}
-
-	if err == nil || err.Error() != "email: non zero value required" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	//
-
-	MockUser.Email = "not_email"
-
-	isValid, err = MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.Email should be invalid: %v", MockUser.Email)
-	}
-
-	if err == nil || err.Error() != "email: not_email does not validate as email" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	//
-
-	MockUser.Email = longStr
-
-	isValid, err = MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.Email should be invalid: %v", MockUser.Email)
-	}
-
-	if err == nil || err.Error() != "email: IdViTf7vd9NezkhR8Ftvh4nTVe8re2RGvFGYkMN9alkUQxm7ZrEuHVVpr6CUgK5pdLTh8H4KVVTscwMlQL9ZJF0kcKJuyMizgKkorbNeblelBECnE2G6hxSecsL69dh9eXQGUSAbbdgB6BE3Q11Ffm4GjRbz4Z4cW6D2ZyZ4RIpFtHFlQcsiD2o8QwCitr7LAIRAwSW2DHenEUYh1OVDfpUFMMUtuvnRCYghwNj8iFwrdp3rxKeTBsZU5CdbVC3@gmail.com does not validate as length(1|254)" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.Email = email
-}
-
-//
-func TestUserBadCreatedAt(t *testing.T) {
-	createdAt := MockUser.CreatedAt
-	MockUser.CreatedAt = "bad_timestamp"
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.CreatedAt should be invalid: %v", MockUser.CreatedAt)
-	}
-
-	if err == nil || err.Error() != "created_at: bad_timestamp does not validate as rfc3339" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.CreatedAt = createdAt
-}
-
-//
-func TestUserOptionalCreatedAt(t *testing.T) {
-	createdAt := MockUser.CreatedAt
-	MockUser.CreatedAt = ""
-
-	isValid, err := MockUser.isValid()
-
-	if !isValid {
-		t.Errorf("User.CreatedAt should be valid (optional): %v %v", MockUser.CreatedAt, err)
-	}
-
-	MockUser.CreatedAt = createdAt
-}
-
-//
-func TestUserBadUpdatedAt(t *testing.T) {
-	updatedAt := MockUser.UpdatedAt
-	MockUser.UpdatedAt = "bad_timestamp"
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.UpdatedAt should be invalid: %v", MockUser.UpdatedAt)
-	}
-
-	if err == nil || err.Error() != "updated_at: bad_timestamp does not validate as rfc3339" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.UpdatedAt = updatedAt
-}
-
-//
-func TestUserOptionalUpdatedAt(t *testing.T) {
-	updatedAt := MockUser.UpdatedAt
-	MockUser.UpdatedAt = ""
-
-	isValid, err := MockUser.isValid()
-
-	if !isValid {
-		t.Errorf("User.UpdatedAt should be valid (optional): %v %v", MockUser.UpdatedAt, err)
-	}
-
-	MockUser.UpdatedAt = updatedAt
-}
-
-//
-func TestUserBadDeletedAt(t *testing.T) {
-	deletedAt := MockUser.DeletedAt
-	MockUser.DeletedAt = sql.NullString{"bad_timestamp", true}
-
-	isValid, err := MockUser.isValid()
-
-	if isValid {
-		t.Errorf("User.DeletedAt should be invalid: %v", MockUser.DeletedAt)
-	}
-
-	if err == nil || err.Error() != "deleted_at: is not a valid timestamp" {
-		t.Errorf("Wrong error returned by validator: %v", err)
-	}
-
-	MockUser.DeletedAt = deletedAt
-}
-
-//
-func TestUserOptionalDeletedAt(t *testing.T) {
-	deletedAt := MockUser.DeletedAt
-	MockUser.DeletedAt = sql.NullString{"", true}
-
-	isValid, err := MockUser.isValid()
-
-	if !isValid {
-		t.Errorf("User.DeletedAt should be valid (optional): %v %v", MockUser.DeletedAt, err)
-	}
-
-	//
-	MockUser.DeletedAt = sql.NullString{MockUser.CreatedAt, true}
-
-	isValid, err = MockUser.isValid()
-
-	if !isValid {
-		t.Errorf("User.DeletedAt should be valid: %v %v", MockUser.DeletedAt, err)
-	}
-
-	MockUser.DeletedAt = deletedAt
-}
+// 	MockUser.SetAccountId(id)
+// }
 
 //
 func TestUserUpdate(t *testing.T) {
 	var err error
-	_, err = MockUser.Ctx.Begin()
 
-	if err != nil {
-		t.Errorf("Failed to start transaction %v", err)
-	}
-
-	MockUser.GivenName = "Bob"
+	MockUser.SetFirstName("Bob")
 
 	err = MockUser.Save()
 
 	if err != nil {
-		t.Errorf("Failed to update %v", err)
+		t.Errorf("Failed to update %v, email: %v, accountID: %v", err, MockUser.GetEmail(), MockUser.GetAccountId())
 	}
 
 	//
-
-	user, err := FetchUserByEmail(MockUser.Ctx, MockUser.Email)
+	user, err := FetchUserByEmail(MockUser.Ctx, MockUser.GetEmail())
 
 	if err != nil {
 		t.Errorf("Failed to fetch user by email: %v", err)
 	}
 
 	if user == nil {
-		t.Errorf("Failed to fetch user %v: ", MockUser.Email)
+		t.Errorf("Failed to fetch user %v: ", MockUser.GetEmail())
 	}
 
-	if user.GivenName != "Bob" {
-		t.Errorf("Given name not updated: Expected %v Got: %v", "Bob", user.GivenName)
-	}
-
-	err = MockUser.Ctx.Rollback()
-
-	if err != nil {
-		t.Errorf("Failed to rollback transaction %v", err)
+	if user.GetFirstName() != "Bob" {
+		t.Errorf("First name not updated: Expected %v Got: %v", "Bob", user.GetFirstName())
 	}
 }
 
 //
 func TestUserInsert(t *testing.T) {
 	var err error
-	_, err = MockUser.Ctx.Begin()
-
-	if err != nil {
-		t.Errorf("Failed to start transaction %v", err)
-	}
 
 	var user *User
 	user = &User{}
 	user.Ctx = MockUser.Ctx
 
 	user.AccountId = MockUser.AccountId
-	user.RoleId = 1
-	user.GivenName = "Test"
-	user.FamilyName = "User"
-	user.Email = "MockUser@uxt.com"
+	user.SetRoleId("1")
+	user.SetFirstName("Test")
+	user.SetLastName("User")
+	user.SetEmail("MockUser@uxt.com")
+	user.SetPassword("test", "test")
 
 	err = user.Save()
 
@@ -481,23 +216,17 @@ func TestUserInsert(t *testing.T) {
 		t.Errorf("Failed to insert %v", err)
 	}
 
-	user, err = FetchUserByEmail(MockUser.Ctx, user.Email)
+	user, err = FetchUserByEmail(MockUser.Ctx, user.GetEmail())
 
 	if err != nil {
 		t.Errorf("Failed to fetch user by email: %v", err)
 	}
 
 	if user == nil {
-		t.Errorf("Failed to fetch user %v: ", MockUser.Email)
+		t.Errorf("Failed to fetch user %v: ", MockUser.GetEmail())
 	}
 
-	if user.GivenName != "Test" {
-		t.Errorf("Given name not inserted: Expected %v Got: %v", "Test", user.GivenName)
-	}
-
-	err = MockUser.Ctx.Rollback()
-
-	if err != nil {
-		t.Errorf("Failed to rollback transaction %v", err)
+	if user.GetFirstName() != "Test" {
+		t.Errorf("First name not inserted: Expected %v Got: %v", "Test", user.GetFirstName())
 	}
 }
