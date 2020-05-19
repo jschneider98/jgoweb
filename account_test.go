@@ -3,6 +3,8 @@
 package jgoweb
 
 import (
+	"github.com/gocraft/web"
+	"net/http"
 	"testing"
 )
 
@@ -293,5 +295,18 @@ func TestAccountUndelete(t *testing.T) {
 
 	if a == nil || a.DeletedAt.Valid {
 		t.Errorf("\nERROR: Account does not match save values. Undelete failed.\n")
+	}
+}
+
+//
+func TestNewAccountWithData(t *testing.T) {
+	httpReq, err := http.NewRequest("GET", "http://example.com", nil)
+	req := &web.Request{}
+	req.Request = httpReq
+
+	_, err = NewAccountWithData(MockCtx, req)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
 	}
 }
