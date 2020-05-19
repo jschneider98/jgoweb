@@ -847,6 +847,7 @@ func (mg *ModelGenerator) GenerateTest() string {
 
 	code = mg.GetTestImportCode()
 	code += mg.GetTestFetchByIdCode()
+	code += mg.GetTestSetterGetterCode()
 	code += mg.GetTestInsertCode()
 	code += mg.GetTestUpdateCode()
 	code += mg.GetTestDeleteCode()
@@ -924,6 +925,60 @@ func TestFetch~ModelName~ById(t *testing.T) {
 }
 
 //
+func (mg *ModelGenerator) GetTestSetterGetterCode() string {
+	code := ""
+
+	for _, field := range mg.Fields {
+		code += mg.GetTestSetterGetterByField(field.FieldName)
+	}
+
+	return code
+}
+
+//
+func (mg *ModelGenerator) GetTestSetterGetterByField(fieldName string) string {
+	var code string
+	ph := make(map[string]string)
+
+	ph["~StructAcronym~"] = mg.StructAcronym
+	ph["~ModelName~"] = mg.ModelName
+	ph["~FieldName~"] = fieldName
+
+	code += util.NamedSprintf(`
+//
+func Test~FieldName~(t *testing.T) {
+	InitMock~ModelName~()
+	origVal := Mock~ModelName~.Get~FieldName~()
+	testVal := "test"
+
+	Mock~ModelName~.Set~FieldName~("")
+
+	if Mock~ModelName~.~FieldName~.Valid {
+		t.Errorf("ERROR: ~FieldName~ should be invalid.\n")
+	}
+
+	if Mock~ModelName~.Get~FieldName~() != "" {
+		t.Errorf("ERROR: Set ~FieldName~ failed. Should have a blank value. Got: %%s", Mock~ModelName~.Get~FieldName~())
+	}
+
+	Mock~ModelName~.Set~FieldName~(testVal)
+
+	if !Mock~ModelName~.~FieldName~.Valid {
+		t.Errorf("ERROR: ~FieldName~ should be valid.\n")
+	}
+
+	if Mock~ModelName~.Get~FieldName~() != testVal {
+		t.Errorf("ERROR: Set ~FieldName~ failed. Expected: %%s, Got: %%s", testVal, Mock~ModelName~.Get~FieldName~())
+	}
+
+	Mock~ModelName~.Set~FieldName~(origVal)
+}
+`, ph)
+
+	return code
+}
+
+//
 func (mg *ModelGenerator) IsTimestamp(fieldName string) bool {
 	return fieldName == "CreatedAt" || fieldName == "UpdatedAt" || fieldName == "DeletedAt"
 }
@@ -942,7 +997,7 @@ func (mg *ModelGenerator) GetTestInsertCode() string {
 	for _, field := range mg.Fields {
 
 		if !mg.IsTimestamp(field.FieldName) && field.FieldName != "Id" {
-			ph["~SetSaveVals~"] += fmt.Sprintf("%s := \"%s\"\n\t", field.FieldName, field.FieldName)
+			ph["~SetSaveVals~"] += fmt.Sprintf("%s := \"%s Insert\"\n\t", field.FieldName, field.FieldName)
 			ph["~Setters~"] += fmt.Sprintf("%s.Set%s(%s)\n\t", mg.StructAcronym, field.FieldName, field.FieldName)
 			ph["~Assert~"] += fmt.Sprintf(" || %s.Get%s() != %s", mg.StructAcronym, field.FieldName, field.FieldName)
 		}
@@ -1000,8 +1055,8 @@ func (mg *ModelGenerator) GetTestUpdateCode() string {
 	for _, field := range mg.Fields {
 
 		if !mg.IsTimestamp(field.FieldName) && field.FieldName != "Id" {
-			ph["~SetSaveVals~"] += fmt.Sprintf("%s := \"%s\"\n\t", field.FieldName, field.FieldName)
-			ph["~Setters~"] += fmt.Sprintf("%s.Set%s(%s)\n\t", mg.StructAcronym, field.FieldName, field.FieldName)
+			ph["~SetSaveVals~"] += fmt.Sprintf("%s := \"%s Update\"\n\t", field.FieldName, field.FieldName)
+			ph["~Setters~"] += fmt.Sprintf("Mock%s.Set%s(%s)\n\t", mg.ModelName, field.FieldName, field.FieldName)
 			ph["~Assert~"] += fmt.Sprintf(" || %s.Get%s() != %s", mg.StructAcronym, field.FieldName, field.FieldName)
 		}
 	}
@@ -1011,6 +1066,7 @@ func (mg *ModelGenerator) GetTestUpdateCode() string {
 func Test~ModelName~Update(t *testing.T) {
 	InitMock~ModelName~()
 	~SetSaveVals~
+	~Setters~
 	err := Mock~ModelName~.Save()
 
 	if err != nil {
@@ -1135,7 +1191,7 @@ func Test~ModelName~Undelete(t *testing.T) {
 		t.Errorf("\nERROR: %%v\n", err)
 	}
 
-	err := Mock~ModelName~.Unelete()
+	err = Mock~ModelName~.Undelete()
 
 	if err != nil {
 		t.Errorf("\nERROR: %%v\n", err)
