@@ -5,6 +5,7 @@ package jgoweb
 import (
 	"github.com/gocraft/web"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -308,5 +309,38 @@ func TestNewAccountWithData(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
+	}
+}
+
+//
+func TestAccountProcessSubmit(t *testing.T) {
+	a, err := NewAccount(MockCtx)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	httpReq, err := http.NewRequest("POST", "http://example.com", strings.NewReader("z=post&Domain=Domain"))
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+
+	req := &web.Request{}
+	req.Request = httpReq
+
+	msg, saved, err := a.ProcessSubmit(req)
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+		return
+	}
+
+	if !saved {
+		t.Errorf("\nERROR: %v", msg)
 	}
 }
