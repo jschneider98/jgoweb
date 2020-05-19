@@ -438,3 +438,15 @@ func TestGetShardByAccountId(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestFetchShardByName(t *testing.T) {
+	InitMockCtx()
+	InitMockShard()
+
+	_, err := FetchShardByName(MockCtx, MockShard.GetName())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
