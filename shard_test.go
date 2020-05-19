@@ -450,3 +450,15 @@ func TestFetchShardByName(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestCreateShardByName(t *testing.T) {
+	InitMockCtx()
+	InitMockShard()
+
+	_, err := CreateShardByName(MockCtx, "test_shard")
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
