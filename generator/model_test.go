@@ -10,7 +10,7 @@ import (
 
 //
 func TestGenerateTest(t *testing.T) {
-	mg, err := NewModelGenerator(jgoweb.MockCtx, "system", "db_updates", "s")
+	mg, err := NewModelGenerator(jgoweb.MockCtx, "public", "users", "s")
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)

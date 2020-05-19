@@ -514,11 +514,13 @@ func (u *User) SetPassword(password string, verifyPassword string) {
 
 	if u.currentPassword != "" && !u.Authenticate(u.currentPassword) {
 		u.CurrentPasswordError = "Invalid password. You must supply your current password in order to change your password."
+		u.Password.Valid = false
 		return
 	}
 
 	if u.rawPassword == "" || u.rawPassword != u.verifyRawPassword {
 		u.RawPasswordError = "Password and Verify Password do not match."
+		u.Password.Valid = false
 		return
 	}
 
