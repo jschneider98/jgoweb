@@ -15,6 +15,7 @@ var MockUser *User
 var MockCtx *WebContext
 var MockAccount *Account
 var MockShard *Shard
+var MockShardMap *ShardMap
 
 //
 func InitMockUser() {
@@ -55,6 +56,30 @@ func InitMockShard() {
 		var err error
 
 		MockShard, err = FetchShardByAccountId(MockCtx, MockUser.GetAccountId())
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+//
+func InitMockShardMap() {
+	InitMockUser()
+
+	if MockShardMap == nil {
+		var err error
+
+		MockShardMap, err = CreateShardMap(MockCtx,
+			MockShard.GetId(),
+			"integration_test@test.com",
+			MockUser.GetAccountId())
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = MockShardMap.Save()
 
 		if err != nil {
 			panic(err)
