@@ -54,6 +54,8 @@ github.com/jmespath/go-jmespath v0.3.0/go.mod h1:9QtRXoHjLGCJ5IBSaohpXITPlowMeeY
 github.com/jmoiron/sqlx v1.2.0/go.mod h1:1FEQNm3xlJgrMD+FBdI9+xvCksHtbpVBBw5dYhBSsks=
 github.com/jschneider98/jgocache v0.0.0-20190724223629-76bf06a234b7 h1:a6OuFNx51OksuFTfsneHQ5lAzPQt6YmPZu2c+r3csN8=
 github.com/jschneider98/jgocache v0.0.0-20190724223629-76bf06a234b7/go.mod h1:YHXixodMs5oxNLa0vBI1ci+xlyF0yNOeG6liktTWtb8=
+github.com/jschneider98/jgomodel v0.0.0-20191111181305-aac15307025a h1:U+Amw34fFpfucimT/IbDfDb4nKaIIJcHDTCbTLOrQuM=
+github.com/jschneider98/jgomodel v0.0.0-20191111181305-aac15307025a/go.mod h1:eHXFLY6LExfaHVFe3+SU4KUfCkNJn59AdTrXrsACpxo=
 github.com/jschneider98/jgovalidator v0.0.0-20191115174756-dd06c8857ad2 h1:r3nVyFc3LPPO1F46nx34Jkg2xHkdjzUgazHLAxlBYHo=
 github.com/jschneider98/jgovalidator v0.0.0-20191115174756-dd06c8857ad2/go.mod h1:jf3DSUhdRz8BQJX/dlgnN66ki9Yh4tVCFe4PJZj/jZI=
 github.com/jschneider98/jgovalidator v0.0.0-20200413183512-1d90b1f4c052 h1:iwDZiZM6MQ/jC+D51AT8BzPdFfyWDlSH6mytma0CZrQ=
