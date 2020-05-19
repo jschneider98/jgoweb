@@ -23,3 +23,4 @@ creds.json
 conns.json
 
 config/config.json
+generator/config
