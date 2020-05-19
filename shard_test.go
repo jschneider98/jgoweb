@@ -426,3 +426,15 @@ func TestShardNewWebContext(t *testing.T) {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 }
+
+//
+func TestGetShardByAccountId(t *testing.T) {
+	InitMockCtx()
+	InitMockUser()
+
+	_, err := GetShardByAccountId(MockCtx, MockUser.GetAccountId())
+
+	if err != nil {
+		t.Errorf("\nERROR: %v\n", err)
+	}
+}
