@@ -234,3 +234,32 @@ func (c *Cloud) DownloadToBuffer(key string) (*bytes.Buffer, error) {
 
 	return buffer, nil
 }
+
+//
+func (c *Cloud) Delete(key string) error {
+
+	if !c.FileExists(key) {
+		return nil
+	}
+
+	err := c.InitAws()
+
+	if err != nil {
+		return err
+	}
+
+	svc := s3.New(c.AwsSession)
+
+	input := &s3.DeleteObjectInput{
+		Bucket: aws.String(c.AwsBucket),
+		Key:    aws.String(key),
+	}
+
+	_, err = svc.DeleteObject(input)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
