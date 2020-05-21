@@ -1,18 +1,18 @@
 package jgoweb
 
 import (
-	"fmt"
-	"time"
-	"os"
 	"context"
-	"net/http"
 	"crypto/tls"
+	"fmt"
+	"github.com/alexedwards/scs"
+	"github.com/gocraft/health"
+	"github.com/gocraft/web"
+	"github.com/jschneider98/jgoweb/config"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
-	"github.com/gocraft/web"
-	"github.com/gocraft/health"
-	"github.com/alexedwards/scs"
-	"github.com/jschneider98/jgoweb/config"
+	"net/http"
+	"os"
+	"time"
 )
 
 var healthStream = health.NewStream()
@@ -96,14 +96,14 @@ func StartAll(router *web.Router) {
 }
 
 //
-func GetWebServer(router *web.Router, host string) *http.Server  {
+func GetWebServer(router *web.Router, host string) *http.Server {
 
 	server := &http.Server{
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-			IdleTimeout:  120 * time.Second,
-			Handler:      router,
-		}
+		ReadTimeout:  12 * time.Second,
+		WriteTimeout: 12 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      http.TimeoutHandler(router, 10*time.Second, "Gateway Timeout\n"),
+	}
 
 	server.Addr = host
 
