@@ -199,6 +199,40 @@ func (c *Cloud) FileExists(key string) bool {
 }
 
 //
+func (c *Cloud) GetList(prefix string, maxKeys int64) ([]*string, error) {
+	var results []*string
+
+	if maxKeys == 0 {
+		maxKeys = 1000
+	}
+
+	err := c.InitAws()
+
+	if err != nil {
+		return nil, err
+	}
+
+	svc := s3.New(c.AwsSession)
+	input := &s3.ListObjectsInput{
+		Bucket:  aws.String(c.AwsBucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(maxKeys),
+	}
+
+	list, err := svc.ListObjects(input)
+
+	if err != nil {
+		return results, err
+	}
+
+	for _, val := range list.Contents {
+		results = append(results, val.Key)
+	}
+
+	return results, nil
+}
+
+//
 func (c *Cloud) DownloadToBuffer(key string) (*bytes.Buffer, error) {
 	err := c.InitAws()
 
