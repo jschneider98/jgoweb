@@ -233,6 +233,50 @@ func (c *Cloud) GetList(prefix string, maxKeys int64) ([]*string, error) {
 }
 
 //
+func (c *Cloud) DownloadList(prefix string, maxKeys int64) ([]string, error) {
+	var results []string
+
+	err := c.InitAws()
+
+	if err != nil {
+		return results, err
+	}
+
+	fileList, err := c.GetList(prefix, maxKeys)
+
+	if err != nil {
+		return results, err
+	}
+
+	svc := s3manager.NewDownloader(c.AwsSession)
+
+	objects := []s3manager.BatchDownloadObject{}
+
+	for _, key := range fileList {
+		objects = append(objects, s3manager.BatchDownloadObject{
+			Object: &s3.GetObjectInput{
+				Bucket: aws.String(c.AwsBucket),
+				Key:    aws.String(*key),
+			},
+			Writer: aws.NewWriteAtBuffer(make([]byte, 128)),
+		})
+	}
+
+	iter := &s3manager.DownloadObjectsIterator{Objects: objects}
+	err = svc.DownloadWithIterator(aws.BackgroundContext(), iter)
+
+	if err != nil {
+		return results, err
+	}
+
+	for _, dwnObj := range iter.Objects {
+		results = append(results, string(dwnObj.Writer.(*aws.WriteAtBuffer).Bytes()))
+	}
+
+	return results, nil
+}
+
+//
 func (c *Cloud) DownloadToBuffer(key string) (*bytes.Buffer, error) {
 	err := c.InitAws()
 
