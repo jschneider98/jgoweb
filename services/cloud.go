@@ -341,3 +341,25 @@ func (c *Cloud) Delete(key string) error {
 
 	return nil
 }
+
+//
+func (c *Cloud) DeleteList(prefix string, limit int64) error {
+	err := c.InitAws()
+
+	if err != nil {
+		return err
+	}
+
+	svc := s3.New(c.AwsSession)
+
+	input := &s3.ListObjectsInput{
+		Bucket:  aws.String(c.AwsBucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(limit),
+	}
+
+	iter := s3manager.NewDeleteListIterator(svc, input)
+	batcher := s3manager.NewBatchDeleteWithClient(svc)
+
+	return batcher.Delete(aws.BackgroundContext(), iter)
+}
