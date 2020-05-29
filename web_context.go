@@ -342,6 +342,11 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 	}
 }
 
+//
+func (ctx *WebContext) SetUpdateWebMetrics(val func(code string)) {
+	ctx.UpdateAppMetrics = val
+}
+
 // write a JSON response
 func (ctx *WebContext) JsonResponse(rw web.ResponseWriter, code int, payload string) {
 	rw.Header().Set("Content-Type", "application/json")
