@@ -37,7 +37,6 @@ type WebContext struct {
 	DbSess              *dbr.Session
 	Tx                  *dbr.Tx
 	RollbackTransaction bool
-	UpdateAppMetrics    func(code string)
 }
 
 // Init Db
@@ -337,14 +336,12 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 		webReqHistogram.WithLabelValues(ctx.Method, ctx.EndPoint, code).Observe(duration)
 	}
 
-	if ctx.UpdateAppMetrics != nil {
-		ctx.UpdateAppMetrics(code)
-	}
+	ctx.UpdateAppMetrics(code)
 }
 
 //
-func (ctx *WebContext) SetUpdateAppMetrics(val func(code string)) {
-	ctx.UpdateAppMetrics = val
+func (ctx *WebContext) UpdateAppMetrics(code string) {
+	// can be overloaded via polymorph
 }
 
 // write a JSON response
