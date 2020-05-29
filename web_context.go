@@ -37,6 +37,7 @@ type WebContext struct {
 	DbSess              *dbr.Session
 	Tx                  *dbr.Tx
 	RollbackTransaction bool
+	UpdateAppMetrics    func(code string)
 }
 
 // Init Db
@@ -337,11 +338,6 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 	}
 
 	ctx.UpdateAppMetrics(code)
-}
-
-//
-func (ctx *WebContext) UpdateAppMetrics(code string) {
-	// To be overloaded by app context
 }
 
 // write a JSON response
