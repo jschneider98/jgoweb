@@ -343,7 +343,7 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 }
 
 //
-func (ctx *WebContext) SetUpdateWebMetrics(val func(code string)) {
+func (ctx *WebContext) SetUpdateAppMetrics(val func(code string)) {
 	ctx.UpdateAppMetrics = val
 }
 
