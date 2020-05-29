@@ -11,7 +11,6 @@ import (
 	"github.com/jschneider98/jgovalidator"
 	jgoWebDb "github.com/jschneider98/jgoweb/db"
 	"github.com/jschneider98/jgoweb/util"
-	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/go-playground/validator.v9"
 	"html/template"
 	"net/http"
@@ -37,18 +36,8 @@ type WebContext struct {
 	Db                  *jgoWebDb.Collection
 	DbSess              *dbr.Session
 	Tx                  *dbr.Tx
-	WebReqHistogram     *prometheus.HistogramVec
 	RollbackTransaction bool
 }
-
-var (
-	webReqHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "web_request_duration_milliseconds",
-		Help: "Histogram of web requests. Labels: method, handler, code.",
-	},
-		[]string{"method", "handler", "code"},
-	)
-)
 
 // Init Db
 func InitDbCollection() {
@@ -341,13 +330,18 @@ func (ctx *WebContext) JobWarning(title string, err error, codeList ...string) {
 //
 func (ctx *WebContext) UpdateWebMetrics(code string) {
 
-	if ctx.WebReqHistogram == nil {
-		return
+	if webReqHistogram != nil {
+		// convert to milliseconds
+		duration := float64(time.Since(ctx.StartTime).Nanoseconds()) / 1000000
+		webReqHistogram.WithLabelValues(ctx.Method, ctx.EndPoint, code).Observe(duration)
 	}
 
-	// convert to milliseconds
-	duration := float64(time.Since(ctx.StartTime).Nanoseconds()) / 1000000
-	ctx.WebReqHistogram.WithLabelValues(ctx.Method, ctx.EndPoint, code).Observe(duration)
+	ctx.UpdateAppMetrics(code)
+}
+
+//
+func (ctx *WebContext) UpdateAppMetrics(code string) {
+	// To be overloaded by app context
 }
 
 // write a JSON response
@@ -396,12 +390,6 @@ func (ctx *WebContext) InitDbSession() {
 	ctx.DbSess = dbConn.NewSession(nil)
 }
 
-// Init Metrics
-func (ctx *WebContext) InitMetrics() {
-	ctx.WebReqHistogram = webReqHistogram
-	prometheus.Register(ctx.WebReqHistogram)
-}
-
 // **** Middleware ****
 
 // Auth middleware
@@ -429,7 +417,6 @@ func (ctx *WebContext) AjaxRequireUser(rw web.ResponseWriter, req *web.Request, 
 // Various context dependancy injection (DbCollection, metrics, etc)
 func (ctx *WebContext) LoadDi(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	ctx.InitDbSession()
-	ctx.InitMetrics()
 
 	ctx.Method = strings.ToLower(req.Method)
 	ctx.StartTime = time.Now()

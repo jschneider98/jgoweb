@@ -8,6 +8,7 @@ import (
 	"github.com/gocraft/health"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/config"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"net/http"
@@ -20,6 +21,15 @@ var sessionManager *scs.Manager
 var appConfig *config.Config
 var appConfigPath string = "./config/config.json"
 var appEnvVar string = "JGO_CONFIG"
+
+var (
+	webReqHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "web_request_duration_milliseconds",
+		Help: "Histogram of web requests. Labels: method, handler, code.",
+	},
+		[]string{"method", "handler", "code"},
+	)
+)
 
 //
 func SetConfigPath(path string) {
@@ -69,6 +79,11 @@ func InitSession() {
 	scs.CookieName = appConfig.Server.SessionName
 }
 
+// Init metrics
+func InitMetrics() {
+	prometheus.Register(webReqHistogram)
+}
+
 //
 func Start(router *web.Router) {
 	InitConfig()
@@ -80,6 +95,7 @@ func StartAll(router *web.Router) {
 	InitConfig()
 	InitDbCollection()
 	InitSession()
+	InitMetrics()
 	StartHealthSink(appConfig.Server.HealthHost)
 
 	if appConfig.Server.EnableSsl {
