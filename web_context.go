@@ -337,7 +337,7 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 		webReqHistogram.WithLabelValues(ctx.Method, ctx.EndPoint, code).Observe(duration)
 	}
 
-	ctx.UpdateAppMetrics(code)
+	// ctx.UpdateAppMetrics(code)
 }
 
 // write a JSON response
