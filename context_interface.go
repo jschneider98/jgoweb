@@ -31,5 +31,4 @@ type ContextInterface interface {
 	SetDbSession(dbSess *dbr.Session)
 	GetValidator() *validator.Validate
 	GetTemplate(filename string) (*template.Template, error)
-	UpdateAppMetrics(code string)
 }
