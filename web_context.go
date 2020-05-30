@@ -37,7 +37,6 @@ type WebContext struct {
 	DbSess              *dbr.Session
 	Tx                  *dbr.Tx
 	RollbackTransaction bool
-	UpdateAppMetrics    func(code string)
 }
 
 // Init Db
@@ -335,10 +334,6 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 		// convert to milliseconds
 		duration := float64(time.Since(ctx.StartTime).Nanoseconds()) / 1000000
 		webReqHistogram.WithLabelValues(ctx.Method, ctx.EndPoint, code).Observe(duration)
-	}
-
-	if ctx.UpdateAppMetrics != nil {
-		ctx.UpdateAppMetrics(code)
 	}
 }
 
