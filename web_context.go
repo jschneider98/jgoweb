@@ -337,6 +337,8 @@ func (ctx *WebContext) UpdateWebMetrics(code string) {
 		webReqHistogram.WithLabelValues(ctx.Method, ctx.EndPoint, code).Observe(duration)
 	}
 
+	fmt.Printf("\n UpdateAppMetrics %v \n", ctx.UpdateAppMetrics)
+
 	if ctx.UpdateAppMetrics != nil {
 		ctx.UpdateAppMetrics(code)
 	}
