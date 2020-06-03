@@ -159,7 +159,7 @@ func ToWords(val string) string {
 }
 
 //
-func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
+func GetAdvancedHtmlAlerts(msgType string, canClose bool, messages ...string) template.HTML {
 	var msgs string
 
 	if messages == nil {
@@ -168,11 +168,13 @@ func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
 
 	msgs = fmt.Sprintf("<div class=\"alert alert-%s\" role=\"alert\">\n", msgType)
 
-	msgs += `
-	<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-		<span aria-hidden="true">&times;</span>
-	</button>
-	`
+	if canClose {
+		msgs += `
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+		</button>
+		`
+	}
 
 	for key := range messages {
 		msgs += fmt.Sprintf("\t%s</br>\n", messages[key])
@@ -181,6 +183,11 @@ func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
 	msgs += "</div>"
 
 	return template.HTML(msgs)
+}
+
+//
+func GetHtmlAlerts(msgType string, messages ...string) template.HTML {
+	return GetAdvancedHtmlAlerts(msgType, true, messages...)
 }
 
 //
