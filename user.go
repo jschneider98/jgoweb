@@ -22,6 +22,7 @@ type User struct {
 	CreatedAt            sql.NullString   `json:"CreatedAt" validate:"omitempty,rfc3339"`
 	DeletedAt            sql.NullString   `json:"DeletedAt" validate:"omitempty,rfc3339"`
 	UpdatedAt            sql.NullString   `json:"UpdatedAt" validate:"omitempty,rfc3339"`
+	VerifiedAt           sql.NullString   `json:"VerifiedAt" validate:"omitempty,rfc3339"`
 	Ctx                  ContextInterface `json:"-" validate:"-"`
 	rawPassword          string           `json:"-", validate:"-"`
 	verifyRawPassword    string           `json:"-", validate:"-"`
@@ -180,8 +181,9 @@ public.users (account_id,
 	last_name,
 	email,
 	deleted_at,
-	password)
-VALUES ($1,$2,$3,$4,$5,$6,$7)
+	password,
+	verified_at)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 RETURNING id
 `
 
@@ -199,7 +201,8 @@ RETURNING id
 		u.LastName,
 		u.Email,
 		u.DeletedAt,
-		u.Password).Scan(&u.Id)
+		u.Password,
+		u.VerifiedAt).Scan(&u.Id)
 
 	if err != nil {
 		return err
@@ -227,6 +230,7 @@ func (u *User) Update() error {
 		Set("password", u.Password).
 		Set("deleted_at", u.DeletedAt).
 		Set("updated_at", u.UpdatedAt).
+		Set("verified_at", u.VerifiedAt).
 		Where("id = ?", u.Id).
 		Exec()
 
@@ -535,6 +539,30 @@ func (u *User) SetPassword(password string, verifyPassword string) {
 	u.Password.String = string(hash)
 }
 
+//
+func (u *User) GetVerifiedAt() string {
+
+	if u.VerifiedAt.Valid {
+		return u.VerifiedAt.String
+	}
+
+	return ""
+}
+
+//
+func (u *User) SetVerifiedAt(val string) {
+
+	if val == "" {
+		u.VerifiedAt.Valid = false
+		u.VerifiedAt.String = ""
+
+		return
+	}
+
+	u.VerifiedAt.Valid = true
+	u.VerifiedAt.String = val
+}
+
 // ***
 
 //
@@ -661,4 +689,31 @@ func (u *User) UserShardMapIsValid() (bool, string, error) {
 	_, err := stmt.Load(&accountId)
 
 	return accountId == "", accountId, err
+}
+
+//
+func (u *User) EmailPreviouslyVerified() bool {
+	return u.VerifiedAt.Valid
+}
+
+//
+func (u *User) VerifyEmail(token string) (bool, error) {
+
+	if u.EmailPreviouslyVerified() || !u.Id.Valid {
+		return false, nil
+	}
+
+	if u.GetId() != token {
+		return false, nil
+	}
+
+	u.SetVerifiedAt(time.Now().Format(time.RFC3339))
+
+	err := u.Save()
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
