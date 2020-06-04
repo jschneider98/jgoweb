@@ -127,6 +127,7 @@ func (u *User) Hydrate(req *web.Request) error {
 	u.SetCreatedAt(req.PostFormValue("CreatedAt"))
 	u.SetDeletedAt(req.PostFormValue("DeletedAt"))
 	u.SetUpdatedAt(req.PostFormValue("UpdatedAt"))
+	u.SetVerifiedAt(req.PostFormValue("VerifiedAt"))
 
 	u.rawPassword = req.PostFormValue("rawPassword")
 	u.verifyRawPassword = req.PostFormValue("verifyRawPassword")
