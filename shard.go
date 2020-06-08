@@ -424,7 +424,13 @@ JOIN (
 
 	_, err = stmt.Load(&shard)
 
-	return shard, err
+	if err != nil {
+		return nil, err
+	}
+
+	shard.Ctx = ctx
+
+	return shard, nil
 }
 
 //
