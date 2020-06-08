@@ -396,6 +396,38 @@ func (s *Shard) NewWebContext() (ContextInterface, error) {
 }
 
 //
+func FetchBestShard(ctx ContextInterface) (*Shard, error) {
+	var shard *Shard
+
+	// Shard data is stored on every DB
+	dbConn, err := ctx.GetDb().GetRandomConn()
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbSess := dbConn.NewSession(nil)
+
+	stmt := dbSess.SelectBySql(`
+SELECT s.*
+FROM shards s
+JOIN (
+	SELECT
+		shard_id,
+		count(DISTINCT account_id)
+	FROM public.shard_map
+	WHERE deleted_at IS NULL
+	GROUP BY shard_id
+	ORDER BY count DESC, shard_id
+	LIMIT 1
+) as main ON main.shard_id = s.id`)
+
+	_, err = stmt.Load(&shard)
+
+	return shard, err
+}
+
+//
 func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, error) {
 	var shards []Shard
 
