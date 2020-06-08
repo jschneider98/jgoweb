@@ -428,3 +428,27 @@ func CreateAccount(ctx ContextInterface, shardName string, domain string) error 
 
 	return nil
 }
+
+//
+func FetchAccountByDomain(ctx ContextInterface, domain string) (*Account, error) {
+	var a []Account
+
+	stmt := ctx.Select("*").
+		From("public.accounts").
+		Where("domain = ?", domain).
+		Limit(1)
+
+	_, err := stmt.Load(&a)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(a) == 0 {
+		return nil, nil
+	}
+
+	a[0].Ctx = ctx
+
+	return &a[0], nil
+}
