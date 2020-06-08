@@ -409,7 +409,7 @@ func FetchBestShard(ctx ContextInterface) (*Shard, error) {
 	dbSess := dbConn.NewSession(nil)
 
 	stmt := dbSess.SelectBySql(`
-SELECT s.*
+SELECT s.*, main.count
 FROM shards s
 JOIN (
 	SELECT
@@ -418,9 +418,10 @@ JOIN (
 	FROM public.shard_map
 	WHERE deleted_at IS NULL
 	GROUP BY shard_id
-	ORDER BY count DESC, shard_id
-	LIMIT 1
-) as main ON main.shard_id = s.id`)
+) as main ON main.shard_id = s.id
+WHERE s.deleted_at IS NULL
+ORDER BY count, shard_id
+LIMIT 1`)
 
 	_, err = stmt.Load(&shard)
 
