@@ -32,8 +32,12 @@ type ServerOptions struct {
 
 // DB Connection Strings
 type DbConnOptions struct {
-	ShardName string `json:"shardName"`
-	Dsn       string `json:"dsn"`
+	ShardName        string `json:"shardName"`
+	Dsn              string `json:"dsn"`
+	MaxOpenConns     int    `json:"maxOpenConns"`
+	MaxIdleConns     int    `json:"maxIdleConns"`
+	ConnMaxLifetime  int    `json:"connMaxLifetime"`
+	StatementTimeout int    `json:"statementTimeout"`
 }
 
 // Google Oauth2 Credentials
