@@ -16,29 +16,52 @@ type CollectionInterface interface {
 }
 
 type Collection struct {
-	Config []config.DbConnOptions
-	Conns  map[string]*dbr.Connection
+	Config    []config.DbConnOptions
+	ConfigMap map[string]int
+	Conns     map[string]*dbr.Connection
 }
 
 // Retrieve db obj
 var NewDb = func(dbConns []config.DbConnOptions) (*Collection, error) {
 	conns := make(map[string]*dbr.Connection)
+	configMap := make(map[string]int)
+	var maxOpenConns int
+	var maxIdleConns int
+	var connMaxLifetime int
 
-	for _, connInfo := range dbConns {
+	for index, connInfo := range dbConns {
 		conn, err := dbr.Open("postgres", connInfo.Dsn, nil)
-		// @TODO: Get these numbers from the config
-		conn.SetMaxOpenConns(100)
-		conn.SetMaxIdleConns(25)
-		conn.SetConnMaxLifetime(30 * time.Minute)
+
+		// defaults
+		maxOpenConns = 100
+		maxIdleConns = 25
+		connMaxLifetime = 30
+
+		if connInfo.MaxOpenConns > 0 {
+			maxOpenConns = connInfo.MaxOpenConns
+		}
+
+		if connInfo.MaxIdleConns > 0 {
+			maxIdleConns = connInfo.MaxIdleConns
+		}
+
+		if connInfo.ConnMaxLifetime > 0 {
+			connMaxLifetime = connInfo.ConnMaxLifetime
+		}
+
+		conn.SetMaxOpenConns(maxOpenConns)
+		conn.SetMaxIdleConns(maxIdleConns)
+		conn.SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Minute)
 
 		if err != nil {
 			return nil, err
 		}
 
 		conns[connInfo.ShardName] = conn
+		configMap[connInfo.ShardName] = index
 	}
 
-	db := &Collection{Conns: conns, Config: dbConns}
+	db := &Collection{Conns: conns, Config: dbConns, ConfigMap: configMap}
 
 	return db, nil
 }
@@ -52,6 +75,18 @@ func (db *Collection) GetConnByName(name string) (*dbr.Connection, error) {
 
 	err := errors.New(fmt.Sprintf("Connection %s does not exist", name))
 	return nil, err
+}
+
+// get DB Config by name
+func (db *Collection) GetConfigByName(name string) (config.DbConnOptions, error) {
+	var empty config.DbConnOptions
+
+	if index, ok := db.ConfigMap[name]; ok {
+		return db.Config[index], nil
+	}
+
+	err := errors.New(fmt.Sprintf("Config %s does not exist", name))
+	return empty, err
 }
 
 // get random DB conn
@@ -82,7 +117,14 @@ func (db *Collection) GetSessionByName(name string) (*dbr.Session, error) {
 		return nil, err
 	}
 
+	config, err := db.GetConfigByName(name)
+
+	if err != nil {
+		return nil, err
+	}
+
 	dbSess := dbConn.NewSession(nil)
+	dbSess.Timeout = time.Duration(config.StatementTimeout) * time.Millisecond
 
 	return dbSess, nil
 }
