@@ -42,7 +42,7 @@ func InitMockUser() {
 	if MockUser == nil {
 		var err error
 
-		MockUser, err = FetchUserByShardEmail(MockCtx, "jschneider98@gmail.com")
+		MockUser, err = FetchUserByShardEmail(MockCtx, "james@gogouser.com")
 
 		if err != nil {
 			panic(err)
