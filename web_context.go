@@ -358,7 +358,7 @@ func (ctx *WebContext) JsonErrorResponse(rw web.ResponseWriter, code int, err er
 // write a JSON error response that's consistent with Javascript error events
 // (i.e., {error: {message: "Error msg here"}})
 func (ctx *WebContext) JsonEventErrorResponse(rw web.ResponseWriter, code int, msg string) {
-	payload := fmt.Sprintf(`{"error": {"message": %v}`, strconv.Quote(msg))
+	payload := fmt.Sprintf(`{"error": {"message": %v}}`, strconv.Quote(msg))
 
 	if code == 0 {
 		code = http.StatusInternalServerError
