@@ -479,7 +479,7 @@ func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, erro
 	return &shards[0], nil
 }
 
-// Does not alter web context... These fetches/gets are bit bit confusing :/ Be careful
+// Does not alter web context... These fetches/gets are a bit confusing :/ Be careful
 func GetShardByAccountId(ctx ContextInterface, accountId string) (*Shard, error) {
 	var shard *Shard
 	var err error
