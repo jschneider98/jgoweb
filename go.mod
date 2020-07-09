@@ -10,6 +10,7 @@ require (
 	github.com/gocraft/dbr v0.0.0-20190714181702-8114670a83bd
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gocraft/web v0.0.0-20190207150652-9707327fb69b
+	github.com/jschneider98/gziphandler v1.1.2
 	github.com/jschneider98/jgocache v0.0.0-20190724223629-76bf06a234b7
 	github.com/jschneider98/jgomodel v0.0.0-20191111181305-aac15307025a
 	github.com/jschneider98/jgovalidator v0.0.0-20200413183512-1d90b1f4c052
