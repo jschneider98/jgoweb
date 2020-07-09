@@ -7,6 +7,7 @@ import (
 	"github.com/alexedwards/scs"
 	"github.com/gocraft/health"
 	"github.com/gocraft/web"
+	"github.com/jschneider98/gziphandler"
 	"github.com/jschneider98/jgoweb/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme"
@@ -118,7 +119,7 @@ func GetWebServer(router *web.Router, host string) *http.Server {
 		ReadTimeout:  12 * time.Second,
 		WriteTimeout: 12 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      http.TimeoutHandler(router, 10*time.Second, "Gateway Timeout\n"),
+		Handler:      gziphandler.GzipHandler(http.TimeoutHandler(router, 10*time.Second, "Gateway Timeout\n")),
 	}
 
 	server.Addr = host
