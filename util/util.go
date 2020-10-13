@@ -277,6 +277,19 @@ func PrepareQuery(str string, holders map[string]string) (string, []interface{},
 }
 
 //
+func PrepareQueryQuoted(str string, holders map[string]string) (string, error) {
+	str, params, err := PrepareString(str, holders, "@", "'%s'")
+
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf(str, params...)
+
+	return result, nil
+}
+
+//
 func NamedSprintf(str string, holders map[string]string) string {
 	var params []interface{}
 
