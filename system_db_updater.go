@@ -1,21 +1,23 @@
 package jgoweb
 
-import(
-	"sync"
+import (
 	"errors"
+	"fmt"
+	"github.com/gocraft/dbr"
 	jgowebDb "github.com/jschneider98/jgoweb/db"
 	"github.com/jschneider98/jgoweb/util"
-	"github.com/gocraft/dbr"
+	"sync"
+	"time"
 )
 
-// 
+//
 type SystemDbUpdater struct {
-	Db *jgowebDb.Collection
+	Db        *jgowebDb.Collection
 	DbUpdates []SystemDbUpdateInterface
-	DryRun bool
+	DryRun    bool
 }
 
-// 
+//
 func NewSystemDbUpdater(db *jgowebDb.Collection, updates []SystemDbUpdateInterface, dryRun bool) *SystemDbUpdater {
 	sdu := &SystemDbUpdater{db, updates, dryRun}
 
@@ -34,7 +36,7 @@ func (sdu *SystemDbUpdater) GetDbUpdateInfo() (map[string][]SystemDbUpdateInterf
 	for dbName, dbConn := range sdu.Db.GetConns() {
 		ctx := NewContext(sdu.Db)
 		ctx.SetDbSession(dbConn.NewSession(nil))
-		
+
 		info[dbName] = make([]SystemDbUpdateInterface, 0)
 
 		for _, update := range sdu.DbUpdates {
@@ -72,7 +74,7 @@ func (sdu *SystemDbUpdater) RunAll() error {
 }
 
 //
-func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string) (<-chan error) {
+func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string) <-chan error {
 	var err error
 	// var tx *dbr.Tx
 	errc := make(chan error, 1)
@@ -80,15 +82,13 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 	ctx := NewContext(sdu.Db)
 	ctx.SetDbSession(dbSess)
 
-	if sdu.DryRun {
-		_, err = ctx.Begin()
+	_, err = ctx.Begin()
 
-		if err != nil {
-			errc <- err
-			defer close(errc)
-			
-			return errc
-		}
+	if err != nil {
+		errc <- err
+		defer close(errc)
+
+		return errc
 	}
 
 	go func() {
@@ -120,6 +120,15 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 				errc <- err
 				return
 			}
+		} else {
+			util.Debugln(dbName + ": Production run. Committing changes.")
+
+			err = ctx.Commit()
+
+			if err != nil {
+				errc <- err
+				return
+			}
 		}
 	}()
 
@@ -128,6 +137,8 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 
 //
 func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface, dbName string) error {
+	util.DebugTimeTrack(time.Now(), fmt.Sprintf("%s: %s", dbName, update.GetUpdateName()))
+
 	needsToRun, err := update.NeedsToRun()
 
 	if err != nil {
@@ -179,7 +190,7 @@ func (sdu *SystemDbUpdater) MergeErrors(cs ...<-chan error) <-chan error {
 	}
 
 	wg.Add(len(cs))
-	
+
 	for _, c := range cs {
 		go output(c)
 	}
