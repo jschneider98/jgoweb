@@ -137,7 +137,7 @@ func (sdu *SystemDbUpdater) RunAllByDbSession(dbSess *dbr.Session, dbName string
 
 //
 func (sdu *SystemDbUpdater) Run(update SystemDbUpdateInterface, dbName string) error {
-	util.DebugTimeTrack(time.Now(), fmt.Sprintf("%s: %s", dbName, update.GetUpdateName()))
+	defer util.DebugTimeTrack(time.Now(), fmt.Sprintf("%s: %s", dbName, update.GetUpdateName()))
 
 	needsToRun, err := update.NeedsToRun()
 
