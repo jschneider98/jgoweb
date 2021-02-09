@@ -57,7 +57,7 @@ func FetchShardMapById(ctx ContextInterface, id string) (*ShardMap, error) {
 	var sm []ShardMap
 
 	stmt := ctx.Select("*").
-		From("public.shard_map").
+		From("system.shard_map").
 		Where("id = ?", id).
 		Limit(1)
 
@@ -143,7 +143,7 @@ func (sm *ShardMap) Insert() error {
 
 	query := `
 INSERT INTO
-public.shard_map (shard_id,
+system.shard_map (shard_id,
 	domain,
 	account_id,
 	deleted_at)
@@ -180,7 +180,7 @@ func (sm *ShardMap) Update() error {
 
 	sm.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
-	_, err := sm.Ctx.Update("public.shard_map").
+	_, err := sm.Ctx.Update("system.shard_map").
 		Set("id", sm.Id).
 		Set("shard_id", sm.ShardId).
 		Set("domain", sm.Domain).
@@ -206,7 +206,7 @@ func (sm *ShardMap) Delete() error {
 
 	sm.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
-	_, err := sm.Ctx.Update("public.shard_map").
+	_, err := sm.Ctx.Update("system.shard_map").
 		Set("deleted_at", sm.DeletedAt).
 		Where("id = ?", sm.Id).
 		Exec()
@@ -227,7 +227,7 @@ func (sm *ShardMap) Undelete() error {
 
 	sm.SetDeletedAt("")
 
-	_, err := sm.Ctx.Update("public.shard_map").
+	_, err := sm.Ctx.Update("system.shard_map").
 		Set("deleted_at", sm.DeletedAt).
 		Where("id = ?", sm.Id).
 		Exec()
@@ -439,7 +439,7 @@ func FetchShardMapByDomainAccountId(ctx ContextInterface, domain string, account
 	var sm []ShardMap
 
 	stmt := ctx.Select("*").
-		From("public.shard_map").
+		From("system.shard_map").
 		Where("domain = ?", domain).
 		Where("account_id = ?", accountId).
 		Limit(1)
@@ -464,7 +464,7 @@ func FetchShardMapByAccountId(ctx ContextInterface, accountId string) (*ShardMap
 	var sm []ShardMap
 
 	stmt := ctx.Select("*").
-		From("public.shard_map").
+		From("system.shard_map").
 		Where("account_id = ?", accountId).
 		Limit(1)
 
@@ -488,8 +488,8 @@ func GetAllShardMaps(ctx ContextInterface) ([]ShardMap, error) {
 	var sm []ShardMap
 
 	stmt := ctx.Select("sm.*").
-		From(dbr.I("public.shard_map").As("sm")).
-		Join(dbr.I("public.shards").As("s"), "s.id = sm.shard_id").
+		From(dbr.I("system.shard_map").As("sm")).
+		Join(dbr.I("system.shards").As("s"), "s.id = sm.shard_id").
 		Where("sm.deleted_at IS NULL").
 		Where("s.deleted_at IS NULL").
 		OrderBy("sm.domain")
