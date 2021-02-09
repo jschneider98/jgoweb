@@ -682,7 +682,7 @@ func (u *User) UserShardMapIsValid() (bool, string, error) {
 	}
 
 	stmt := u.Ctx.Select("account_id").
-		From("public.shard_map").
+		From("system.shard_map").
 		Where("domain = ?", u.GetEmail()).
 		Where("account_id <> ?", u.GetAccountId()).
 		Limit(1)
