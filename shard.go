@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"strings"
 	"time"
 )
 
@@ -56,7 +57,7 @@ func FetchShardById(ctx ContextInterface, id string) (*Shard, error) {
 	var s []Shard
 
 	stmt := ctx.Select("*").
-		From("public.shards").
+		From("system.shards").
 		Where("id = ?", id).
 		Limit(1)
 
@@ -141,7 +142,7 @@ func (s *Shard) Insert() error {
 
 	query := `
 INSERT INTO
-public.shards (name,
+system.shards (name,
 	account_count,
 	deleted_at)
 VALUES ($1,$2,$3)
@@ -176,7 +177,7 @@ func (s *Shard) Update() error {
 
 	s.SetUpdatedAt(time.Now().Format(time.RFC3339))
 
-	_, err := s.Ctx.Update("public.shards").
+	_, err := s.Ctx.Update("system.shards").
 		Set("id", s.Id).
 		Set("name", s.Name).
 		Set("account_count", s.AccountCount).
@@ -201,7 +202,7 @@ func (s *Shard) Delete() error {
 
 	s.SetDeletedAt((time.Now()).Format(time.RFC3339))
 
-	_, err := s.Ctx.Update("public.shards").
+	_, err := s.Ctx.Update("system.shards").
 		Set("deleted_at", s.DeletedAt).
 		Where("id = ?", s.Id).
 		Exec()
@@ -222,7 +223,7 @@ func (s *Shard) Undelete() error {
 
 	s.SetDeletedAt("")
 
-	_, err := s.Ctx.Update("public.shards").
+	_, err := s.Ctx.Update("system.shards").
 		Set("deleted_at", s.DeletedAt).
 		Where("id = ?", s.Id).
 		Exec()
@@ -415,7 +416,7 @@ JOIN (
 	SELECT
 		shard_id,
 		count(DISTINCT account_id)
-	FROM public.shard_map
+	FROM system.shard_map
 	WHERE deleted_at IS NULL
 	GROUP BY shard_id
 ) as main ON main.shard_id = s.id
@@ -450,8 +451,8 @@ func FetchShardByAccountId(ctx ContextInterface, accountId string) (*Shard, erro
 	stmt := dbSess.SelectBySql(`
 	SELECT
 		s.*
-	FROM public.shard_map sm
-	JOIN public.shards s ON s.id = sm.shard_id
+	FROM system.shard_map sm
+	JOIN system.shards s ON s.id = sm.shard_id
 	WHERE sm.account_id = ?
 	LIMIT 1`,
 		accountId)
@@ -487,8 +488,8 @@ func GetShardByAccountId(ctx ContextInterface, accountId string) (*Shard, error)
 	stmt := ctx.SelectBySql(`
 	SELECT
 		s.*
-	FROM public.shard_map sm
-	JOIN public.shards s ON s.id = sm.shard_id
+	FROM system.shard_map sm
+	JOIN system.shards s ON s.id = sm.shard_id
 	WHERE sm.account_id = ?
 	LIMIT 1`,
 		accountId)
@@ -516,7 +517,7 @@ func FetchShardByName(ctx ContextInterface, shardName string) (*Shard, error) {
 	stmt := ctx.SelectBySql(`
 	SELECT
 		s.*
-	FROM public.shards s
+	FROM system.shards s
 	WHERE s.name = ?
 	LIMIT 1`,
 		shardName)
@@ -573,15 +574,62 @@ func FetchShardByEmail(ctx ContextInterface, email string) (*Shard, error) {
 
 	dbSess := dbConn.NewSession(nil)
 
-	// @TODO: domain shouldn't be full email for non-personal accounts
 	stmt := dbSess.SelectBySql(`
 	SELECT
 		s.*
-	FROM public.shard_map sm
-	JOIN public.shards s ON s.id = sm.shard_id
+	FROM system.shard_map sm
+	JOIN system.shards s ON s.id = sm.shard_id
 	WHERE sm.domain = ?
 	LIMIT 1`,
 		email)
+
+	_, err = stmt.Load(&shards)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(shards) == 0 {
+		return FetchShardByDomain(ctx, email)
+	}
+
+	// Set db session for this shard
+	dbSess, err = ctx.GetDb().GetSessionByName(shards[0].GetName())
+
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.SetDbSession(dbSess)
+	shards[0].Ctx = ctx
+
+	return &shards[0], nil
+}
+
+//
+func FetchShardByDomain(ctx ContextInterface, email string) (*Shard, error) {
+	var shards []Shard
+
+	// Shard data is stored on every DB
+	dbConn, err := ctx.GetDb().GetRandomConn()
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbSess := dbConn.NewSession(nil)
+
+	emailParts := strings.Split(email, "@")
+	domain := emailParts[len(emailParts)-1]
+
+	stmt := dbSess.SelectBySql(`
+	SELECT
+		s.*
+	FROM system.shard_map sm
+	JOIN system.shards s ON s.id = sm.shard_id
+	WHERE sm.domain = ?
+	LIMIT 1`,
+		domain)
 
 	_, err = stmt.Load(&shards)
 
@@ -632,7 +680,7 @@ func GetAllShards(ctx ContextInterface) ([]Shard, error) {
 	var s []Shard
 
 	stmt := ctx.Select("*").
-		From("public.shards").
+		From("system.shards").
 		OrderBy("account_count, name")
 
 	_, err := stmt.Load(&s)
