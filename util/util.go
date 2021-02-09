@@ -378,3 +378,13 @@ func StrPad(input string, padLength int, padString string, padType string) strin
 
 	return output
 }
+
+//
+func jsonPrettyPrint(in string) string {
+	var out bytes.Buffer
+	err := json.Indent(&out, []byte(in), "", "\t")
+	if err != nil {
+		return in
+	}
+	return out.String()
+}
