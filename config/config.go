@@ -20,7 +20,7 @@ type Config struct {
 	Integration       IntegrationOptions      `json:"integration"`
 	Autocert          AutocertOptions         `json:"autocert"`
 	CustomRaw         []string                `json:"custom"`
-	Custom            url.Values              `json:"-"`
+	Custom            *url.Values             `json:"-"`
 	AutocertCache     autocert.Cache          `json:"-"`
 }
 
