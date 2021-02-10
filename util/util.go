@@ -381,7 +381,7 @@ func StrPad(input string, padLength int, padString string, padType string) strin
 }
 
 //
-func jsonPrettyPrint(in string) string {
+func JsonPrettyPrint(in string) string {
 	var out bytes.Buffer
 	err := json.Indent(&out, []byte(in), "", "\t")
 	if err != nil {
