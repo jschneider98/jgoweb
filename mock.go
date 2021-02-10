@@ -11,6 +11,7 @@ import (
 	"testing"
 )
 
+// These aren't true mocks. More like "test" structs
 var MockUser *User
 var MockCtx *WebContext
 var MockAccount *Account
@@ -20,13 +21,14 @@ var MockSystemDbUpdate *SystemDbUpdate
 
 //
 func InitMockCtx() {
+	InitConfig()
 	InitDbCollection()
 	var err error
 
 	if MockCtx == nil {
 		MockCtx = &WebContext{}
 		MockCtx.Db = db
-		MockCtx.DbSess, err = db.GetSessionByName("uxt_0000")
+		MockCtx.DbSess, err = db.GetSessionByName(appConfig.Integration.ShardName)
 
 		if err != nil {
 			panic(err)
@@ -38,11 +40,12 @@ func InitMockCtx() {
 func InitMockUser() {
 	InitDbCollection()
 	InitMockCtx()
+	InitConfig()
 
 	if MockUser == nil {
 		var err error
 
-		MockUser, err = FetchUserByShardEmail(MockCtx, "james@gogouser.com")
+		MockUser, err = FetchUserByShardEmail(MockCtx, appConfig.Integration.UserEmail)
 
 		if err != nil {
 			panic(err)

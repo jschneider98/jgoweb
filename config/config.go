@@ -7,7 +7,9 @@ import (
 	"github.com/jschneider98/jgocache/autocert/cache"
 	"golang.org/x/crypto/acme/autocert"
 	"io/ioutil"
+	"net/url"
 	"os"
+	"strings"
 )
 
 // Config file definition
@@ -15,7 +17,10 @@ type Config struct {
 	Server            ServerOptions           `json:"server"`
 	DbConns           []DbConnOptions         `json:"dbConns"`
 	GoogleOauth2Creds GoogleOauth2Credentials `json:"googleOauth2Credentials"`
+	Integration       IntegrationOptions      `json:"integration"`
 	Autocert          AutocertOptions         `json:"autocert"`
+	CustomRaw         []string                `json:"custom"`
+	Custom            url.Values              `json:"-"`
 	AutocertCache     autocert.Cache          `json:"-"`
 }
 
@@ -54,6 +59,13 @@ type AutocertOptions struct {
 	CacheOptions map[string]string `json:"cacheOptions"`
 }
 
+// Integration test configuration
+type IntegrationOptions struct {
+	ShardName string `json:"shardName"`
+	AccountId string `json:"accountId"`
+	UserEmail string `json:"userEmail"`
+}
+
 // Reads json configuration file and returns Config
 func New(path string, envVar string) (*Config, error) {
 	config, _ := NewFromEnv(envVar)
@@ -80,6 +92,12 @@ func NewFromFile(path string) (*Config, error) {
 	}
 
 	config.EnsureBasicOptions()
+
+	err = config.LoadCustomOptions()
+
+	if err != nil {
+		return nil, err
+	}
 
 	_, err = config.GetAutocertCache()
 
@@ -110,6 +128,12 @@ func NewFromEnv(envVar string) (*Config, error) {
 
 	config.EnsureBasicOptions()
 
+	err = config.LoadCustomOptions()
+
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = config.GetAutocertCache()
 
 	if err != nil {
@@ -138,6 +162,20 @@ func (c *Config) EnsureBasicOptions() {
 	if c.Autocert.DirectoryURL == "" {
 		c.Autocert.DirectoryURL = "https://acme-v01.api.letsencrypt.org/directory"
 	}
+}
+
+//
+func (c *Config) LoadCustomOptions() error {
+
+	for _, option := range c.CustomRaw {
+		optionParts := strings.Split(option, "-:-")
+
+		if len(optionParts) == 2 {
+			c.Custom.Set(optionParts[0], optionParts[1])
+		}
+	}
+
+	return nil
 }
 
 //
