@@ -20,7 +20,7 @@ type Config struct {
 	Integration       IntegrationOptions      `json:"integration"`
 	Autocert          AutocertOptions         `json:"autocert"`
 	CustomRaw         []string                `json:"custom"`
-	Custom            *url.Values             `json:"-"`
+	Custom            url.Values              `json:"-"`
 	AutocertCache     autocert.Cache          `json:"-"`
 }
 
@@ -166,6 +166,10 @@ func (c *Config) EnsureBasicOptions() {
 
 //
 func (c *Config) LoadCustomOptions() error {
+
+	if c.Custom == nil {
+		c.Custom = url.Values{}
+	}
 
 	for _, option := range c.CustomRaw {
 		optionParts := strings.Split(option, "-:-")
