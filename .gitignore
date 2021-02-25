@@ -22,5 +22,5 @@ coverage.html
 creds.json
 conns.json
 
-config/config.json
+config/config.json*
 generator/config
