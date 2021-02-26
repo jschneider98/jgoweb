@@ -42,7 +42,7 @@ func NewSystemJob(ctx ContextInterface) (*SystemJob, error) {
 // Set defaults
 func (sj *SystemJob) SetDefaults() {
 	sj.SetPriority("90")
-
+	sj.SetQueuedAt(time.Now().Format(time.RFC3339))
 }
 
 // New model with data
