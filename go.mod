@@ -6,6 +6,7 @@ require (
 	github.com/alexedwards/scs v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/aws/aws-sdk-go v1.30.21
+	github.com/carlescere/scheduler v0.0.0-20170109141437-ee74d2f83d82
 	github.com/go-redis/redis v6.15.6+incompatible // indirect
 	github.com/gocraft/dbr v0.0.0-20190714181702-8114670a83bd
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
