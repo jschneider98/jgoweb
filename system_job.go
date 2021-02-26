@@ -27,8 +27,8 @@ type SystemJob struct {
 
 // DataValues
 type DataValues struct {
-	Key   sql.NullString `json:"key"`
-	Value sql.NullString `json:"value"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 // Empty new model
@@ -527,7 +527,7 @@ func (sj *SystemJob) GetDataValues() (url.Values, error) {
 	}
 
 	for _, item := range data {
-		values.Set(item.Key.String, item.Value.String)
+		values.Set(item.Key, item.Value)
 	}
 
 	return values, nil
