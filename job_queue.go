@@ -130,6 +130,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		// @TODO: Handle DB failure?
 		if err != nil {
+			log.Printf("ERROR: %s\n", err)
 			return err
 		}
 
@@ -143,6 +144,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		// @TODO: Handle DB failure?
 		if err != nil {
+			log.Printf("ERROR: %s\n", err)
 			return err
 		}
 
@@ -156,6 +158,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		// @TODO: Handle DB failure?
 		if err != nil {
+			log.Printf("ERROR: %s\n", err)
 			return err
 		}
 
@@ -168,7 +171,12 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		if err != nil {
 			// @TODO: handle DB failure?
-			sysJob.Fail(err)
+			err = sysJob.Fail(err)
+
+			if err != nil {
+				log.Printf("ERROR: %s\n", err)
+			}
+
 			return
 		}
 
@@ -188,7 +196,12 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 				return
 			case <-job.GetCheckinChannel():
 				// @TODO: handle DB failure?
-				sysJob.Checkin(job.GetStatus())
+				err = sysJob.Checkin(job.GetStatus())
+
+				if err != nil {
+					log.Printf("ERROR: %s\n", err)
+				}
+
 			default:
 			}
 		}
