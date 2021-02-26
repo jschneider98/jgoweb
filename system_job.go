@@ -2,8 +2,11 @@ package jgoweb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"github.com/gocraft/web"
 	"github.com/jschneider98/jgoweb/util"
+	"net/url"
+	"time"
 )
 
 // SystemJob
@@ -20,6 +23,12 @@ type SystemJob struct {
 	EndedAt     sql.NullString   `json:"EndedAt" validate:"omitempty,rfc3339"`
 	Error       sql.NullString   `json:"Error" validate:"omitempty"`
 	Ctx         ContextInterface `json:"-" validate:"-"`
+}
+
+// DataValues
+type DataValues struct {
+	Key   sql.NullString `json:"key"`
+	Value sql.NullString `json:"value"`
 }
 
 // Empty new model
@@ -496,4 +505,53 @@ func (sj *SystemJob) SetError(val string) {
 
 	sj.Error.Valid = true
 	sj.Error.String = val
+}
+
+// ************
+
+//
+func (sj *SystemJob) GetDataValues() (url.Values, error) {
+	values := url.Values{}
+	var data []DataValues
+
+	jsonStr := sj.GetData()
+
+	if jsonStr == "" {
+		return values, nil
+	}
+
+	err := json.Unmarshal([]byte(jsonStr), &data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range data {
+		values.Set(item.Key.String, item.Value.String)
+	}
+
+	return values, nil
+}
+
+//
+func (sj *SystemJob) Fail(err error) error {
+	sj.SetError(err.Error())
+	sj.SetEndedAt((time.Now()).Format(time.RFC3339))
+
+	return sj.Save()
+}
+
+//
+func (sj *SystemJob) End() error {
+	sj.SetEndedAt((time.Now()).Format(time.RFC3339))
+
+	return sj.Save()
+}
+
+//
+func (sj *SystemJob) Checkin(status string) error {
+	sj.SetStatus(status)
+	sj.SetCheckinAt((time.Now()).Format(time.RFC3339))
+
+	return sj.Save()
 }
