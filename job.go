@@ -31,10 +31,10 @@ func NewJobExample() *JobExample {
 }
 
 //
-func (j *JobExample) Run() {
+func (j *JobExample) Run() error {
 
 	if j.isRunning || j.isDone {
-		return
+		return nil
 	}
 
 	j.quit = make(chan bool, 1)
@@ -58,6 +58,8 @@ func (j *JobExample) Run() {
 		j.NumSleeps++
 		j.isDone = true
 	}(j)
+
+	return nil
 }
 
 //
