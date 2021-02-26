@@ -542,6 +542,13 @@ func (sj *SystemJob) Fail(err error) error {
 }
 
 //
+func (sj *SystemJob) Start() error {
+	sj.SetStartedAt((time.Now()).Format(time.RFC3339))
+
+	return sj.Save()
+}
+
+//
 func (sj *SystemJob) End() error {
 	sj.SetEndedAt((time.Now()).Format(time.RFC3339))
 
