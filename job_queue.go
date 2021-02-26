@@ -149,6 +149,19 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
+	err = sysJob.Start()
+
+	if err != nil {
+		err = sysJob.Fail(err)
+
+		// @TODO: Handle DB failure?
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	go func(job JobInterface, sysJob *SystemJob) {
 		var err error
 		err = job.Run()
