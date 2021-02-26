@@ -1,11 +1,23 @@
 package jgoweb
 
+import (
+	"github.com/carlescere/scheduler"
+	"log"
+)
+
+// SystemJob = Data store backed job (job status, queued, started, ended etc)
+// Job = Actual job to run
+// SchedJob = scheduler job that checks SystemJobs and manages running Jobs
+// @TODO: Add cancel Job functionality (like 80% of the way there already with Job.Quit())
+
 type JobQueue struct {
-	MaxConcurrency uint64
-	Ctx            ContextInterface
-	jobs           []JobInterface
-	dataStore      JobQueueStoreInterface
-	factory        JobFactoryInterface
+	MaxConcurrency  uint64
+	ProcessInterval int
+	SchedJob        *scheduler.Job
+	Ctx             ContextInterface
+	jobs            []JobInterface
+	dataStore       JobQueueStoreInterface
+	factory         JobFactoryInterface
 }
 
 //
@@ -14,7 +26,62 @@ func NewJobQueue(ctx ContextInterface, dataStore JobQueueStoreInterface, factory
 	jq.MaxConcurrency = 50
 	jq.jobs = make([]JobInterface, 0)
 
+	// Num seconds to process jobs
+	jq.ProcessInterval = 60
+
 	return jq, nil
+}
+
+//
+func (jq *JobQueue) Run() error {
+	var err error
+
+	if jq.SchedJob != nil {
+		jq.Stop()
+	}
+
+	fn := func() {
+		err := jq.ProcessJobs()
+
+		if err != nil {
+			log.Printf("ERROR: %s", err)
+		}
+	}
+
+	jq.SchedJob, err = scheduler.Every(jq.ProcessInterval).Seconds().Run(fn)
+
+	return err
+}
+
+// Same as normal, but worker will process only one job at a time
+func (jq *JobQueue) RunWorker() error {
+	var err error
+
+	if jq.SchedJob != nil {
+		jq.Stop()
+	}
+
+	fn := func() {
+		err := jq.WorkerProcessJobs()
+
+		if err != nil {
+			log.Printf("ERROR: %s", err)
+		}
+	}
+
+	jq.SchedJob, err = scheduler.Every(jq.ProcessInterval).Seconds().Run(fn)
+
+	return err
+}
+
+//
+func (jq *JobQueue) Stop() {
+	if jq.SchedJob == nil {
+		return
+	}
+
+	jq.SchedJob.Quit <- true
+	jq.SchedJob = nil
 }
 
 // Simple wrapper
@@ -23,11 +90,27 @@ func (jq *JobQueue) EnqueueJob(job *SystemJob) error {
 }
 
 //
+func (jq *JobQueue) WorkerProcessJobs() error {
+	sysJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
+
+	if err != nil {
+		return err
+	}
+
+	if sysJobs != nil && len(sysJobs) > 0 {
+		sysJobs[0].Ctx = jq.Ctx
+		jq.processJob(&sysJobs[0])
+	}
+
+	return nil
+}
+
+//
 func (jq *JobQueue) ProcessJobs() error {
 	sysJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	for _, sysJob := range sysJobs {
