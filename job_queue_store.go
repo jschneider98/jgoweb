@@ -1,7 +1,7 @@
 package jgoweb
 
 type JobQueueStoreInterface interface {
-	GetNextJobs(maxConcurrency uint64) ([]SystemJob, error)
+	GetNextJobs(uint64) ([]SystemJob, error)
 	EnqueueJob(*SystemJob) error
 }
 
@@ -31,7 +31,7 @@ func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]SystemJob,
 	}
 
 	stmt := jqs.Ctx.SelectBySql(`
-		SELECT *
+			SELECT *
 			FROM system.jobs
 			WHERE
 				started_at IS NULL
