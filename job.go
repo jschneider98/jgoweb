@@ -69,8 +69,6 @@ func (j *JobExample) Run() error {
 		fmt.Println("2nd sleep done")
 
 		j.NumSleeps++
-		j.checkin("100% complete")
-
 		j.isRunning = false
 		j.isDone = true
 		j.Done <- true
