@@ -15,11 +15,6 @@ type JobInterface interface {
 	GetCheckinChannel() chan bool
 }
 
-type JobParam struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
 type JobExample struct {
 	NumSleeps int
 	quit      chan bool
