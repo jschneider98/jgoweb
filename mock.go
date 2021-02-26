@@ -17,6 +17,7 @@ var MockCtx *WebContext
 var MockAccount *Account
 var MockShard *Shard
 var MockShardMap *ShardMap
+var MockSystemJob *SystemJob
 var MockSystemDbUpdate *SystemDbUpdate
 
 //
@@ -61,6 +62,22 @@ func InitMockAccount() {
 		var err error
 
 		MockAccount, err = FetchAccountById(MockCtx, MockUser.GetAccountId())
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+//
+func InitMockSystemJob() {
+	InitMockCtx()
+	InitMockUser()
+
+	if MockSystemJob == nil {
+		var err error
+
+		MockSystemJob, err = NewSystemJob(MockCtx)
 
 		if err != nil {
 			panic(err)
