@@ -57,12 +57,11 @@ func TestJobQueueProcessJob(t *testing.T) {
 		t.Errorf("ERROR: %v\n", sysJob.GetError())
 	}
 
-	// @TEMP: Job queue uses multiple transactions. Need to force single trans opt for testing only.
-	// if sysJob.GetStatus() == "" {
-	// 	t.Errorf("ERROR: System Job status is blank, but should be set.\n")
-	// }
+	if sysJob.GetStatus() == "" {
+		t.Errorf("ERROR: System Job status is blank, but should be set.\n")
+	}
 
-	// if sysJob.GetEndedAt() == "" {
-	// 	t.Errorf("ERROR: System Job endded at is blank, but should be set.\n")
-	// }
+	if sysJob.GetEndedAt() == "" {
+		t.Errorf("ERROR: System Job endded at is blank, but should be set.\n")
+	}
 }
