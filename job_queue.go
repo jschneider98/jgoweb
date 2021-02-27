@@ -137,7 +137,11 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
-	job, err := jq.factory.New(jq.Ctx, sysJob.GetName(), params)
+	// NOTE: Must use a distinct DB session
+	ctx := NewContext(jq.Ctx.GetDb())
+	ctx.SetDbSession(jq.Ctx.GetDbSession().Connection.NewSession(nil))
+
+	job, err := jq.factory.New(ctx, sysJob.GetName(), params)
 
 	if err != nil {
 		err = sysJob.Fail(err)
