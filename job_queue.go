@@ -100,7 +100,7 @@ func (jq *JobQueue) WorkerProcessJobs() error {
 	}
 
 	if jq.Debug {
-		log.Printf("Num jobs to run: %s %v", util.WhereAmI(), len(sysJobs))
+		log.Printf("%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
 	}
 
 	if sysJobs != nil && len(sysJobs) > 0 {
@@ -121,7 +121,7 @@ func (jq *JobQueue) ProcessJobs() error {
 	}
 
 	if jq.Debug {
-		log.Printf("Num jobs to run: %s %v", util.WhereAmI(), len(sysJobs))
+		log.Printf("%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
 	}
 
 	for _, sysJob := range sysJobs {
