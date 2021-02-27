@@ -2,6 +2,7 @@ package jgoweb
 
 import (
 	"github.com/carlescere/scheduler"
+	"github.com/jschneider98/jgoweb/util"
 	"log"
 )
 
@@ -44,7 +45,7 @@ func (jq *JobQueue) Run() error {
 		err := jq.ProcessJobs()
 
 		if err != nil {
-			log.Printf("ERROR: %s", err)
+			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 		}
 	}
 
@@ -65,7 +66,7 @@ func (jq *JobQueue) RunWorker() error {
 		err := jq.WorkerProcessJobs()
 
 		if err != nil {
-			log.Printf("ERROR: %s", err)
+			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 		}
 	}
 
@@ -130,7 +131,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		// @TODO: Handle DB failure?
 		if err != nil {
-			log.Printf("ERROR: %s\n", err)
+			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 			return err
 		}
 
@@ -144,7 +145,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		// @TODO: Handle DB failure?
 		if err != nil {
-			log.Printf("ERROR: %s\n", err)
+			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 			return err
 		}
 
@@ -158,7 +159,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 		// @TODO: Handle DB failure?
 		if err != nil {
-			log.Printf("ERROR: %s\n", err)
+			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 			return err
 		}
 
@@ -174,7 +175,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 			err = sysJob.Fail(err)
 
 			if err != nil {
-				log.Printf("ERROR: %s\n", err)
+				log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 			}
 
 			return
@@ -199,7 +200,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 				err = sysJob.Checkin(job.GetStatus())
 
 				if err != nil {
-					log.Printf("ERROR: %s\n", err)
+					log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 				}
 
 			default:
