@@ -156,7 +156,9 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
-	job, err := jq.factory.New(sysJob.Ctx, sysJob.GetName(), params)
+	ctx := jq.NewContext()
+
+	job, err := jq.factory.New(ctx, sysJob.GetName(), params)
 
 	if err != nil {
 		err = sysJob.Fail(err)
