@@ -99,8 +99,7 @@ func (jq *JobQueue) WorkerProcessJobs() error {
 	}
 
 	if sysJobs != nil && len(sysJobs) > 0 {
-		// NOTE: Must use distinct DB session per job
-		sysJobs[0].Ctx = jq.NewContext()
+		sysJobs[0].Ctx = jq.Ctx
 		jq.processJob(&sysJobs[0])
 	}
 
@@ -116,8 +115,7 @@ func (jq *JobQueue) ProcessJobs() error {
 	}
 
 	for _, sysJob := range sysJobs {
-		// NOTE: Must use distinct DB session per job
-		sysJob.Ctx = jq.NewContext()
+		sysJob.Ctx = jq.Ctx
 		jq.processJob(&sysJob)
 	}
 
@@ -147,7 +145,10 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
-	job, err := jq.factory.New(sysJob.Ctx, sysJob.GetName(), params)
+	// NOTE: Must use distinct DB session per job
+	ctx := jq.NewContext()
+
+	job, err := jq.factory.New(ctx, sysJob.GetName(), params)
 
 	if err != nil {
 		err = sysJob.Fail(err)
