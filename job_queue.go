@@ -15,6 +15,7 @@ type JobQueue struct {
 	MaxConcurrency  uint64
 	ProcessInterval int
 	SchedJob        *scheduler.Job
+	Debug           bool
 	Ctx             ContextInterface
 	jobs            []JobInterface
 	dataStore       JobQueueStoreInterface
@@ -98,6 +99,10 @@ func (jq *JobQueue) WorkerProcessJobs() error {
 		return err
 	}
 
+	if jq.Debug {
+		log.Printf("Num jobs to run: %s %v", util.WhereAmI(), len(sysJobs))
+	}
+
 	if sysJobs != nil && len(sysJobs) > 0 {
 		// NOTE: Must use distinct DB session per job
 		sysJobs[0].Ctx = jq.NewContext()
@@ -113,6 +118,10 @@ func (jq *JobQueue) ProcessJobs() error {
 
 	if err != nil {
 		return err
+	}
+
+	if jq.Debug {
+		log.Printf("Num jobs to run: %s %v", util.WhereAmI(), len(sysJobs))
 	}
 
 	for _, sysJob := range sysJobs {
