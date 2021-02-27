@@ -206,6 +206,9 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 					}
 				}
 
+				// Relese db session
+				sysJob.Ctx.SetDbSession(nil)
+
 				return
 			case <-job.GetCheckinChannel():
 				err = sysJob.Checkin(job.GetStatus())
