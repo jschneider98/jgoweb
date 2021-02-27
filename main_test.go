@@ -22,6 +22,7 @@ func TestMain(m *testing.M) {
 
 //
 func InitTest() {
+	fmt.Println("Init Tests")
 	SetConfigEnvVar("JGOWEB_TEST_CONFIG")
 	InitMockCtx()
 	_, err := MockCtx.Begin()
