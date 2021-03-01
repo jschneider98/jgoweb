@@ -69,7 +69,7 @@ func (jqs *JobQueueNativeStore) GetRunningJobs() uint64 {
 	stmt, err := jqs.Ctx.Prepare(query)
 
 	if err != nil {
-		return count
+		return 10000000
 	}
 
 	defer stmt.Close()

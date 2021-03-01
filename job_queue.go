@@ -186,6 +186,8 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 
 	go func(job JobInterface, sysJob *SystemJob) {
 		var err error
+		sysJob.Ctx.SetDbSession(sysJob.Ctx.GetDbSession().Connection.NewSession(nil))
+
 		err = job.Run()
 
 		if err != nil {
