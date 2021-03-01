@@ -104,9 +104,9 @@ func (jq *JobQueue) WorkerProcessJobs() error {
 	}
 
 	if sysJobs != nil && len(sysJobs) > 0 {
-		// NOTE: Must use distinct DB session per job
+		// NOTE: Use distinct DB session per job
 		sysJobs[0].Ctx = jq.NewContext()
-		jq.processJob(&sysJobs[0])
+		go jq.processJob(sysJobs[0], jq.Debug)
 	}
 
 	return nil
@@ -125,9 +125,9 @@ func (jq *JobQueue) ProcessJobs() error {
 	}
 
 	for _, sysJob := range sysJobs {
-		// NOTE: Must use distinct DB session per job
+		// NOTE: Use distinct DB session per job
 		sysJob.Ctx = jq.NewContext()
-		jq.processJob(&sysJob)
+		go jq.processJob(sysJob, jq.Debug)
 	}
 
 	return nil
@@ -142,9 +142,10 @@ func (jq *JobQueue) NewContext() ContextInterface {
 }
 
 //
-func (jq *JobQueue) processJob(sysJob *SystemJob) error {
+func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
+	sysJob := &sj
 
-	if jq.Debug {
+	if debug {
 		log.Printf("DEBUG:\n%s\n%s starting.\n************\n", util.WhereAmI(), sysJob.GetDescription())
 	}
 
@@ -161,9 +162,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
-	ctx := jq.NewContext()
-
-	job, err := jq.factory.New(ctx, sysJob.GetName(), params)
+	job, err := jq.factory.New(sysJob.Ctx, sysJob.GetName(), params)
 
 	if err != nil {
 		err = sysJob.Fail(err)
@@ -189,57 +188,58 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
-	go func(job JobInterface, sysJob *SystemJob, debug bool) {
-		var err error
-		sysJob.Ctx.SetDbSession(sysJob.Ctx.GetDbSession().Connection.NewSession(nil))
+	// sysJob.Ctx.SetDbSession(sysJob.Ctx.GetDbSession().Connection.NewSession(nil))
 
-		err = job.Run()
+	err = job.Run()
+
+	if err != nil {
+		err = sysJob.Fail(err)
 
 		if err != nil {
-			err = sysJob.Fail(err)
-
-			if err != nil {
-				log.Printf("ERROR: %s %s", util.WhereAmI(), err)
-			}
-
-			return
+			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
+			return err
 		}
 
-		for {
-			select {
-			case <-job.GetDoneChannel():
-				err = job.GetError()
+		return err
+	}
 
-				if debug {
-					log.Printf("DEBUG:\n%s\n%s done.\n************\n", util.WhereAmI(), sysJob.GetDescription())
-				}
+	for {
+		select {
+		case <-job.GetDoneChannel():
+			if debug {
+				log.Printf("DEBUG:\n%s\n%s done.\n************\n", util.WhereAmI(), sysJob.GetDescription())
+			}
 
-				if err != nil {
-					err = sysJob.Fail(err)
+			err = job.GetError()
 
-					if err != nil {
-						log.Printf("ERROR: %s %s", util.WhereAmI(), err)
-					}
-				} else {
-					err = sysJob.End()
-
-					if err != nil {
-						log.Printf("ERROR: %s %s", util.WhereAmI(), err)
-					}
-				}
-
-				return
-			case <-job.GetCheckinChannel():
-				err = sysJob.Checkin(job.GetStatus())
+			if err != nil {
+				err = sysJob.Fail(err)
 
 				if err != nil {
 					log.Printf("ERROR: %s %s", util.WhereAmI(), err)
+					return err
 				}
+			} else {
+				err = sysJob.End()
 
-			default:
+				if err != nil {
+					log.Printf("ERROR: %s %s", util.WhereAmI(), err)
+					return err
+				}
 			}
+
+			return nil
+		case <-job.GetCheckinChannel():
+			err = sysJob.Checkin(job.GetStatus())
+
+			if err != nil {
+				log.Printf("ERROR: %s %s", util.WhereAmI(), err)
+				return err
+			}
+
+		default:
 		}
-	}(job, sysJob, jq.Debug)
+	}
 
 	return nil
 }
