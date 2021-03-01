@@ -26,15 +26,19 @@ func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]SystemJob,
 		maxConcurrency = 100
 	}
 
-	if jqs.GetRunningJobs() >= maxConcurrency {
+	runningJobs := jqs.GetRunningJobs()
+
+	if runningJobs >= maxConcurrency {
 		return results, nil
 	}
+
+	limit := maxConcurrency - runningJobs
 
 	stmt := jqs.Ctx.Select("*").
 		From("system.jobs").
 		Where("started_at IS NULL AND ended_at IS NULL").
 		OrderBy("EXTRACT(EPOCH FROM now() - queued_at)/60 + priority::numeric DESC").
-		Limit(maxConcurrency)
+		Limit(limit)
 
 	_, err = stmt.Load(&results)
 
