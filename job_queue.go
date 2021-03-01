@@ -100,7 +100,7 @@ func (jq *JobQueue) WorkerProcessJobs() error {
 	}
 
 	if jq.Debug {
-		log.Printf("%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
+		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
 	}
 
 	if sysJobs != nil && len(sysJobs) > 0 {
@@ -121,7 +121,7 @@ func (jq *JobQueue) ProcessJobs() error {
 	}
 
 	if jq.Debug {
-		log.Printf("%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
+		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
 	}
 
 	for _, sysJob := range sysJobs {
@@ -184,7 +184,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 		return nil
 	}
 
-	go func(job JobInterface, sysJob *SystemJob) {
+	go func(job JobInterface, sysJob *SystemJob, debug bool) {
 		var err error
 		sysJob.Ctx.SetDbSession(sysJob.Ctx.GetDbSession().Connection.NewSession(nil))
 
@@ -204,6 +204,10 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 			select {
 			case <-job.GetDoneChannel():
 				err = job.GetError()
+
+				if debug {
+					log.Printf("DEBUG:\n%s\n%s done.", util.WhereAmI(), sysJob.GetDescription())
+				}
 
 				if err != nil {
 					err = sysJob.Fail(err)
@@ -230,7 +234,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 			default:
 			}
 		}
-	}(job, sysJob)
+	}(job, sysJob, jq.Debug)
 
 	return nil
 }
