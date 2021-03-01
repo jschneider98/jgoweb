@@ -24,7 +24,14 @@ func TestJobQueueProcessJob(t *testing.T) {
 		t.Errorf("ERROR: %v", err)
 	}
 
-	sysJob, err := NewSystemJob(MockCtx)
+	jq.MaxConcurrency = 3
+	jq.Debug = true
+
+	// Need a fresh session
+	ctx := NewContext(MockCtx.GetDb())
+	ctx.SetDbSession(MockCtx.GetDbSession().Connection.NewSession(nil))
+
+	sysJob, err := NewSystemJob(ctx)
 
 	if err != nil {
 		t.Errorf("ERROR: %v", err)
@@ -32,6 +39,7 @@ func TestJobQueueProcessJob(t *testing.T) {
 
 	sysJob.SetName("test")
 	sysJob.SetDescription("test")
+	sysJob.SetPriority("1000000")
 
 	err = sysJob.Save()
 
