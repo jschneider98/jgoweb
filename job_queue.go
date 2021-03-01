@@ -143,6 +143,11 @@ func (jq *JobQueue) NewContext() ContextInterface {
 
 //
 func (jq *JobQueue) processJob(sysJob *SystemJob) error {
+
+	if jq.Debug {
+		log.Printf("DEBUG:\n%s\n%s starting.\n************\n", util.WhereAmI(), sysJob.GetDescription())
+	}
+
 	params, err := sysJob.GetDataValues()
 
 	if err != nil {
@@ -206,7 +211,7 @@ func (jq *JobQueue) processJob(sysJob *SystemJob) error {
 				err = job.GetError()
 
 				if debug {
-					log.Printf("DEBUG:\n%s\n%s done.", util.WhereAmI(), sysJob.GetDescription())
+					log.Printf("DEBUG:\n%s\n%s done.\n************\n", util.WhereAmI(), sysJob.GetDescription())
 				}
 
 				if err != nil {
