@@ -56,6 +56,13 @@ func InitDbCollection() {
 	}
 }
 
+// Get DB
+func GetDbCollection() *jgoWebDb.Collection {
+	InitDbCollection()
+
+	return db
+}
+
 //
 func NewContext(db *jgoWebDb.Collection) *WebContext {
 	return &WebContext{Db: db, Validate: jgovalidator.GetValidator()}
