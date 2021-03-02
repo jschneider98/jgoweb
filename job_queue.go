@@ -205,6 +205,13 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 
 	for {
 		select {
+		case <-job.GetCheckinChannel():
+			err = sysJob.Checkin(job.GetStatus())
+
+			if err != nil {
+				log.Printf("ERROR: %s %s", util.WhereAmI(), err)
+				return err
+			}
 		case <-job.GetDoneChannel():
 			if debug {
 				log.Printf("DEBUG:\n%s\n%s done.\n************\n", util.WhereAmI(), sysJob.GetDescription())
@@ -229,14 +236,6 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 			}
 
 			return nil
-		case <-job.GetCheckinChannel():
-			err = sysJob.Checkin(job.GetStatus())
-
-			if err != nil {
-				log.Printf("ERROR: %s %s", util.WhereAmI(), err)
-				return err
-			}
-
 		default:
 		}
 	}
