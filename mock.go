@@ -17,7 +17,7 @@ var MockCtx *WebContext
 var MockAccount *Account
 var MockShard *Shard
 var MockShardMap *ShardMap
-var MockSystemJob *SystemJob
+var MockQueueJob *QueueJob
 var MockSystemDbUpdate *SystemDbUpdate
 
 //
@@ -70,14 +70,14 @@ func InitMockAccount() {
 }
 
 //
-func InitMockSystemJob() {
+func InitMockQueueJob() {
 	InitMockCtx()
 	InitMockUser()
 
-	if MockSystemJob == nil {
+	if MockQueueJob == nil {
 		var err error
 
-		MockSystemJob, err = NewSystemJob(MockCtx)
+		MockQueueJob, err = NewQueueJob(MockCtx)
 
 		if err != nil {
 			panic(err)
