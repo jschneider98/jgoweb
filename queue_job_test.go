@@ -10,364 +10,394 @@ import (
 )
 
 //
-func TestFetchSystemJobById(t *testing.T) {
+func TestFetchQueueJobById(t *testing.T) {
 	InitMockCtx()
-	InitMockSystemJob()
+	InitMockQueueJob()
 
 	// force not found
 	id := "00000000-0000-0000-0000-000000000000"
-	sj, err := FetchSystemJobById(MockCtx, id)
+	qj, err := FetchQueueJobById(MockCtx, id)
 
 	if err != nil {
-		t.Errorf("\nERROR: Failed to fetch SystemJob by id: %v\n", err)
+		t.Errorf("\nERROR: Failed to fetch QueueJob by id: %v\n", err)
 		return
 	}
 
-	if sj != nil {
-		t.Errorf("\nERROR: Should have failed to find SystemJob: %v\n", id)
+	if qj != nil {
+		t.Errorf("\nERROR: Should have failed to find QueueJob: %v\n", id)
 		return
 	}
 
-	sj, err = FetchSystemJobById(MockCtx, MockSystemJob.GetId())
+	qj, err = FetchQueueJobById(MockCtx, MockQueueJob.GetId())
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 		return
 	}
 
-	if sj == nil {
-		t.Errorf("\nERROR: Should have found SystemJob with Id: %v\n", MockSystemJob.GetId())
+	if qj == nil {
+		t.Errorf("\nERROR: Should have found QueueJob with Id: %v\n", MockQueueJob.GetId())
 		return
 	}
 
-	if sj.GetId() != MockSystemJob.GetId() {
-		t.Errorf("\nERROR: Fetch mismatch. Expected: %v Got: %v\n", MockSystemJob.GetId(), sj.GetId())
+	if qj.GetId() != MockQueueJob.GetId() {
+		t.Errorf("\nERROR: Fetch mismatch. Expected: %v Got: %v\n", MockQueueJob.GetId(), qj.GetId())
 		return
 	}
 }
 
 //
-func TestSystemJobId(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetId()
+func TestQueueJobId(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetId()
 	testVal := "test"
 
-	MockSystemJob.SetId("")
+	MockQueueJob.SetId("")
 
-	if MockSystemJob.Id.Valid {
+	if MockQueueJob.Id.Valid {
 		t.Errorf("ERROR: Id should be invalid.\n")
 	}
 
-	if MockSystemJob.GetId() != "" {
-		t.Errorf("ERROR: Set Id failed. Should have a blank value. Got: %s", MockSystemJob.GetId())
+	if MockQueueJob.GetId() != "" {
+		t.Errorf("ERROR: Set Id failed. Should have a blank value. Got: %s", MockQueueJob.GetId())
 	}
 
-	MockSystemJob.SetId(testVal)
+	MockQueueJob.SetId(testVal)
 
-	if !MockSystemJob.Id.Valid {
+	if !MockQueueJob.Id.Valid {
 		t.Errorf("ERROR: Id should be valid.\n")
 	}
 
-	if MockSystemJob.GetId() != testVal {
-		t.Errorf("ERROR: Set Id failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetId())
+	if MockQueueJob.GetId() != testVal {
+		t.Errorf("ERROR: Set Id failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetId())
 	}
 
-	MockSystemJob.SetId(origVal)
+	MockQueueJob.SetId(origVal)
 }
 
 //
-func TestSystemJobName(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetName()
+func TestQueueJobAccountId(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetAccountId()
 	testVal := "test"
 
-	MockSystemJob.SetName("")
+	MockQueueJob.SetAccountId("")
 
-	if MockSystemJob.Name.Valid {
+	if MockQueueJob.AccountId.Valid {
+		t.Errorf("ERROR: AccountId should be invalid.\n")
+	}
+
+	if MockQueueJob.GetAccountId() != "" {
+		t.Errorf("ERROR: Set AccountId failed. Should have a blank value. Got: %s", MockQueueJob.GetAccountId())
+	}
+
+	MockQueueJob.SetAccountId(testVal)
+
+	if !MockQueueJob.AccountId.Valid {
+		t.Errorf("ERROR: AccountId should be valid.\n")
+	}
+
+	if MockQueueJob.GetAccountId() != testVal {
+		t.Errorf("ERROR: Set AccountId failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetAccountId())
+	}
+
+	MockQueueJob.SetAccountId(origVal)
+}
+
+//
+func TestQueueJobName(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetName()
+	testVal := "test"
+
+	MockQueueJob.SetName("")
+
+	if MockQueueJob.Name.Valid {
 		t.Errorf("ERROR: Name should be invalid.\n")
 	}
 
-	if MockSystemJob.GetName() != "" {
-		t.Errorf("ERROR: Set Name failed. Should have a blank value. Got: %s", MockSystemJob.GetName())
+	if MockQueueJob.GetName() != "" {
+		t.Errorf("ERROR: Set Name failed. Should have a blank value. Got: %s", MockQueueJob.GetName())
 	}
 
-	MockSystemJob.SetName(testVal)
+	MockQueueJob.SetName(testVal)
 
-	if !MockSystemJob.Name.Valid {
+	if !MockQueueJob.Name.Valid {
 		t.Errorf("ERROR: Name should be valid.\n")
 	}
 
-	if MockSystemJob.GetName() != testVal {
-		t.Errorf("ERROR: Set Name failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetName())
+	if MockQueueJob.GetName() != testVal {
+		t.Errorf("ERROR: Set Name failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetName())
 	}
 
-	MockSystemJob.SetName(origVal)
+	MockQueueJob.SetName(origVal)
 }
 
 //
-func TestSystemJobDescription(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetDescription()
+func TestQueueJobDescription(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetDescription()
 	testVal := "test"
 
-	MockSystemJob.SetDescription("")
+	MockQueueJob.SetDescription("")
 
-	if MockSystemJob.Description.Valid {
+	if MockQueueJob.Description.Valid {
 		t.Errorf("ERROR: Description should be invalid.\n")
 	}
 
-	if MockSystemJob.GetDescription() != "" {
-		t.Errorf("ERROR: Set Description failed. Should have a blank value. Got: %s", MockSystemJob.GetDescription())
+	if MockQueueJob.GetDescription() != "" {
+		t.Errorf("ERROR: Set Description failed. Should have a blank value. Got: %s", MockQueueJob.GetDescription())
 	}
 
-	MockSystemJob.SetDescription(testVal)
+	MockQueueJob.SetDescription(testVal)
 
-	if !MockSystemJob.Description.Valid {
+	if !MockQueueJob.Description.Valid {
 		t.Errorf("ERROR: Description should be valid.\n")
 	}
 
-	if MockSystemJob.GetDescription() != testVal {
-		t.Errorf("ERROR: Set Description failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetDescription())
+	if MockQueueJob.GetDescription() != testVal {
+		t.Errorf("ERROR: Set Description failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetDescription())
 	}
 
-	MockSystemJob.SetDescription(origVal)
+	MockQueueJob.SetDescription(origVal)
 }
 
 //
-func TestSystemJobPriority(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetPriority()
+func TestQueueJobPriority(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetPriority()
 	testVal := "test"
 
-	MockSystemJob.SetPriority("")
+	MockQueueJob.SetPriority("")
 
-	if MockSystemJob.Priority.Valid {
+	if MockQueueJob.Priority.Valid {
 		t.Errorf("ERROR: Priority should be invalid.\n")
 	}
 
-	if MockSystemJob.GetPriority() != "" {
-		t.Errorf("ERROR: Set Priority failed. Should have a blank value. Got: %s", MockSystemJob.GetPriority())
+	if MockQueueJob.GetPriority() != "" {
+		t.Errorf("ERROR: Set Priority failed. Should have a blank value. Got: %s", MockQueueJob.GetPriority())
 	}
 
-	MockSystemJob.SetPriority(testVal)
+	MockQueueJob.SetPriority(testVal)
 
-	if !MockSystemJob.Priority.Valid {
+	if !MockQueueJob.Priority.Valid {
 		t.Errorf("ERROR: Priority should be valid.\n")
 	}
 
-	if MockSystemJob.GetPriority() != testVal {
-		t.Errorf("ERROR: Set Priority failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetPriority())
+	if MockQueueJob.GetPriority() != testVal {
+		t.Errorf("ERROR: Set Priority failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetPriority())
 	}
 
-	MockSystemJob.SetPriority(origVal)
+	MockQueueJob.SetPriority(origVal)
 }
 
 //
-func TestSystemJobData(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetData()
+func TestQueueJobData(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetData()
 	testVal := "test"
 
-	MockSystemJob.SetData("")
+	MockQueueJob.SetData("")
 
-	if MockSystemJob.Data.Valid {
+	if MockQueueJob.Data.Valid {
 		t.Errorf("ERROR: Data should be invalid.\n")
 	}
 
-	if MockSystemJob.GetData() != "" {
-		t.Errorf("ERROR: Set Data failed. Should have a blank value. Got: %s", MockSystemJob.GetData())
+	if MockQueueJob.GetData() != "" {
+		t.Errorf("ERROR: Set Data failed. Should have a blank value. Got: %s", MockQueueJob.GetData())
 	}
 
-	MockSystemJob.SetData(testVal)
+	MockQueueJob.SetData(testVal)
 
-	if !MockSystemJob.Data.Valid {
+	if !MockQueueJob.Data.Valid {
 		t.Errorf("ERROR: Data should be valid.\n")
 	}
 
-	if MockSystemJob.GetData() != testVal {
-		t.Errorf("ERROR: Set Data failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetData())
+	if MockQueueJob.GetData() != testVal {
+		t.Errorf("ERROR: Set Data failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetData())
 	}
 
-	MockSystemJob.SetData(origVal)
+	MockQueueJob.SetData(origVal)
 }
 
 //
-func TestSystemJobStatus(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetStatus()
+func TestQueueJobStatus(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetStatus()
 	testVal := "test"
 
-	MockSystemJob.SetStatus("")
+	MockQueueJob.SetStatus("")
 
-	if MockSystemJob.Status.Valid {
+	if MockQueueJob.Status.Valid {
 		t.Errorf("ERROR: Status should be invalid.\n")
 	}
 
-	if MockSystemJob.GetStatus() != "" {
-		t.Errorf("ERROR: Set Status failed. Should have a blank value. Got: %s", MockSystemJob.GetStatus())
+	if MockQueueJob.GetStatus() != "" {
+		t.Errorf("ERROR: Set Status failed. Should have a blank value. Got: %s", MockQueueJob.GetStatus())
 	}
 
-	MockSystemJob.SetStatus(testVal)
+	MockQueueJob.SetStatus(testVal)
 
-	if !MockSystemJob.Status.Valid {
+	if !MockQueueJob.Status.Valid {
 		t.Errorf("ERROR: Status should be valid.\n")
 	}
 
-	if MockSystemJob.GetStatus() != testVal {
-		t.Errorf("ERROR: Set Status failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetStatus())
+	if MockQueueJob.GetStatus() != testVal {
+		t.Errorf("ERROR: Set Status failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetStatus())
 	}
 
-	MockSystemJob.SetStatus(origVal)
+	MockQueueJob.SetStatus(origVal)
 }
 
 //
-func TestSystemJobQueuedAt(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetQueuedAt()
+func TestQueueJobQueuedAt(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetQueuedAt()
 	testVal := "test"
 
-	MockSystemJob.SetQueuedAt("")
+	MockQueueJob.SetQueuedAt("")
 
-	if MockSystemJob.QueuedAt.Valid {
+	if MockQueueJob.QueuedAt.Valid {
 		t.Errorf("ERROR: QueuedAt should be invalid.\n")
 	}
 
-	if MockSystemJob.GetQueuedAt() != "" {
-		t.Errorf("ERROR: Set QueuedAt failed. Should have a blank value. Got: %s", MockSystemJob.GetQueuedAt())
+	if MockQueueJob.GetQueuedAt() != "" {
+		t.Errorf("ERROR: Set QueuedAt failed. Should have a blank value. Got: %s", MockQueueJob.GetQueuedAt())
 	}
 
-	MockSystemJob.SetQueuedAt(testVal)
+	MockQueueJob.SetQueuedAt(testVal)
 
-	if !MockSystemJob.QueuedAt.Valid {
+	if !MockQueueJob.QueuedAt.Valid {
 		t.Errorf("ERROR: QueuedAt should be valid.\n")
 	}
 
-	if MockSystemJob.GetQueuedAt() != testVal {
-		t.Errorf("ERROR: Set QueuedAt failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetQueuedAt())
+	if MockQueueJob.GetQueuedAt() != testVal {
+		t.Errorf("ERROR: Set QueuedAt failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetQueuedAt())
 	}
 
-	MockSystemJob.SetQueuedAt(origVal)
+	MockQueueJob.SetQueuedAt(origVal)
 }
 
 //
-func TestSystemJobStartedAt(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetStartedAt()
+func TestQueueJobStartedAt(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetStartedAt()
 	testVal := "test"
 
-	MockSystemJob.SetStartedAt("")
+	MockQueueJob.SetStartedAt("")
 
-	if MockSystemJob.StartedAt.Valid {
+	if MockQueueJob.StartedAt.Valid {
 		t.Errorf("ERROR: StartedAt should be invalid.\n")
 	}
 
-	if MockSystemJob.GetStartedAt() != "" {
-		t.Errorf("ERROR: Set StartedAt failed. Should have a blank value. Got: %s", MockSystemJob.GetStartedAt())
+	if MockQueueJob.GetStartedAt() != "" {
+		t.Errorf("ERROR: Set StartedAt failed. Should have a blank value. Got: %s", MockQueueJob.GetStartedAt())
 	}
 
-	MockSystemJob.SetStartedAt(testVal)
+	MockQueueJob.SetStartedAt(testVal)
 
-	if !MockSystemJob.StartedAt.Valid {
+	if !MockQueueJob.StartedAt.Valid {
 		t.Errorf("ERROR: StartedAt should be valid.\n")
 	}
 
-	if MockSystemJob.GetStartedAt() != testVal {
-		t.Errorf("ERROR: Set StartedAt failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetStartedAt())
+	if MockQueueJob.GetStartedAt() != testVal {
+		t.Errorf("ERROR: Set StartedAt failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetStartedAt())
 	}
 
-	MockSystemJob.SetStartedAt(origVal)
+	MockQueueJob.SetStartedAt(origVal)
 }
 
 //
-func TestSystemJobCheckinAt(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetCheckinAt()
+func TestQueueJobCheckinAt(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetCheckinAt()
 	testVal := "test"
 
-	MockSystemJob.SetCheckinAt("")
+	MockQueueJob.SetCheckinAt("")
 
-	if MockSystemJob.CheckinAt.Valid {
+	if MockQueueJob.CheckinAt.Valid {
 		t.Errorf("ERROR: CheckinAt should be invalid.\n")
 	}
 
-	if MockSystemJob.GetCheckinAt() != "" {
-		t.Errorf("ERROR: Set CheckinAt failed. Should have a blank value. Got: %s", MockSystemJob.GetCheckinAt())
+	if MockQueueJob.GetCheckinAt() != "" {
+		t.Errorf("ERROR: Set CheckinAt failed. Should have a blank value. Got: %s", MockQueueJob.GetCheckinAt())
 	}
 
-	MockSystemJob.SetCheckinAt(testVal)
+	MockQueueJob.SetCheckinAt(testVal)
 
-	if !MockSystemJob.CheckinAt.Valid {
+	if !MockQueueJob.CheckinAt.Valid {
 		t.Errorf("ERROR: CheckinAt should be valid.\n")
 	}
 
-	if MockSystemJob.GetCheckinAt() != testVal {
-		t.Errorf("ERROR: Set CheckinAt failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetCheckinAt())
+	if MockQueueJob.GetCheckinAt() != testVal {
+		t.Errorf("ERROR: Set CheckinAt failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetCheckinAt())
 	}
 
-	MockSystemJob.SetCheckinAt(origVal)
+	MockQueueJob.SetCheckinAt(origVal)
 }
 
 //
-func TestSystemJobEndedAt(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetEndedAt()
+func TestQueueJobEndedAt(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetEndedAt()
 	testVal := "test"
 
-	MockSystemJob.SetEndedAt("")
+	MockQueueJob.SetEndedAt("")
 
-	if MockSystemJob.EndedAt.Valid {
+	if MockQueueJob.EndedAt.Valid {
 		t.Errorf("ERROR: EndedAt should be invalid.\n")
 	}
 
-	if MockSystemJob.GetEndedAt() != "" {
-		t.Errorf("ERROR: Set EndedAt failed. Should have a blank value. Got: %s", MockSystemJob.GetEndedAt())
+	if MockQueueJob.GetEndedAt() != "" {
+		t.Errorf("ERROR: Set EndedAt failed. Should have a blank value. Got: %s", MockQueueJob.GetEndedAt())
 	}
 
-	MockSystemJob.SetEndedAt(testVal)
+	MockQueueJob.SetEndedAt(testVal)
 
-	if !MockSystemJob.EndedAt.Valid {
+	if !MockQueueJob.EndedAt.Valid {
 		t.Errorf("ERROR: EndedAt should be valid.\n")
 	}
 
-	if MockSystemJob.GetEndedAt() != testVal {
-		t.Errorf("ERROR: Set EndedAt failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetEndedAt())
+	if MockQueueJob.GetEndedAt() != testVal {
+		t.Errorf("ERROR: Set EndedAt failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetEndedAt())
 	}
 
-	MockSystemJob.SetEndedAt(origVal)
+	MockQueueJob.SetEndedAt(origVal)
 }
 
 //
-func TestSystemJobError(t *testing.T) {
-	InitMockSystemJob()
-	origVal := MockSystemJob.GetError()
+func TestQueueJobError(t *testing.T) {
+	InitMockQueueJob()
+	origVal := MockQueueJob.GetError()
 	testVal := "test"
 
-	MockSystemJob.SetError("")
+	MockQueueJob.SetError("")
 
-	if MockSystemJob.Error.Valid {
+	if MockQueueJob.Error.Valid {
 		t.Errorf("ERROR: Error should be invalid.\n")
 	}
 
-	if MockSystemJob.GetError() != "" {
-		t.Errorf("ERROR: Set Error failed. Should have a blank value. Got: %s", MockSystemJob.GetError())
+	if MockQueueJob.GetError() != "" {
+		t.Errorf("ERROR: Set Error failed. Should have a blank value. Got: %s", MockQueueJob.GetError())
 	}
 
-	MockSystemJob.SetError(testVal)
+	MockQueueJob.SetError(testVal)
 
-	if !MockSystemJob.Error.Valid {
+	if !MockQueueJob.Error.Valid {
 		t.Errorf("ERROR: Error should be valid.\n")
 	}
 
-	if MockSystemJob.GetError() != testVal {
-		t.Errorf("ERROR: Set Error failed. Expected: %s, Got: %s", testVal, MockSystemJob.GetError())
+	if MockQueueJob.GetError() != testVal {
+		t.Errorf("ERROR: Set Error failed. Expected: %s, Got: %s", testVal, MockQueueJob.GetError())
 	}
 
-	MockSystemJob.SetError(origVal)
+	MockQueueJob.SetError(origVal)
 }
 
 //
-func TestSystemJobInsert(t *testing.T) {
-	InitMockSystemJob()
+func TestQueueJobInsert(t *testing.T) {
+	InitMockQueueJob()
+	AccountId := "AccountId Insert"
 	Name := "Name Insert"
 	Description := "Description Insert"
 	Priority := "Priority Insert"
@@ -379,48 +409,50 @@ func TestSystemJobInsert(t *testing.T) {
 	EndedAt := "EndedAt Insert"
 	Error := "Error Insert"
 
-	sj, err := NewSystemJob(MockCtx)
+	qj, err := NewQueueJob(MockCtx)
 
 	if err != nil {
-		t.Errorf("\nERROR: NewSystemJob() failed. %v\n", err)
+		t.Errorf("\nERROR: NewQueueJob() failed. %v\n", err)
 	}
 
-	sj.SetName(Name)
-	sj.SetDescription(Description)
-	sj.SetPriority(Priority)
-	sj.SetData(Data)
-	sj.SetStatus(Status)
-	sj.SetQueuedAt(QueuedAt)
-	sj.SetStartedAt(StartedAt)
-	sj.SetCheckinAt(CheckinAt)
-	sj.SetEndedAt(EndedAt)
-	sj.SetError(Error)
+	qj.SetAccountId(AccountId)
+	qj.SetName(Name)
+	qj.SetDescription(Description)
+	qj.SetPriority(Priority)
+	qj.SetData(Data)
+	qj.SetStatus(Status)
+	qj.SetQueuedAt(QueuedAt)
+	qj.SetStartedAt(StartedAt)
+	qj.SetCheckinAt(CheckinAt)
+	qj.SetEndedAt(EndedAt)
+	qj.SetError(Error)
 
-	err = sj.Save()
+	err = qj.Save()
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if !sj.Id.Valid {
-		t.Errorf("\nERROR: SystemJob.Id should be set.\n")
+	if !qj.Id.Valid {
+		t.Errorf("\nERROR: QueueJob.Id should be set.\n")
 	}
 
 	// verify write
-	sj, err = FetchSystemJobById(MockCtx, sj.GetId())
+	qj, err = FetchQueueJobById(MockCtx, qj.GetId())
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if sj == nil || sj.GetName() != Name || sj.GetDescription() != Description || sj.GetPriority() != Priority || sj.GetData() != Data || sj.GetStatus() != Status || sj.GetQueuedAt() != QueuedAt || sj.GetStartedAt() != StartedAt || sj.GetCheckinAt() != CheckinAt || sj.GetEndedAt() != EndedAt || sj.GetError() != Error {
-		t.Errorf("\nERROR: SystemJob does not match save values. Insert failed.\n")
+	if qj == nil || qj.GetAccountId() != AccountId || qj.GetName() != Name || qj.GetDescription() != Description || qj.GetPriority() != Priority || qj.GetData() != Data || qj.GetStatus() != Status || qj.GetQueuedAt() != QueuedAt || qj.GetStartedAt() != StartedAt || qj.GetCheckinAt() != CheckinAt || qj.GetEndedAt() != EndedAt || qj.GetError() != Error {
+		t.Errorf("\nERROR: QueueJob does not match save values. Insert failed.\n")
 	}
 }
 
 //
-func TestSystemJobUpdate(t *testing.T) {
-	InitMockSystemJob()
+func TestQueueJobUpdate(t *testing.T) {
+	InitMockQueueJob()
+	AccountId := "AccountId Update"
 	Name := "Name Update"
 	Description := "Description Update"
 	Priority := "Priority Update"
@@ -432,61 +464,62 @@ func TestSystemJobUpdate(t *testing.T) {
 	EndedAt := "EndedAt Update"
 	Error := "Error Update"
 
-	MockSystemJob.SetName(Name)
-	MockSystemJob.SetDescription(Description)
-	MockSystemJob.SetPriority(Priority)
-	MockSystemJob.SetData(Data)
-	MockSystemJob.SetStatus(Status)
-	MockSystemJob.SetQueuedAt(QueuedAt)
-	MockSystemJob.SetStartedAt(StartedAt)
-	MockSystemJob.SetCheckinAt(CheckinAt)
-	MockSystemJob.SetEndedAt(EndedAt)
-	MockSystemJob.SetError(Error)
+	MockQueueJob.SetAccountId(AccountId)
+	MockQueueJob.SetName(Name)
+	MockQueueJob.SetDescription(Description)
+	MockQueueJob.SetPriority(Priority)
+	MockQueueJob.SetData(Data)
+	MockQueueJob.SetStatus(Status)
+	MockQueueJob.SetQueuedAt(QueuedAt)
+	MockQueueJob.SetStartedAt(StartedAt)
+	MockQueueJob.SetCheckinAt(CheckinAt)
+	MockQueueJob.SetEndedAt(EndedAt)
+	MockQueueJob.SetError(Error)
 
-	err := MockSystemJob.Save()
+	err := MockQueueJob.Save()
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 
 	// verify write
-	sj, err := FetchSystemJobById(MockCtx, MockSystemJob.GetId())
+	qj, err := FetchQueueJobById(MockCtx, MockQueueJob.GetId())
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if sj == nil || sj.GetName() != Name || sj.GetDescription() != Description || sj.GetPriority() != Priority || sj.GetData() != Data || sj.GetStatus() != Status || sj.GetQueuedAt() != QueuedAt || sj.GetStartedAt() != StartedAt || sj.GetCheckinAt() != CheckinAt || sj.GetEndedAt() != EndedAt || sj.GetError() != Error {
-		t.Errorf("\nERROR: SystemJob does not match save values. Update failed.\n")
+	if qj == nil || qj.GetAccountId() != AccountId || qj.GetName() != Name || qj.GetDescription() != Description || qj.GetPriority() != Priority || qj.GetData() != Data || qj.GetStatus() != Status || qj.GetQueuedAt() != QueuedAt || qj.GetStartedAt() != StartedAt || qj.GetCheckinAt() != CheckinAt || qj.GetEndedAt() != EndedAt || qj.GetError() != Error {
+		t.Errorf("\nERROR: QueueJob does not match save values. Update failed.\n")
 	}
 }
 
 //
-func TestSystemJobDelete(t *testing.T) {
-	InitMockSystemJob()
-	err := MockSystemJob.Delete()
+func TestQueueJobDelete(t *testing.T) {
+	InitMockQueueJob()
+	err := MockQueueJob.Delete()
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 
 	// verify write
-	sj, err := FetchSystemJobById(MockCtx, MockSystemJob.GetId())
+	qj, err := FetchQueueJobById(MockCtx, MockQueueJob.GetId())
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 	}
 
-	if sj != nil {
+	if qj != nil {
 		t.Errorf("\nERROR: Delete failed. Fetch should return nil.\n")
 		return
 	}
 
-	MockSystemJob = nil
+	MockQueueJob = nil
 }
 
 //
-func TestNewSystemJobWithData(t *testing.T) {
+func TestNewQueueJobWithData(t *testing.T) {
 	httpReq, err := http.NewRequest("GET", "http://example.com", nil)
 
 	if err != nil {
@@ -496,7 +529,7 @@ func TestNewSystemJobWithData(t *testing.T) {
 	req := &web.Request{}
 	req.Request = httpReq
 
-	_, err = NewSystemJobWithData(MockCtx, req)
+	_, err = NewQueueJobWithData(MockCtx, req)
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
@@ -504,15 +537,15 @@ func TestNewSystemJobWithData(t *testing.T) {
 }
 
 //
-func TestSystemJobProcessSubmit(t *testing.T) {
-	sj, err := NewSystemJob(MockCtx)
+func TestQueueJobProcessSubmit(t *testing.T) {
+	qj, err := NewQueueJob(MockCtx)
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
 		return
 	}
 
-	httpReq, err := http.NewRequest("POST", "http://example.com", strings.NewReader("z=post&Name=Name&Description=Description&Priority=Priority&Data=Data&Status=Status&QueuedAt=QueuedAt&StartedAt=StartedAt&CheckinAt=CheckinAt&EndedAt=EndedAt&Error=Error"))
+	httpReq, err := http.NewRequest("POST", "http://example.com", strings.NewReader("z=post&AccountId=AccountId&Name=Name&Description=Description&Priority=Priority&Data=Data&Status=Status&QueuedAt=QueuedAt&StartedAt=StartedAt&CheckinAt=CheckinAt&EndedAt=EndedAt&Error=Error"))
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
@@ -524,7 +557,7 @@ func TestSystemJobProcessSubmit(t *testing.T) {
 	req := &web.Request{}
 	req.Request = httpReq
 
-	msg, saved, err := sj.ProcessSubmit(req)
+	msg, saved, err := qj.ProcessSubmit(req)
 
 	if err != nil {
 		t.Errorf("\nERROR: %v\n", err)
