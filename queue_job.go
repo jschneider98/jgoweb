@@ -9,9 +9,10 @@ import (
 	"time"
 )
 
-// SystemJob
-type SystemJob struct {
+// QueueJob
+type QueueJob struct {
 	Id          sql.NullString   `json:"Id" validate:"omitempty,uuid"`
+	AccountId   sql.NullString   `json:"AccountId" validate:"required,uuid"`
 	Name        sql.NullString   `json:"Name" validate:"required,min=1,max=255"`
 	Description sql.NullString   `json:"Description" validate:"required,min=1,max=255"`
 	Priority    sql.NullString   `json:"Priority" validate:"omitempty,int"`
@@ -25,138 +26,134 @@ type SystemJob struct {
 	Ctx         ContextInterface `json:"-" validate:"-"`
 }
 
-// DataValues
-type DataValues struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
 // Empty new model
-func NewSystemJob(ctx ContextInterface) (*SystemJob, error) {
-	sj := &SystemJob{Ctx: ctx}
-	sj.SetDefaults()
+func NewQueueJob(ctx ContextInterface) (*QueueJob, error) {
+	qj := &QueueJob{Ctx: ctx}
+	qj.SetDefaults()
 
-	return sj, nil
+	return qj, nil
 }
 
 // Set defaults
-func (sj *SystemJob) SetDefaults() {
-	sj.SetPriority("90")
-	sj.SetQueuedAt(time.Now().Format(time.RFC3339))
+func (qj *QueueJob) SetDefaults() {
+	qj.SetPriority("90")
+	qj.SetQueuedAt(time.Now().Format(time.RFC3339))
 }
 
 // New model with data
-func NewSystemJobWithData(ctx ContextInterface, req *web.Request) (*SystemJob, error) {
-	sj, err := NewSystemJob(ctx)
+func NewQueueJobWithData(ctx ContextInterface, req *web.Request) (*QueueJob, error) {
+	qj, err := NewQueueJob(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = sj.Hydrate(req)
+	err = qj.Hydrate(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return sj, nil
+	return qj, nil
 }
 
 // Factory Method
-func FetchSystemJobById(ctx ContextInterface, id string) (*SystemJob, error) {
-	var sj []SystemJob
+func FetchQueueJobById(ctx ContextInterface, id string) (*QueueJob, error) {
+	var qj []QueueJob
 
 	stmt := ctx.Select("*").
-		From("system.jobs").
+		From("queue.jobs").
 		Where("id = ?", id).
 		Limit(1)
 
-	_, err := stmt.Load(&sj)
+	_, err := stmt.Load(&qj)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if len(sj) == 0 {
+	if len(qj) == 0 {
 		return nil, nil
 	}
 
-	sj[0].Ctx = ctx
+	qj[0].Ctx = ctx
 
-	return &sj[0], nil
+	return &qj[0], nil
 }
 
 //
-func (sj *SystemJob) ProcessSubmit(req *web.Request) (string, bool, error) {
-	err := sj.Hydrate(req)
+func (qj *QueueJob) ProcessSubmit(req *web.Request) (string, bool, error) {
+	err := qj.Hydrate(req)
 
 	if err != nil {
 		return "", false, err
 	}
 
-	err = sj.Ctx.GetValidator().Struct(sj)
+	err = qj.Ctx.GetValidator().Struct(qj)
 
 	if err != nil {
 		return util.GetNiceErrorMessage(err, "</br>"), false, nil
 	}
 
-	err = sj.Save()
+	err = qj.Save()
 
 	if err != nil {
 		return "", false, err
 	}
 
-	return "System Job saved.", true, nil
+	return "Queue Job saved.", true, nil
 }
 
 // Hydrate the model with data
-func (sj *SystemJob) Hydrate(req *web.Request) error {
+func (qj *QueueJob) Hydrate(req *web.Request) error {
 	err := req.ParseForm()
 
 	if err != nil {
 		return err
 	}
 
-	sj.SetId(req.PostFormValue("Id"))
-	sj.SetName(req.PostFormValue("Name"))
-	sj.SetDescription(req.PostFormValue("Description"))
-	sj.SetPriority(req.PostFormValue("Priority"))
-	sj.SetData(req.PostFormValue("Data"))
-	sj.SetStatus(req.PostFormValue("Status"))
-	sj.SetQueuedAt(req.PostFormValue("QueuedAt"))
-	sj.SetStartedAt(req.PostFormValue("StartedAt"))
-	sj.SetCheckinAt(req.PostFormValue("CheckinAt"))
-	sj.SetEndedAt(req.PostFormValue("EndedAt"))
-	sj.SetError(req.PostFormValue("Error"))
+	qj.SetId(req.PostFormValue("Id"))
+	qj.SetAccountId(req.PostFormValue("AccountId"))
+	qj.SetName(req.PostFormValue("Name"))
+	qj.SetDescription(req.PostFormValue("Description"))
+	qj.SetPriority(req.PostFormValue("Priority"))
+	qj.SetData(req.PostFormValue("Data"))
+	qj.SetStatus(req.PostFormValue("Status"))
+	qj.SetQueuedAt(req.PostFormValue("QueuedAt"))
+	qj.SetStartedAt(req.PostFormValue("StartedAt"))
+	qj.SetCheckinAt(req.PostFormValue("CheckinAt"))
+	qj.SetEndedAt(req.PostFormValue("EndedAt"))
+	qj.SetError(req.PostFormValue("Error"))
 
 	return nil
 }
 
 // Validate the model
-func (sj *SystemJob) IsValid() error {
-	return sj.Ctx.GetValidator().Struct(sj)
+func (qj *QueueJob) IsValid() error {
+	return qj.Ctx.GetValidator().Struct(qj)
 }
 
 // Insert/Update based on pkey value
-func (sj *SystemJob) Save() error {
-	err := sj.IsValid()
+func (qj *QueueJob) Save() error {
+	err := qj.IsValid()
 
 	if err != nil {
 		return err
 	}
 
-	if !sj.Id.Valid {
-		return sj.Insert()
+	if !qj.Id.Valid {
+		return qj.Insert()
 	} else {
-		return sj.Update()
+		return qj.Update()
 	}
 }
 
 // Insert a new record
-func (sj *SystemJob) Insert() error {
+func (qj *QueueJob) Insert() error {
 	query := `
 INSERT INTO
-system.jobs (name,
+queue.jobs (account_id,
+	name,
 	description,
 	priority,
 	data,
@@ -166,12 +163,12 @@ system.jobs (name,
 	checkin_at,
 	ended_at,
 	error)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 RETURNING id
 
 `
 
-	stmt, err := sj.Ctx.Prepare(query)
+	stmt, err := qj.Ctx.Prepare(query)
 
 	if err != nil {
 		return err
@@ -179,16 +176,17 @@ RETURNING id
 
 	defer stmt.Close()
 
-	err = stmt.QueryRow(sj.Name,
-		sj.Description,
-		sj.Priority,
-		sj.Data,
-		sj.Status,
-		sj.QueuedAt,
-		sj.StartedAt,
-		sj.CheckinAt,
-		sj.EndedAt,
-		sj.Error).Scan(&sj.Id)
+	err = stmt.QueryRow(qj.AccountId,
+		qj.Name,
+		qj.Description,
+		qj.Priority,
+		qj.Data,
+		qj.Status,
+		qj.QueuedAt,
+		qj.StartedAt,
+		qj.CheckinAt,
+		qj.EndedAt,
+		qj.Error).Scan(&qj.Id)
 
 	if err != nil {
 		return err
@@ -198,24 +196,25 @@ RETURNING id
 }
 
 // Update a record
-func (sj *SystemJob) Update() error {
-	if !sj.Id.Valid {
+func (qj *QueueJob) Update() error {
+	if !qj.Id.Valid {
 		return nil
 	}
 
-	_, err := sj.Ctx.Update("system.jobs").
-		Set("id", sj.Id).
-		Set("name", sj.Name).
-		Set("description", sj.Description).
-		Set("priority", sj.Priority).
-		Set("data", sj.Data).
-		Set("status", sj.Status).
-		Set("queued_at", sj.QueuedAt).
-		Set("started_at", sj.StartedAt).
-		Set("checkin_at", sj.CheckinAt).
-		Set("ended_at", sj.EndedAt).
-		Set("error", sj.Error).
-		Where("id = ?", sj.Id).
+	_, err := qj.Ctx.Update("queue.jobs").
+		Set("id", qj.Id).
+		Set("account_id", qj.AccountId).
+		Set("name", qj.Name).
+		Set("description", qj.Description).
+		Set("priority", qj.Priority).
+		Set("data", qj.Data).
+		Set("status", qj.Status).
+		Set("queued_at", qj.QueuedAt).
+		Set("started_at", qj.StartedAt).
+		Set("checkin_at", qj.CheckinAt).
+		Set("ended_at", qj.EndedAt).
+		Set("error", qj.Error).
+		Where("id = ?", qj.Id).
 		Exec()
 
 	if err != nil {
@@ -226,14 +225,14 @@ func (sj *SystemJob) Update() error {
 }
 
 // Hard delete a record
-func (sj *SystemJob) Delete() error {
+func (qj *QueueJob) Delete() error {
 
-	if !sj.Id.Valid {
+	if !qj.Id.Valid {
 		return nil
 	}
 
-	_, err := sj.Ctx.DeleteFrom("system.jobs").
-		Where("id = ?", sj.Id).
+	_, err := qj.Ctx.DeleteFrom("queue.jobs").
+		Where("id = ?", qj.Id).
 		Exec()
 
 	if err != nil {
@@ -244,277 +243,307 @@ func (sj *SystemJob) Delete() error {
 }
 
 //
-func (sj *SystemJob) GetId() string {
+func (qj *QueueJob) GetId() string {
 
-	if sj.Id.Valid {
-		return sj.Id.String
+	if qj.Id.Valid {
+		return qj.Id.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetId(val string) {
+func (qj *QueueJob) SetId(val string) {
 
 	if val == "" {
-		sj.Id.Valid = false
-		sj.Id.String = ""
+		qj.Id.Valid = false
+		qj.Id.String = ""
 
 		return
 	}
 
-	sj.Id.Valid = true
-	sj.Id.String = val
+	qj.Id.Valid = true
+	qj.Id.String = val
 }
 
 //
-func (sj *SystemJob) GetName() string {
+func (qj *QueueJob) GetAccountId() string {
 
-	if sj.Name.Valid {
-		return sj.Name.String
+	if qj.AccountId.Valid {
+		return qj.AccountId.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetName(val string) {
+func (qj *QueueJob) SetAccountId(val string) {
 
 	if val == "" {
-		sj.Name.Valid = false
-		sj.Name.String = ""
+		qj.AccountId.Valid = false
+		qj.AccountId.String = ""
 
 		return
 	}
 
-	sj.Name.Valid = true
-	sj.Name.String = val
+	qj.AccountId.Valid = true
+	qj.AccountId.String = val
 }
 
 //
-func (sj *SystemJob) GetDescription() string {
+func (qj *QueueJob) GetName() string {
 
-	if sj.Description.Valid {
-		return sj.Description.String
+	if qj.Name.Valid {
+		return qj.Name.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetDescription(val string) {
+func (qj *QueueJob) SetName(val string) {
 
 	if val == "" {
-		sj.Description.Valid = false
-		sj.Description.String = ""
+		qj.Name.Valid = false
+		qj.Name.String = ""
 
 		return
 	}
 
-	sj.Description.Valid = true
-	sj.Description.String = val
+	qj.Name.Valid = true
+	qj.Name.String = val
 }
 
 //
-func (sj *SystemJob) GetPriority() string {
+func (qj *QueueJob) GetDescription() string {
 
-	if sj.Priority.Valid {
-		return sj.Priority.String
+	if qj.Description.Valid {
+		return qj.Description.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetPriority(val string) {
+func (qj *QueueJob) SetDescription(val string) {
 
 	if val == "" {
-		sj.Priority.Valid = false
-		sj.Priority.String = ""
+		qj.Description.Valid = false
+		qj.Description.String = ""
 
 		return
 	}
 
-	sj.Priority.Valid = true
-	sj.Priority.String = val
+	qj.Description.Valid = true
+	qj.Description.String = val
 }
 
 //
-func (sj *SystemJob) GetData() string {
+func (qj *QueueJob) GetPriority() string {
 
-	if sj.Data.Valid {
-		return sj.Data.String
+	if qj.Priority.Valid {
+		return qj.Priority.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetData(val string) {
+func (qj *QueueJob) SetPriority(val string) {
 
 	if val == "" {
-		sj.Data.Valid = false
-		sj.Data.String = ""
+		qj.Priority.Valid = false
+		qj.Priority.String = ""
 
 		return
 	}
 
-	sj.Data.Valid = true
-	sj.Data.String = val
+	qj.Priority.Valid = true
+	qj.Priority.String = val
 }
 
 //
-func (sj *SystemJob) GetStatus() string {
+func (qj *QueueJob) GetData() string {
 
-	if sj.Status.Valid {
-		return sj.Status.String
+	if qj.Data.Valid {
+		return qj.Data.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetStatus(val string) {
+func (qj *QueueJob) SetData(val string) {
 
 	if val == "" {
-		sj.Status.Valid = false
-		sj.Status.String = ""
+		qj.Data.Valid = false
+		qj.Data.String = ""
 
 		return
 	}
 
-	sj.Status.Valid = true
-	sj.Status.String = val
+	qj.Data.Valid = true
+	qj.Data.String = val
 }
 
 //
-func (sj *SystemJob) GetQueuedAt() string {
+func (qj *QueueJob) GetStatus() string {
 
-	if sj.QueuedAt.Valid {
-		return sj.QueuedAt.String
+	if qj.Status.Valid {
+		return qj.Status.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetQueuedAt(val string) {
+func (qj *QueueJob) SetStatus(val string) {
 
 	if val == "" {
-		sj.QueuedAt.Valid = false
-		sj.QueuedAt.String = ""
+		qj.Status.Valid = false
+		qj.Status.String = ""
 
 		return
 	}
 
-	sj.QueuedAt.Valid = true
-	sj.QueuedAt.String = val
+	qj.Status.Valid = true
+	qj.Status.String = val
 }
 
 //
-func (sj *SystemJob) GetStartedAt() string {
+func (qj *QueueJob) GetQueuedAt() string {
 
-	if sj.StartedAt.Valid {
-		return sj.StartedAt.String
+	if qj.QueuedAt.Valid {
+		return qj.QueuedAt.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetStartedAt(val string) {
+func (qj *QueueJob) SetQueuedAt(val string) {
 
 	if val == "" {
-		sj.StartedAt.Valid = false
-		sj.StartedAt.String = ""
+		qj.QueuedAt.Valid = false
+		qj.QueuedAt.String = ""
 
 		return
 	}
 
-	sj.StartedAt.Valid = true
-	sj.StartedAt.String = val
+	qj.QueuedAt.Valid = true
+	qj.QueuedAt.String = val
 }
 
 //
-func (sj *SystemJob) GetCheckinAt() string {
+func (qj *QueueJob) GetStartedAt() string {
 
-	if sj.CheckinAt.Valid {
-		return sj.CheckinAt.String
+	if qj.StartedAt.Valid {
+		return qj.StartedAt.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetCheckinAt(val string) {
+func (qj *QueueJob) SetStartedAt(val string) {
 
 	if val == "" {
-		sj.CheckinAt.Valid = false
-		sj.CheckinAt.String = ""
+		qj.StartedAt.Valid = false
+		qj.StartedAt.String = ""
 
 		return
 	}
 
-	sj.CheckinAt.Valid = true
-	sj.CheckinAt.String = val
+	qj.StartedAt.Valid = true
+	qj.StartedAt.String = val
 }
 
 //
-func (sj *SystemJob) GetEndedAt() string {
+func (qj *QueueJob) GetCheckinAt() string {
 
-	if sj.EndedAt.Valid {
-		return sj.EndedAt.String
+	if qj.CheckinAt.Valid {
+		return qj.CheckinAt.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetEndedAt(val string) {
+func (qj *QueueJob) SetCheckinAt(val string) {
 
 	if val == "" {
-		sj.EndedAt.Valid = false
-		sj.EndedAt.String = ""
+		qj.CheckinAt.Valid = false
+		qj.CheckinAt.String = ""
 
 		return
 	}
 
-	sj.EndedAt.Valid = true
-	sj.EndedAt.String = val
+	qj.CheckinAt.Valid = true
+	qj.CheckinAt.String = val
 }
 
 //
-func (sj *SystemJob) GetError() string {
+func (qj *QueueJob) GetEndedAt() string {
 
-	if sj.Error.Valid {
-		return sj.Error.String
+	if qj.EndedAt.Valid {
+		return qj.EndedAt.String
 	}
 
 	return ""
 }
 
 //
-func (sj *SystemJob) SetError(val string) {
+func (qj *QueueJob) SetEndedAt(val string) {
 
 	if val == "" {
-		sj.Error.Valid = false
-		sj.Error.String = ""
+		qj.EndedAt.Valid = false
+		qj.EndedAt.String = ""
 
 		return
 	}
 
-	sj.Error.Valid = true
-	sj.Error.String = val
+	qj.EndedAt.Valid = true
+	qj.EndedAt.String = val
+}
+
+//
+func (qj *QueueJob) GetError() string {
+
+	if qj.Error.Valid {
+		return qj.Error.String
+	}
+
+	return ""
+}
+
+//
+func (qj *QueueJob) SetError(val string) {
+
+	if val == "" {
+		qj.Error.Valid = false
+		qj.Error.String = ""
+
+		return
+	}
+
+	qj.Error.Valid = true
+	qj.Error.String = val
 }
 
 // ************
 
+// DataValues
+type DataValues struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 //
-func (sj *SystemJob) GetDataValues() (url.Values, error) {
+func (qj *QueueJob) GetDataValues() (url.Values, error) {
 	values := url.Values{}
 	var data []DataValues
 
-	jsonStr := sj.GetData()
+	jsonStr := qj.GetData()
 
 	if jsonStr == "" {
 		return values, nil
@@ -534,31 +563,31 @@ func (sj *SystemJob) GetDataValues() (url.Values, error) {
 }
 
 //
-func (sj *SystemJob) Fail(err error) error {
-	sj.SetError(err.Error())
-	sj.SetEndedAt((time.Now()).Format(time.RFC3339))
+func (qj *QueueJob) Fail(err error) error {
+	qj.SetError(err.Error())
+	qj.SetEndedAt((time.Now()).Format(time.RFC3339))
 
-	return sj.Save()
+	return qj.Save()
 }
 
 //
-func (sj *SystemJob) Start() error {
-	sj.SetStartedAt((time.Now()).Format(time.RFC3339))
+func (qj *QueueJob) Start() error {
+	qj.SetStartedAt((time.Now()).Format(time.RFC3339))
 
-	return sj.Save()
+	return qj.Save()
 }
 
 //
-func (sj *SystemJob) End() error {
-	sj.SetEndedAt((time.Now()).Format(time.RFC3339))
+func (qj *QueueJob) End() error {
+	qj.SetEndedAt((time.Now()).Format(time.RFC3339))
 
-	return sj.Save()
+	return qj.Save()
 }
 
 //
-func (sj *SystemJob) Checkin(status string) error {
-	sj.SetStatus(status)
-	sj.SetCheckinAt((time.Now()).Format(time.RFC3339))
+func (qj *QueueJob) Checkin(status string) error {
+	qj.SetStatus(status)
+	qj.SetCheckinAt((time.Now()).Format(time.RFC3339))
 
-	return sj.Save()
+	return qj.Save()
 }
