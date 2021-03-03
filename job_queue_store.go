@@ -35,7 +35,7 @@ func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]QueueJob, 
 	limit := maxConcurrency - runningJobs
 
 	stmt := jqs.Ctx.Select("*").
-		From("system.jobs").
+		From("queue.jobs").
 		Where("started_at IS NULL AND ended_at IS NULL").
 		OrderBy("EXTRACT(EPOCH FROM now() - queued_at)/60 + priority::numeric DESC").
 		Limit(limit)
@@ -64,7 +64,7 @@ func (jqs *JobQueueNativeStore) GetRunningJobs() uint64 {
 
 	query := `
 		SELECT count(*) running_jobs
-		FROM system.jobs
+		FROM queue.jobs
 		WHERE started_at IS NOT NULL
 			AND ended_at IS NULL
 		LIMIT 1
