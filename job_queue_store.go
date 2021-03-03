@@ -1,8 +1,8 @@
 package jgoweb
 
 type JobQueueStoreInterface interface {
-	GetNextJobs(uint64) ([]SystemJob, error)
-	EnqueueJob(*SystemJob) error
+	GetNextJobs(uint64) ([]QueueJob, error)
+	EnqueueJob(*QueueJob) error
 }
 
 type JobQueueNativeStore struct {
@@ -17,9 +17,9 @@ func NewJobQueueNativeStore(ctx ContextInterface) (*JobQueueNativeStore, error) 
 }
 
 //
-func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]SystemJob, error) {
+func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]QueueJob, error) {
 	var err error
-	results := make([]SystemJob, 0)
+	results := make([]QueueJob, 0)
 
 	// force a default max
 	if maxConcurrency == 0 {
@@ -50,7 +50,7 @@ func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]SystemJob,
 }
 
 //
-func (jqs *JobQueueNativeStore) EnqueueJob(job *SystemJob) error {
+func (jqs *JobQueueNativeStore) EnqueueJob(job *QueueJob) error {
 	if job.Ctx == nil {
 		job.Ctx = jqs.Ctx
 	}
