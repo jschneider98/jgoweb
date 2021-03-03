@@ -68,10 +68,10 @@ func TestJobQueueProcessJob(t *testing.T) {
 	// }
 
 	// if qJob.GetStatus() == "" {
-	// 	t.Errorf("ERROR: System Job status is blank, but should be set.\n")
+	// 	t.Errorf("ERROR: Queue Job status is blank, but should be set.\n")
 	// }
 
 	// if qJob.GetEndedAt() == "" {
-	// 	t.Errorf("ERROR: System Job endded at is blank, but should be set.\n")
+	// 	t.Errorf("ERROR: Queue Job endded at is blank, but should be set.\n")
 	// }
 }
