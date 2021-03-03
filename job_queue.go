@@ -6,9 +6,9 @@ import (
 	"log"
 )
 
-// SystemJob = Data store backed job (job status, queued, started, ended etc)
+// QueueJob = Data store backed job (job status, queued, started, ended etc)
 // Job = Actual job to run
-// SchedJob = scheduler job that checks SystemJobs and manages running Jobs
+// SchedJob = scheduler job that checks QueueJobs and manages running Jobs
 // @TODO: Add cancel Job functionality (like 80% of the way there already with Job.Quit())
 
 type JobQueue struct {
@@ -87,26 +87,26 @@ func (jq *JobQueue) Stop() {
 }
 
 // Simple wrapper
-func (jq *JobQueue) EnqueueJob(job *SystemJob) error {
+func (jq *JobQueue) EnqueueJob(job *QueueJob) error {
 	return jq.dataStore.EnqueueJob(job)
 }
 
 //
 func (jq *JobQueue) WorkerProcessJobs() error {
-	sysJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
+	qJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
 
 	if err != nil {
 		return err
 	}
 
 	if jq.Debug {
-		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
+		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(qJobs))
 	}
 
-	if sysJobs != nil && len(sysJobs) > 0 {
+	if qJobs != nil && len(qJobs) > 0 {
 		// NOTE: Use distinct DB session per job
-		sysJobs[0].Ctx = jq.NewContext()
-		go jq.processJob(sysJobs[0], jq.Debug)
+		qJobs[0].Ctx = jq.NewContext()
+		go jq.processJob(qJobs[0], jq.Debug)
 	}
 
 	return nil
@@ -114,20 +114,20 @@ func (jq *JobQueue) WorkerProcessJobs() error {
 
 //
 func (jq *JobQueue) ProcessJobs() error {
-	sysJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
+	qJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
 
 	if err != nil {
 		return err
 	}
 
 	if jq.Debug {
-		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(sysJobs))
+		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(qJobs))
 	}
 
-	for _, sysJob := range sysJobs {
+	for _, qJob := range qJobs {
 		// NOTE: Use distinct DB session per job
-		sysJob.Ctx = jq.NewContext()
-		go jq.processJob(sysJob, jq.Debug)
+		qJob.Ctx = jq.NewContext()
+		go jq.processJob(qJob, jq.Debug)
 	}
 
 	return nil
@@ -142,17 +142,17 @@ func (jq *JobQueue) NewContext() ContextInterface {
 }
 
 //
-func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
-	sysJob := &sj
+func (jq *JobQueue) processJob(sj QueueJob, debug bool) error {
+	qJob := &sj
 
 	if debug {
-		log.Printf("DEBUG:\n%s\n%s starting.\n************\n", util.WhereAmI(), sysJob.GetDescription())
+		log.Printf("DEBUG:\n%s\n%s starting.\n************\n", util.WhereAmI(), qJob.GetDescription())
 	}
 
-	params, err := sysJob.GetDataValues()
+	params, err := qJob.GetDataValues()
 
 	if err != nil {
-		err = sysJob.Fail(err)
+		err = qJob.Fail(err)
 
 		if err != nil {
 			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
@@ -162,10 +162,10 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 		return nil
 	}
 
-	job, err := jq.factory.New(sysJob.Ctx, sysJob.GetName(), params)
+	job, err := jq.factory.New(qJob.Ctx, qJob.GetName(), params)
 
 	if err != nil {
-		err = sysJob.Fail(err)
+		err = qJob.Fail(err)
 
 		if err != nil {
 			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
@@ -175,10 +175,10 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 		return nil
 	}
 
-	err = sysJob.Start()
+	err = qJob.Start()
 
 	if err != nil {
-		err = sysJob.Fail(err)
+		err = qJob.Fail(err)
 
 		if err != nil {
 			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
@@ -188,12 +188,12 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 		return nil
 	}
 
-	// sysJob.Ctx.SetDbSession(sysJob.Ctx.GetDbSession().Connection.NewSession(nil))
+	// qJob.Ctx.SetDbSession(qJob.Ctx.GetDbSession().Connection.NewSession(nil))
 
 	err = job.Run()
 
 	if err != nil {
-		err = sysJob.Fail(err)
+		err = qJob.Fail(err)
 
 		if err != nil {
 			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
@@ -206,7 +206,7 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 	for {
 		select {
 		case <-job.GetCheckinChannel():
-			err = sysJob.Checkin(job.GetStatus())
+			err = qJob.Checkin(job.GetStatus())
 
 			if err != nil {
 				log.Printf("ERROR: %s %s", util.WhereAmI(), err)
@@ -214,20 +214,20 @@ func (jq *JobQueue) processJob(sj SystemJob, debug bool) error {
 			}
 		case <-job.GetDoneChannel():
 			if debug {
-				log.Printf("DEBUG:\n%s\n%s done.\n************\n", util.WhereAmI(), sysJob.GetDescription())
+				log.Printf("DEBUG:\n%s\n%s done.\n************\n", util.WhereAmI(), qJob.GetDescription())
 			}
 
 			err = job.GetError()
 
 			if err != nil {
-				err = sysJob.Fail(err)
+				err = qJob.Fail(err)
 
 				if err != nil {
 					log.Printf("ERROR: %s %s", util.WhereAmI(), err)
 					return err
 				}
 			} else {
-				err = sysJob.End()
+				err = qJob.End()
 
 				if err != nil {
 					log.Printf("ERROR: %s %s", util.WhereAmI(), err)
