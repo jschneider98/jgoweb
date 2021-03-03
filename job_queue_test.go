@@ -10,6 +10,7 @@ import (
 //
 func TestJobQueueProcessJob(t *testing.T) {
 	InitMockCtx()
+	InitMockUser()
 	jqs, err := NewJobQueueNativeStore(MockCtx)
 
 	if err != nil {
@@ -31,17 +32,18 @@ func TestJobQueueProcessJob(t *testing.T) {
 	ctx := NewContext(MockCtx.GetDb())
 	ctx.SetDbSession(MockCtx.GetDbSession().Connection.NewSession(nil))
 
-	sysJob, err := NewSystemJob(ctx)
+	qJob, err := NewQueueJob(ctx)
 
 	if err != nil {
 		t.Errorf("ERROR: %v", err)
 	}
 
-	sysJob.SetName("test")
-	sysJob.SetDescription("test")
-	sysJob.SetPriority("1000000")
+	qJob.SetAccountId(MockUser.GetAccountId())
+	qJob.SetName("test")
+	qJob.SetDescription("test")
+	qJob.SetPriority("1000000")
 
-	err = sysJob.Save()
+	err = qJob.Save()
 
 	if err != nil {
 		t.Errorf("ERROR: %v", err)
@@ -55,21 +57,21 @@ func TestJobQueueProcessJob(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	// sysJob, err = FetchSystemJobById(sysJob.Ctx, sysJob.GetId())
+	// qJob, err = FetchQueueJobById(qJob.Ctx, qJob.GetId())
 
 	// if err != nil {
 	// 	t.Errorf("ERROR: %v\n", err)
 	// }
 
-	// if sysJob.GetError() != "" {
-	// 	t.Errorf("ERROR: %v\n", sysJob.GetError())
+	// if qJob.GetError() != "" {
+	// 	t.Errorf("ERROR: %v\n", qJob.GetError())
 	// }
 
-	// if sysJob.GetStatus() == "" {
+	// if qJob.GetStatus() == "" {
 	// 	t.Errorf("ERROR: System Job status is blank, but should be set.\n")
 	// }
 
-	// if sysJob.GetEndedAt() == "" {
+	// if qJob.GetEndedAt() == "" {
 	// 	t.Errorf("ERROR: System Job endded at is blank, but should be set.\n")
 	// }
 }
