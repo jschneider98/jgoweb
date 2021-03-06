@@ -2,19 +2,19 @@ package generator
 
 import (
 	"fmt"
-	"strings"
 	"github.com/jschneider98/jgoweb/util"
+	"strings"
 )
 
 type ReportViewGenerator struct {
 	BaseStructName string `json:"model_name"`
-	InstanceName string `json:"instance_name"`
-	StructAcronym string
-	Fields []string
+	InstanceName   string `json:"instance_name"`
+	StructAcronym  string
+	Fields         []string
 }
 
 //
-func NewReportViewGenerator(baseStructName string, fields []string) (*ReportViewGenerator) {
+func NewReportViewGenerator(baseStructName string, fields []string) *ReportViewGenerator {
 	return &ReportViewGenerator{BaseStructName: baseStructName, Fields: fields}
 }
 
@@ -29,10 +29,9 @@ func (rvg *ReportViewGenerator) MakeStructInstanceName() {
 }
 
 //
-func  (rvg *ReportViewGenerator) IsHiddenField(fieldName string) bool {
+func (rvg *ReportViewGenerator) IsHiddenField(fieldName string) bool {
 	return fieldName == "Id" || fieldName == "AccountId" || fieldName == "CreatedAt" || fieldName == "UpdatedAt" || fieldName == "DeletedAt"
 }
-
 
 //
 func (rvg *ReportViewGenerator) GetField(str string) string {
@@ -40,16 +39,16 @@ func (rvg *ReportViewGenerator) GetField(str string) string {
 
 	// alias
 	if len(parts) > 1 {
-		return util.ToCamelCase( strings.ReplaceAll(parts[1], `"`, "") )
+		return util.ToCamelCase(strings.ReplaceAll(parts[1], `"`, ""))
 	}
 
 	parts = strings.Split(str, ".")
 
 	if len(parts) > 1 {
-		return util.ToCamelCase( strings.ReplaceAll(parts[1], `"`, "") )
+		return util.ToCamelCase(strings.ReplaceAll(parts[1], `"`, ""))
+	} else {
+		return util.ToCamelCase(strings.ReplaceAll(parts[0], `"`, ""))
 	}
-
-	return str
 }
 
 //
@@ -161,7 +160,7 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 
 	for key := range rvg.Fields {
 		fieldName := rvg.GetField(rvg.Fields[key])
-		fields = append(fields, fmt.Sprintf("\t\t\t\t%s: \"\"", fieldName) )
+		fields = append(fields, fmt.Sprintf("\t\t\t\t%s: \"\"", fieldName))
 	}
 
 	fieldCode := strings.Join(fields, ",\n")
@@ -199,15 +198,21 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 				var tmp = [];
 
 				for (var key in this.filter) {
-					tmp.push(` + "`${key}=${this.filter[key]}`" + `);
+					tmp.push(`+"`${key}=${this.filter[key]}`"+`);
 				}
 
 				this.query = encodeURI("?" + tmp.join("&"));
 			},
 			getData: function() {
-				var url = "/ajax_%s" + this.query + encodeURI(` + "`&offset=${this.offset}`" + `);
+				var url = "/ajax_%s" + this.query + encodeURI(`+"`&offset=${this.offset}`"+`);
 
-				axios({ method: "GET", "url": url }).then(result => {
+				fetch(url).then(response => {
+					if (!response.ok) {
+						throw Error(response.error);
+					}
+
+					return response.json();
+				}).then(result => {
 					this.loading = false;
 					this.results = (result.data != null) ? result.data : [];
 
@@ -222,7 +227,13 @@ func (rvg *ReportViewGenerator) GetViewScriptCode() string {
 			getCount: function() {
 				var url = "/ajax_%s" + this.query + encodeURI("&count=true");
 
-				axios({ method: "GET", "url": url }).then(result => {
+				fetch(url).then(response => {
+					if (!response.ok) {
+						throw Error(response.error);
+					}
+
+					return response.json();
+				}).then(result => {
 					this.count = (result.data != null) ? result.data : 0;
 				}, error => {
 					this.loading = false;
