@@ -2,19 +2,19 @@ package generator
 
 import (
 	"fmt"
-	"strings"
 	"github.com/jschneider98/jgoweb/util"
+	"strings"
 )
 
 type ReportGenerator struct {
 	BaseStructName string `json:"model_name"`
-	InstanceName string `json:"instance_name"`
-	StructAcronym string
-	Fields []string
+	InstanceName   string `json:"instance_name"`
+	StructAcronym  string
+	Fields         []string
 }
 
 //
-func NewReportGenerator(baseStructName string, fields []string) (*ReportGenerator) {
+func NewReportGenerator(baseStructName string, fields []string) *ReportGenerator {
 	return &ReportGenerator{BaseStructName: baseStructName, Fields: fields}
 }
 
@@ -76,9 +76,9 @@ func (rg *ReportGenerator) GetField(str string) string {
 
 	if len(parts) > 1 {
 		return util.ToCamelCase(parts[1])
+	} else {
+		return util.ToCamelCase(parts[0])
 	}
-
-	return str
 }
 
 func (rg *ReportGenerator) GetRooteField(str string) string {
@@ -91,11 +91,10 @@ func (rg *ReportGenerator) GetStructCode() string {
 	var code string
 
 	code += fmt.Sprintf(
-"type %sReport struct {\n" +
-"	Ctx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n" +
-"	User *models.User\n" +
-"}\n\n", rg.BaseStructName)
-
+		"type %sReport struct {\n"+
+			"	Ctx jgoweb.ContextInterface `json:\"-\" validate:\"-\"`\n"+
+			"	User *models.User\n"+
+			"}\n\n", rg.BaseStructName)
 
 	code += fmt.Sprintf("type %sResult struct {\n", rg.BaseStructName)
 
@@ -161,10 +160,8 @@ func (r *%sReport) Run(params url.Values) ([]%sResult, error) {
 
 `, rg.BaseStructName, rg.BaseStructName, rg.BaseStructName)
 
-		return code
-	}
-
-
+	return code
+}
 
 //
 func (rg *ReportGenerator) GetCountCode() string {
@@ -200,9 +197,8 @@ func (r *%sReport) GetCount(params url.Values) (int, error) {
 
 `, rg.BaseStructName)
 
-		return code
+	return code
 }
-
 
 //
 func (rg *ReportGenerator) GetQueryCode() string {
@@ -215,13 +211,13 @@ func (rg *ReportGenerator) GetQueryCode() string {
 		placeholderStr += fmt.Sprintf("\t~%s~\n", field)
 	}
 
-	code += fmt.Sprintf("\n" +
-"//\n" +
-"func (r *%sReport) GetQuery(params url.Values) (string, []interface{}, error) {\n" +
-"	var query string\n\n" +
-"	strParams, qParams := r.GetQueryParams(params)\n\n" +
-"	query = util.NamedSprintf(`\n" +
-`SELECT
+	code += fmt.Sprintf("\n"+
+		"//\n"+
+		"func (r *%sReport) GetQuery(params url.Values) (string, []interface{}, error) {\n"+
+		"	var query string\n\n"+
+		"	strParams, qParams := r.GetQueryParams(params)\n\n"+
+		"	query = util.NamedSprintf(`\n"+
+		`SELECT
 ~fields~
 < Query Body Here>
 WHERE account_id = @AccountId@
@@ -229,16 +225,15 @@ WHERE account_id = @AccountId@
 ~order_by~
 ~limit~
 ~offset~
-`+ "`, strParams)" +
-`
+`+"`, strParams)"+
+		`
 	return util.PrepareQuery(query, qParams)
 }
 
 `, rg.BaseStructName, placeholderStr)
 
-		return code
+	return code
 }
-
 
 //
 func (rg *ReportGenerator) GetParamsCode() string {
@@ -290,9 +285,9 @@ func (r *%sReport) GetQueryParams(params url.Values) (map[string]string, map[str
 `
 
 	code += fmt.Sprintf(`
-		strParams["~fields~"] = ` + "`" + `
+		strParams["~fields~"] = `+"`"+`
 %s
-` + "`", fieldStr)
+`+"`", fieldStr)
 
 	code += `
 		strParams["~order_by~"] = "<ORDER BY>"
