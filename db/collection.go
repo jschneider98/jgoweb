@@ -7,6 +7,8 @@ import (
 	"github.com/jschneider98/jgoweb/config"
 	_ "github.com/lib/pq"
 	"math/rand"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -30,7 +32,16 @@ var NewDb = func(dbConns []config.DbConnOptions) (*Collection, error) {
 	var connMaxLifetime int
 
 	for index, connInfo := range dbConns {
-		conn, err := dbr.Open("postgres", connInfo.Dsn, nil)
+		var dsn string
+		dsnParts := strings.Split(connInfo.Dsn, ":")
+
+		if len(dsnParts) == 2 && dsnParts[0] == "env" {
+			dsn = os.Getenv(dsnParts[1])
+		} else {
+			dsn = connInfo.Dsn
+		}
+
+		conn, err := dbr.Open("postgres", dsn, nil)
 
 		// defaults
 		maxOpenConns = 100
