@@ -116,10 +116,10 @@ func StartAll(router *web.Router) {
 func GetWebServer(router *web.Router, host string) *http.Server {
 
 	server := &http.Server{
-		ReadTimeout:  12 * time.Second,
-		WriteTimeout: 12 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      gziphandler.GzipHandler(http.TimeoutHandler(router, 10*time.Second, "Gateway Timeout\n")),
+		ReadTimeout:  time.Duration(appConfig.Server.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(appConfig.Server.WriteTimeout) * time.Second,
+		IdleTimeout:  time.Duration(appConfig.Server.IdleTimeout) * time.Second,
+		Handler:      gziphandler.GzipHandler(http.TimeoutHandler(router, time.Duration(appConfig.Server.HandlerTimeout)*time.Second, "Gateway Timeout\n")),
 	}
 
 	server.Addr = host
