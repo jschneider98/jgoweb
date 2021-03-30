@@ -26,13 +26,17 @@ type Config struct {
 
 // Server configuratoin
 type ServerOptions struct {
-	Mode        string `json:"mode"`
-	SessionName string `json:"sessionName"`
-	SessionKey  string `json:"sessionKey"`
-	EnableSsl   bool   `json:"enableSsl"`
-	HttpsHost   string `json:"httpsHost"`
-	HttpHost    string `json:"httpHost"`
-	HealthHost  string `json:"healthHost"`
+	Mode           string `json:"mode"`
+	SessionName    string `json:"sessionName"`
+	SessionKey     string `json:"sessionKey"`
+	EnableSsl      bool   `json:"enableSsl"`
+	HttpsHost      string `json:"httpsHost"`
+	HttpHost       string `json:"httpHost"`
+	HealthHost     string `json:"healthHost"`
+	ReadTimeout    int    `json:"readTimeout"`
+	WriteTimeout   int    `json:"writeTimeout"`
+	IdleTimeout    int    `json:"idleTimeout"`
+	HandlerTimeout int    `json:"handlerTimeout"`
 }
 
 // DB Connection Strings
@@ -156,6 +160,22 @@ func (c *Config) EnsureBasicOptions() {
 
 	if c.Server.SessionKey == "" {
 		c.Server.SessionKey = "u46IpCV9y5Vjsi5YvODJEhgOY8m9JVE4"
+	}
+
+	if c.Server.ReadTimeout == 0 {
+		c.Server.ReadTimeout = 12
+	}
+
+	if c.Server.WriteTimeout == 0 {
+		c.Server.WriteTimeout = 12
+	}
+
+	if c.Server.IdleTimeout == 0 {
+		c.Server.IdleTimeout = 30
+	}
+
+	if c.Server.HandlerTimeout == 0 {
+		c.Server.HandlerTimeout = 10
 	}
 
 	// Default acme URL
