@@ -70,15 +70,13 @@ func (jqs *JobQueueNativeStore) GetRunningJobs() uint64 {
 		LIMIT 1
 	`
 
-	stmt, err := jqs.Ctx.Prepare(query)
+	stmt := jqs.Ctx.SelectBySql(query)
+
+	_, err := stmt.Load(&count)
 
 	if err != nil {
 		return 10000000
 	}
-
-	defer stmt.Close()
-
-	stmt.QueryRow().Scan(&count)
 
 	return count
 }
