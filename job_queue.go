@@ -12,7 +12,6 @@ import (
 // @TODO: Add cancel Job functionality (like 80% of the way there already with Job.Quit())
 
 type JobQueue struct {
-	MaxConcurrency  uint64
 	ProcessInterval int
 	SchedJob        *scheduler.Job
 	Debug           bool
@@ -25,11 +24,10 @@ type JobQueue struct {
 //
 func NewJobQueue(ctx ContextInterface, dataStore JobQueueStoreInterface, factory JobFactoryInterface) (*JobQueue, error) {
 	jq := &JobQueue{Ctx: ctx, dataStore: dataStore, factory: factory}
-	jq.MaxConcurrency = 50
 	jq.jobs = make([]JobInterface, 0)
 
 	// Num seconds to process jobs
-	jq.ProcessInterval = 60
+	jq.ProcessInterval = 5
 
 	return jq, nil
 }
@@ -44,27 +42,6 @@ func (jq *JobQueue) Run() error {
 
 	fn := func() {
 		err := jq.ProcessJobs()
-
-		if err != nil {
-			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
-		}
-	}
-
-	jq.SchedJob, err = scheduler.Every(jq.ProcessInterval).Seconds().Run(fn)
-
-	return err
-}
-
-// Same as normal, but worker will process only one job at a time
-func (jq *JobQueue) RunWorker() error {
-	var err error
-
-	if jq.SchedJob != nil {
-		jq.Stop()
-	}
-
-	fn := func() {
-		err := jq.WorkerProcessJobs()
 
 		if err != nil {
 			log.Printf("ERROR: %s %s", util.WhereAmI(), err)
@@ -92,29 +69,8 @@ func (jq *JobQueue) EnqueueJob(job *QueueJob) error {
 }
 
 //
-func (jq *JobQueue) WorkerProcessJobs() error {
-	qJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
-
-	if err != nil {
-		return err
-	}
-
-	if jq.Debug {
-		log.Printf("DEBUG:\n%s\nNum jobs to run: %v\n", util.WhereAmI(), len(qJobs))
-	}
-
-	if qJobs != nil && len(qJobs) > 0 {
-		// NOTE: Use distinct DB session per job
-		qJobs[0].Ctx = jq.NewContext()
-		go jq.processJob(qJobs[0], jq.Debug)
-	}
-
-	return nil
-}
-
-//
 func (jq *JobQueue) ProcessJobs() error {
-	qJobs, err := jq.dataStore.GetNextJobs(jq.MaxConcurrency)
+	qJobs, err := jq.dataStore.GetNextJobs()
 
 	if err != nil {
 		return err
