@@ -25,7 +25,8 @@ func TestJobQueueProcessJob(t *testing.T) {
 		t.Errorf("ERROR: %v", err)
 	}
 
-	jq.MaxConcurrency = 3
+	jqs.MaxConcurrency = 3
+	jqs.MaxBatch = 3
 	jq.Debug = true
 
 	// Need a fresh session
