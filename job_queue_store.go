@@ -1,38 +1,57 @@
 package jgoweb
 
+import (
+	"runtime"
+)
+
 type JobQueueStoreInterface interface {
-	GetNextJobs(uint64) ([]QueueJob, error)
+	GetNextJobs() ([]QueueJob, error)
 	EnqueueJob(*QueueJob) error
 }
 
 type JobQueueNativeStore struct {
-	Ctx ContextInterface
+	Ctx            ContextInterface
+	MaxConcurrency uint64
+	MaxBatch       uint64
+	MaxMem         uint64
 }
 
 //
 func NewJobQueueNativeStore(ctx ContextInterface) (*JobQueueNativeStore, error) {
 	jqs := &JobQueueNativeStore{Ctx: ctx}
+	jqs.MaxConcurrency = 100
+	jqs.MaxBatch = 10
+
+	// 0 = unlimited, value should be in MB
+	jqs.MaxMem = 0
 
 	return jqs, nil
 }
 
 //
-func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]QueueJob, error) {
+func (jqs *JobQueueNativeStore) GetNextJobs() ([]QueueJob, error) {
 	var err error
 	results := make([]QueueJob, 0)
 
-	// force a default max
-	if maxConcurrency == 0 {
-		maxConcurrency = 100
+	if jqs.IsMemExceeded() {
+		return results, nil
+	}
+
+	if jqs.MaxBatch > jqs.MaxConcurrency {
+		jqs.MaxBatch = jqs.MaxConcurrency
 	}
 
 	runningJobs := jqs.GetRunningJobs()
 
-	if runningJobs >= maxConcurrency {
+	if runningJobs >= jqs.MaxConcurrency {
 		return results, nil
 	}
 
-	limit := maxConcurrency - runningJobs
+	limit := jqs.MaxConcurrency - runningJobs
+
+	if limit > jqs.MaxBatch {
+		limit = jqs.MaxBatch
+	}
 
 	stmt := jqs.Ctx.Select("*").
 		From("queue.jobs").
@@ -51,11 +70,34 @@ func (jqs *JobQueueNativeStore) GetNextJobs(maxConcurrency uint64) ([]QueueJob, 
 
 //
 func (jqs *JobQueueNativeStore) EnqueueJob(job *QueueJob) error {
+
 	if job.Ctx == nil {
 		job.Ctx = jqs.Ctx
 	}
 
 	return job.Save()
+}
+
+//
+func (jqs *JobQueueNativeStore) IsMemExceeded() bool {
+
+	if jqs.MaxMem == 0 {
+		return false
+	}
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	if jqs.ByteToMb(m.Alloc) >= jqs.MaxMem {
+		return true
+	}
+
+	return false
+}
+
+//
+func (jqs *JobQueueNativeStore) ByteToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }
 
 //
