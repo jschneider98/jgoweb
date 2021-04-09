@@ -15,7 +15,7 @@ func TestJobQueueNativeStoreGetNextJobs(t *testing.T) {
 		t.Errorf("ERROR: (%v)", err)
 	}
 
-	_, err = jqs.GetNextJobs(100)
+	_, err = jqs.GetNextJobs()
 
 	if err != nil {
 		t.Errorf("ERROR: (%v)", err)
