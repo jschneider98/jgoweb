@@ -118,7 +118,9 @@ func (jq *JobQueue) processJob(sj QueueJob, debug bool) error {
 		return nil
 	}
 
-	job, err := jq.factory.New(qJob.Ctx, qJob.GetName(), params)
+	// New job process needs it's own context
+	ctx = jq.NewContext()
+	job, err := jq.factory.New(ctx, qJob.GetName(), params)
 
 	if err != nil {
 		err = qJob.Fail(err)
