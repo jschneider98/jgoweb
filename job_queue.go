@@ -119,7 +119,7 @@ func (jq *JobQueue) processJob(sj QueueJob, debug bool) error {
 	}
 
 	// New job process needs it's own context
-	ctx = jq.NewContext()
+	ctx := jq.NewContext()
 	job, err := jq.factory.New(ctx, qJob.GetName(), params)
 
 	if err != nil {
@@ -145,8 +145,6 @@ func (jq *JobQueue) processJob(sj QueueJob, debug bool) error {
 
 		return nil
 	}
-
-	// qJob.Ctx.SetDbSession(qJob.Ctx.GetDbSession().Connection.NewSession(nil))
 
 	err = job.Run()
 
