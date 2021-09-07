@@ -22,6 +22,7 @@ type ContextInterface interface {
 	Update(table string) *dbr.UpdateStmt
 	OptionalBegin() (*dbr.Tx, error)
 	OptionalCommit(tx *dbr.Tx) error
+	FinishTransaction() error
 	DeleteFrom(table string) *dbr.DeleteStmt
 	SetUser(user *User)
 	SessionGetString(key string) (string, error)
