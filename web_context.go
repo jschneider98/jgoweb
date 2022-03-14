@@ -461,6 +461,7 @@ func (ctx *WebContext) SetJobSuccessRollback(rw web.ResponseWriter, req *web.Req
 // Get endpoint for route (i.e., path = "/search/other/etc", endpoint = "search")
 func (ctx *WebContext) LoadEndPoint(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	matches := strings.Split(req.URL.Path, "/")
+	ctx.EndPoint = req.URL.Path
 
 	if len(matches) >= 2 {
 		ctx.EndPoint = matches[1]
@@ -468,7 +469,12 @@ func (ctx *WebContext) LoadEndPoint(rw web.ResponseWriter, req *web.Request, nex
 
 	// Special ajax case
 	if ctx.EndPoint == "ajax" && len(matches) >= 3 {
-		ctx.EndPoint = matches[2]
+		ctx.EndPoint = fmt.Sprintf("%s_%s", matches[1], matches[2])
+	}
+
+	// Special api case
+	if ctx.EndPoint == "api" && len(matches) >= 4 {
+		ctx.EndPoint = fmt.Sprintf("%s_%s_%s", matches[1], matches[2], matches[3])
 	}
 
 	next(rw, req)
