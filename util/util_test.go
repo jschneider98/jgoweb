@@ -3,8 +3,8 @@
 package util
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 //
@@ -36,5 +36,26 @@ func TestWhereAmI(t *testing.T) {
 
 	if parts[0] != "util_test" {
 		t.Errorf("WhereAmI doesn't know where I am. Expected: 'util_test' Got: '%s'", parts[0])
+	}
+}
+
+//
+func TestHtmlTemplateToString(t *testing.T) {
+	type Inventory struct {
+		Material string
+		Count    uint
+	}
+
+	sweaters := Inventory{"wool", 17}
+	tmpl := "{{{.Count}}} items are made of {{{.Material}}}"
+
+	result, err := HtmlTemplateToString(tmpl, sweaters)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if result != "17 items are made of wool" {
+		t.Errorf("Incorrect string: %s", result)
 	}
 }
