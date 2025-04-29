@@ -63,7 +63,6 @@ func GetDbCollection() *jgoWebDb.Collection {
 	return db
 }
 
-//
 func NewContext(db *jgoWebDb.Collection) *WebContext {
 	return &WebContext{Db: db, Validate: jgovalidator.GetValidator()}
 }
@@ -74,27 +73,22 @@ func (ctx *WebContext) SetUser(user *User) {
 	ctx.User = user
 }
 
-//
 func (ctx *WebContext) SessionGetString(key string) (string, error) {
 	return ctx.Session.GetString(key)
 }
 
-//
 func (ctx *WebContext) SessionPutString(rw web.ResponseWriter, key string, value string) {
 	ctx.Session.PutString(rw, key, value)
 }
 
-//
 func (ctx *WebContext) GetDb() *jgoWebDb.Collection {
 	return ctx.Db
 }
 
-//
 func (ctx *WebContext) GetDbSession() *dbr.Session {
 	return ctx.DbSess
 }
 
-//
 func (ctx *WebContext) GetValidator() *validator.Validate {
 
 	if ctx.Validate == nil {
@@ -104,14 +98,12 @@ func (ctx *WebContext) GetValidator() *validator.Validate {
 	return ctx.Validate
 }
 
-//
 func (ctx *WebContext) SetDbSession(dbSess *dbr.Session) {
 	ctx.DbSess = dbSess
 }
 
 // ******* Db Methods *******
 
-//
 func (ctx *WebContext) Begin() (*dbr.Tx, error) {
 	var err error
 
@@ -120,7 +112,6 @@ func (ctx *WebContext) Begin() (*dbr.Tx, error) {
 	return ctx.Tx, err
 }
 
-//
 func (ctx *WebContext) Commit() error {
 
 	if ctx.Tx == nil {
@@ -133,7 +124,6 @@ func (ctx *WebContext) Commit() error {
 	return err
 }
 
-//
 func (ctx *WebContext) Rollback() error {
 
 	if ctx.Tx == nil {
@@ -146,7 +136,6 @@ func (ctx *WebContext) Rollback() error {
 	return err
 }
 
-//
 func (ctx *WebContext) Select(column ...string) *dbr.SelectBuilder {
 	var stmt *dbr.SelectBuilder
 
@@ -159,7 +148,6 @@ func (ctx *WebContext) Select(column ...string) *dbr.SelectBuilder {
 	return stmt
 }
 
-//
 func (ctx *WebContext) SelectBySql(query string, value ...interface{}) *dbr.SelectBuilder {
 	var stmt *dbr.SelectBuilder
 
@@ -172,7 +160,6 @@ func (ctx *WebContext) SelectBySql(query string, value ...interface{}) *dbr.Sele
 	return stmt
 }
 
-//
 func (ctx *WebContext) Prepare(query string) (*sql.Stmt, error) {
 
 	if ctx.Tx != nil {
@@ -182,7 +169,6 @@ func (ctx *WebContext) Prepare(query string) (*sql.Stmt, error) {
 	}
 }
 
-//
 func (ctx *WebContext) InsertBySql(query string, value ...interface{}) *dbr.InsertStmt {
 	var stmt *dbr.InsertStmt
 
@@ -195,7 +181,6 @@ func (ctx *WebContext) InsertBySql(query string, value ...interface{}) *dbr.Inse
 	return stmt
 }
 
-//
 func (ctx *WebContext) InsertInto(table string) *dbr.InsertStmt {
 	var stmt *dbr.InsertStmt
 
@@ -208,7 +193,6 @@ func (ctx *WebContext) InsertInto(table string) *dbr.InsertStmt {
 	return stmt
 }
 
-//
 func (ctx *WebContext) UpdateBySql(query string, value ...interface{}) *dbr.UpdateStmt {
 	var stmt *dbr.UpdateStmt
 
@@ -221,7 +205,6 @@ func (ctx *WebContext) UpdateBySql(query string, value ...interface{}) *dbr.Upda
 	return stmt
 }
 
-//
 func (ctx *WebContext) Update(table string) *dbr.UpdateStmt {
 	var stmt *dbr.UpdateStmt
 
@@ -234,7 +217,6 @@ func (ctx *WebContext) Update(table string) *dbr.UpdateStmt {
 	return stmt
 }
 
-//
 func (ctx *WebContext) DeleteFrom(table string) *dbr.DeleteStmt {
 	var stmt *dbr.DeleteStmt
 
@@ -255,6 +237,17 @@ func (ctx *WebContext) OptionalBegin() (*dbr.Tx, error) {
 	}
 
 	return ctx.DbSess.Begin()
+}
+
+// Rollback if there's no tx in the context
+func (ctx *WebContext) OptionalRollback(tx *dbr.Tx) error {
+
+	if ctx.Tx != nil {
+		ctx.RollbackTransaction = true
+		return nil
+	}
+
+	return tx.Commit()
 }
 
 // Commit if there's no tx in the context
@@ -334,7 +327,6 @@ func (ctx *WebContext) JobWarning(title string, err error, codeList ...string) {
 	ctx.UpdateWebMetrics(code)
 }
 
-//
 func (ctx *WebContext) UpdateWebMetrics(code string) {
 
 	if webReqHistogram != nil {
