@@ -1,4 +1,4 @@
-package kdc
+package util
 
 import (
 	"fmt"
