@@ -1,17 +1,16 @@
 package util
 
 import (
-	"time"
 	"fmt"
-	"strconv"
 	"os"
+	"strconv"
+	"time"
 )
 
 var Debug bool
 
-//
 func Debugln(a ...interface{}) (int, error) {
-	
+
 	if Debugging() {
 		return fmt.Println(a...)
 	}
@@ -19,9 +18,8 @@ func Debugln(a ...interface{}) (int, error) {
 	return 0, nil
 }
 
-//
 func Debugf(format string, a ...interface{}) (int, error) {
-	
+
 	if Debugging() {
 		return fmt.Printf(format, a...)
 	}
@@ -31,7 +29,7 @@ func Debugf(format string, a ...interface{}) (int, error) {
 
 // Use defer to test method executuion time
 func DebugTimeTrack(start time.Time, name string) {
-	
+
 	if !Debugging() {
 		return
 	}
@@ -40,29 +38,27 @@ func DebugTimeTrack(start time.Time, name string) {
 	Debugf("%s took %s\n", name, elapsed)
 }
 
-//
 func SetDebug(debug bool) {
 	Debug = debug
 }
 
-//
 func Debugging() bool {
 
 	if Debug {
 		return true
 	}
 
-	logLevelStr := os.Getenv("JGOLOGLEVEL")
+	logLevelStr := os.Getenv("LOG_LEVEL")
 
 	if logLevelStr == "" {
 		return false
 	}
 
-	 logLevel, err := strconv.Atoi(logLevelStr)
+	logLevel, err := strconv.Atoi(logLevelStr)
 
-	 if err != nil {
-	 	return false
-	 }
+	if err != nil {
+		return false
+	}
 
-	 return logLevel <= 2
+	return logLevel <= 2
 }

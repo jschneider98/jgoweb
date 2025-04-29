@@ -18,8 +18,9 @@ func Log() *log.Logger {
 
 	Logger.SetFormatter(&log.JSONFormatter{})
 
-	// @TEMP
-	Logger.SetLevel(log.DebugLevel)
+	if Debugging() {
+		Logger.SetLevel(log.DebugLevel)
+	}
 
 	return Logger
 }
