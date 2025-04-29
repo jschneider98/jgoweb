@@ -21,6 +21,7 @@ type ContextInterface interface {
 	UpdateBySql(query string, value ...interface{}) *dbr.UpdateStmt
 	Update(table string) *dbr.UpdateStmt
 	OptionalBegin() (*dbr.Tx, error)
+	OptionalRollback(tx *dbr.Tx) error
 	OptionalCommit(tx *dbr.Tx) error
 	FinishTransaction() error
 	DeleteFrom(table string) *dbr.DeleteStmt
