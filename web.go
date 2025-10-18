@@ -4,6 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/alexedwards/scs"
 	"github.com/gocraft/health"
 	"github.com/gocraft/web"
@@ -12,9 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
-	"net/http"
-	"os"
-	"time"
 )
 
 var healthStream = health.NewStream()
@@ -32,22 +33,18 @@ var (
 	)
 )
 
-//
 func SetConfigPath(path string) {
 	appConfigPath = path
 }
 
-//
 func GetConfigPath() string {
 	return appConfigPath
 }
 
-//
 func SetConfigEnvVar(envVar string) {
 	appEnvVar = envVar
 }
 
-//
 func GetConfigEnvVar() string {
 	return appEnvVar
 }
@@ -67,7 +64,6 @@ func InitConfig() {
 	}
 }
 
-//
 func GetAppConfig() *config.Config {
 	return appConfig
 }
@@ -85,13 +81,11 @@ func InitMetrics() {
 	prometheus.Register(webReqHistogram)
 }
 
-//
 func Start(router *web.Router) {
 	InitConfig()
 	StartAll(router)
 }
 
-//
 func StartAll(router *web.Router) {
 	InitConfig()
 	InitDbCollection()
@@ -112,7 +106,6 @@ func StartAll(router *web.Router) {
 	}
 }
 
-//
 func GetWebServer(router *web.Router, host string) *http.Server {
 
 	server := &http.Server{
@@ -137,7 +130,6 @@ func StartHealthSink(hostname string) {
 	sink.StartServer(hostname)
 }
 
-//
 func StartHttpServer(router *web.Router, host string) {
 	server := GetWebServer(router, host)
 
@@ -199,4 +191,8 @@ func StartHttpsServer(router *web.Router) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func GetSessionManager() *scs.Manager {
+	return sessionManager
 }
